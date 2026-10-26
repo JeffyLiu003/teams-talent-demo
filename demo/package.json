@@ -16,7 +16,7 @@
     "stop:talent": "node scripts/stop.mjs --talent-only",
     "dev": "npm run build && npm start",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/domain.test.ts tests/projects.test.ts tests/talent-projection.test.ts tests/project-overview.test.ts tests/project-work.test.ts tests/portability.test.ts",
+    "test": "tsx --test tests/domain.test.ts tests/projects.test.ts tests/talent-projection.test.ts tests/project-overview.test.ts tests/project-work.test.ts tests/portability.test.ts tests/terminal-launcher.test.ts",
     "test:e2e": "tsx tests/browser.ts",
     "test:projects:e2e": "tsx tests/projects-browser.ts",
     "test:talent:services": "tsx tests/talent-services.ts",

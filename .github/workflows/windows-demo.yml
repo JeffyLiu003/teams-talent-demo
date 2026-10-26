@@ -1,0 +1,44 @@
+name: Windows demo
+
+on:
+  push:
+    paths:
+      - 'demo/**'
+      - '.github/workflows/windows-demo.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-demo:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: demo
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.14.1'
+          cache: npm
+          cache-dependency-path: demo/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Exercise production Windows launcher with a local probe tool
+        timeout-minutes: 4
+        env:
+          WINDOWS_TERMINAL_RUNTIME_REQUIRED: '1'
+        run: node --import tsx tests/windows-terminal-runtime.ts
+      - name: Upload process and argument evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-terminal-runtime
+          path: demo/test-results/windows-terminal-runtime.json
+          if-no-files-found: warn
+          retention-days: 7

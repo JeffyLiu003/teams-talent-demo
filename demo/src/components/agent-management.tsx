@@ -101,7 +101,7 @@ function OpenCodeDetails({ status }: { status: NativeStatus }) {
   const { role, run, showText } = useDemo();
   return <div className="agent-maintenance-detail"><Space><strong>OpenCode</strong><Origin kind="native" /></Space>
     <Descriptions column={1} size="small" items={[
-      { key: 'status', label: '本机状态', children: status.opencode.installed ? '已发现可执行命令' : '当前 PATH 中未发现 OpenCode' },
+      { key: 'status', label: '本机状态', children: status.opencode.installed ? '已发现可执行命令' : status.opencode.unsupportedReason ?? '当前 PATH 中未发现 OpenCode' },
       { key: 'version', label: '版本', children: status.opencode.version ?? '未取得' },
       { key: 'entry', label: '程序入口', children: status.opencode.path ?? '未配置' },
     ]} />
@@ -173,16 +173,17 @@ export function AgentManagement({ nativeControls }: { nativeControls: ReactNode 
               ],
               startup: {
                 cwd: current.icode.workspace,
-                terminals: [{ id: 'native', name: tool === 'icode' && current.icode.active ? current.icode.active.application ?? '已有终端' : '本机 Terminal' }], selectedTerminal: 'native',
+                terminals: [{ id: 'native', name: tool === 'icode' && current.icode.active ? current.icode.active.application ?? '已有终端' : current.terminalName ?? '系统终端' }], selectedTerminal: 'native',
                 launchLabel: tool === 'icode' && current.icode.active ? '打开已运行会话' : `启动 ${names[tool]}`,
-                hint: tool === 'icode' && current.icode.active ? `历史会话由 ${current.icode.active.application ?? '已有终端'} 持有；打开现有实例继续。恢复与核验入口在实例管理中。` : '使用演示项目的固定工作目录；启动实际本机工具。',
-                disabledReason: found.installed ? undefined : '当前设备尚未发现此工具，配置入口提供接入示例。',
+                hint: tool === 'icode' && current.icode.active ? `历史会话由 ${current.icode.active.application ?? '已有终端'} 持有；请在原终端继续，未重复启动。恢复与核验入口在实例管理中。` : '使用演示项目的固定工作目录；启动实际本机工具。',
+                disabledReason: tool === 'icode' && current.icode.active && !current.icode.active.application ? '请在原终端继续，未重复启动；当前系统没有可靠的窗口定位。' : found.installed ? undefined : tool === 'opencode' && current.opencode.unsupportedReason ? current.opencode.unsupportedReason : '当前设备尚未发现此工具，配置入口提供接入示例。',
                 async chooseDirectory() { throw new Error('演示固定使用项目工作目录；原 Teams 的目录选择服务尚未接入'); },
                 async selectTerminal() {},
                 async launch(input) {
                   if (input.cwd !== current.icode.workspace) throw new Error('演示仅支持当前项目工作目录，请恢复显示的项目路径后启动');
                   const fresh = await getTools();
                   if (tool === 'icode' && fresh.icode.active) {
+                    if (!fresh.icode.active.application) throw new Error('请在原终端继续，未重复启动；当前系统没有可靠的窗口定位。');
                     const receipt = await native(latest.current.role, 'focus');
                     return { message: receipt.note ?? '已打开现有原生会话。' };
                   }

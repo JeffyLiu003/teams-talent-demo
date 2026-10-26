@@ -1,9 +1,10 @@
+import { createTerminalLauncher, findExecutable, formatShellCommand, posixQuote } from './terminal-launcher.js';
 import { userSkillExamples } from '../src/project-skill-examples.js';
 import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import { access, readFile, mkdir, writeFile, realpath } from 'node:fs/promises';
 import { constants } from 'node:fs';
-import { delimiter, join } from 'node:path';
+import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { binary, workspace, runtimeDir, sessionId, codeRoot, root, origin } from './config.js';
@@ -13,7 +14,8 @@ const execute = promisify(execFile);
 let verification: Record<string, unknown> | null = null;
 let verifying: Promise<Record<string, unknown>> | undefined;
 let launchBusy = false;
-const launched = new Map<string, unknown>();
+const launched = new Map<string, { identity: string; result: Promise<unknown> }>();
+const terminalLauncher = createTerminalLauncher();
 class AcpError extends Error { constructor(public method: string, public details: string, message: string) { super('ACP ' + method + ': ' + message); } }
 export async function activeSession() {
   let owner: { session_id: string; pid: number };
@@ -41,22 +43,21 @@ export async function focusActive() {
   await execute('/usr/bin/open', ['-a', active.application], { timeout: 10000 });
   return { status: 'application-focused', application: active.application, pid: active.pid, note: '已打开持有该会话的终端应用，请在其中查看原会话。' };
 }
-export const shellQuote = (value: string) => "'" + value.replaceAll("'", "'\\''") + "'";
+export const shellQuote = posixQuote;
 export async function installed(path: string) { try { await access(path, constants.X_OK); return true; } catch (e) { if ((e as NodeJS.ErrnoException).code === 'ENOENT') return false; throw e; } }
 async function openCodePath() {
-  for (const dir of (process.env.PATH ?? '').split(delimiter).filter(Boolean)) {
-    const path = join(dir, 'opencode'); if (await installed(path)) return await realpath(path);
-  }
-  return null;
+  return findExecutable(process.env.DEMO_OPENCODE_BINARY ?? 'opencode');
 }
 export async function toolsStatus() {
   const iCodeInstalled = await installed(binary), opencode = await openCodePath();
   const version = iCodeInstalled ? (await execute(binary, ['--version'], { timeout: 15000 })).stdout.trim() : null;
-  const openVersion = opencode ? (await execute(opencode, ['--version'], { timeout: 15000 })).stdout.trim() : null;
+  const unsupportedReason = process.platform === 'win32' && opencode && !/\.exe$/i.test(opencode) ? '检测到 OpenCode .cmd/.bat；自动启动需设置 DEMO_OPENCODE_BINARY 为 opencode.exe 的绝对路径。' : undefined;
+  const openVersion = opencode && !unsupportedReason ? (await execute(opencode, ['--version'], { timeout: 15000 })).stdout.trim() : null;
   const sessionPath = join(homedir(), '.chrys/sessions/6b82c08deb3b/session.json');
   let sessionAvailable = false;
   try { await access(sessionPath); sessionAvailable = true; } catch (e) { if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e; }
-  return { icode: { installed: iCodeInstalled, path: binary, version, workspace, sessionId, sessionAvailable, active: await activeSession() }, opencode: { installed: !!opencode, path: opencode, version: openVersion }, verification };
+  const terminalName = process.platform === 'win32' ? process.env.WT_SESSION && process.env.DEMO_WINDOWS_TERMINAL !== 'none' && await findExecutable(process.env.DEMO_WINDOWS_TERMINAL ?? 'wt.exe') ? 'Windows Terminal' : 'PowerShell' : process.platform === 'darwin' ? 'Terminal' : '手工终端（自动启动未支持）';
+  return { terminalName, icode: { installed: iCodeInstalled, path: binary, version, workspace, sessionId, sessionAvailable, active: await activeSession() }, opencode: { installed: !!opencode && !unsupportedReason, path: opencode, version: openVersion, unsupportedReason }, verification };
 }
 async function verify(): Promise<Record<string, unknown>> {
   if (!await installed(binary)) throw new Error('配套 iCode 0.31.0 不存在');
@@ -139,7 +140,7 @@ export function verifySession() {
 export async function foundationSkill() {
   const path = join(root, 'skills/teams-demo-collaboration/SKILL.md');
   const content = await readFile(path, 'utf8');
-  const cli = `${shellQuote(process.execPath)} ${shellQuote(join(root, 'scripts/teams-demo.mjs'))} --endpoint ${shellQuote(origin)}`;
+  const cli = formatShellCommand([process.execPath, join(root, 'scripts/teams-demo.mjs'), '--endpoint', origin]);
   return { path, content, cli, origin: 'demo-local-cli' };
 }
 export async function writeContext(state: DemoState) {
@@ -166,29 +167,28 @@ export async function writeContext(state: DemoState) {
   if (previous === undefined) await atomicText(path, content);
   return { path, sha256: createHash('sha256').update(content).digest('hex'), content, prompt: '请读取并核对这份项目上下文，先不要修改代码：' + path };
 }
-export async function launch(tool: 'icode' | 'opencode', restore: boolean, requestId: string) {
-  if (launched.has(requestId)) return launched.get(requestId);
-  if (launchBusy) throw new Error('启动请求正在执行');
-  if (process.platform !== 'darwin') throw new Error('首版终端启动仅支持 macOS');
+export function launch(tool: 'icode' | 'opencode', restore: boolean, requestId: string) {
+  const identity = JSON.stringify({ tool, restore }), previous = launched.get(requestId);
+  if (previous) { if (previous.identity !== identity) return Promise.reject(new Error('原启动请求标识已用于另一动作')); return previous.result; }
+  if (launchBusy) return Promise.reject(new Error('启动请求正在执行'));
   launchBusy = true;
-  try {
+  const result = (async () => {
     const entry = tool === 'icode' ? binary : await openCodePath();
     if (!entry || !await installed(entry)) throw new Error(tool + ' 尚未安装');
     if (restore && tool !== 'icode') throw new Error('OpenCode 恢复不在本演示范围内');
     if (restore) {
-      await access(join(homedir(), '.chrys/sessions/6b82c08deb3b/session.json'));
+      const history = JSON.parse(await readFile(join(homedir(), '.chrys/sessions/6b82c08deb3b/session.json'), 'utf8'));
+      if (history.meta?.session_id !== sessionId || await realpath(history.meta.primary_cwd) !== await realpath(workspace)) throw new Error('历史会话与当前工作目录不匹配，请在原目录继续');
       const active = await activeSession();
-      if (active) throw new Error('该历史会话正在 ' + (active.application ?? '另一实例') + ' 中运行，请使用打开已运行会话入口');
+      if (active) throw new Error('该历史会话正在 ' + (active.application ?? '另一实例') + ' 中运行，请在原窗口继续；未启动重复实例');
     }
-    const args = tool === 'icode' ? ['-C', workspace, ...(restore ? ['-s', sessionId] : [])] : [workspace];
-    const command = 'cd ' + shellQuote(workspace) + ' && ' + [entry, ...args].map(shellQuote).join(' ');
-    const script = 'on run argv\ntell application "Terminal"\nactivate\ndo script (item 1 of argv)\nend tell\nend run';
-    await execute('/usr/bin/osascript', ['-e', script, command], { timeout: 15000 });
-    const receipt = { requestId, tool, restore, at: new Date().toISOString(), status: 'terminal-requested', command, sessionId: restore ? sessionId : null, note: '已请求 Terminal 打开工具；终端打开不等于模型执行完成。' };
-    launched.set(requestId, receipt);
-    await atomicJson(join(runtimeDir, 'last-launch.json'), receipt);
-    return receipt;
-  } finally { launchBusy = false; }
+    const args = tool === 'icode' ? ['-C', workspace, ...(restore ? ['--session', sessionId] : [])] : [workspace];
+    const launchedTerminal = await terminalLauncher.launch({ executable: entry, directory: workspace, args });
+    const receipt = { requestId, tool, restore, at: new Date().toISOString(), ...launchedTerminal, sessionId: restore ? sessionId : null };
+    await atomicJson(join(runtimeDir, 'last-launch.json'), receipt); return receipt;
+  })().finally(() => { launchBusy = false; });
+  // Retain failures too: an uncertain original request must never silently launch again.
+  launched.set(requestId, { identity, result }); return result;
 }
 
 /** Native work entry: caller has validated and pinned the project directory/configuration. */
@@ -208,14 +208,8 @@ export async function nativeWorkDefaults() {
   return { agent: role.id, agentLabel: role.displayName, model: matches[0].id, modelLabel: matches[0].name };
 }
 export async function startNativeWork(input: { directory: string; agent: string; model: string; sessionId?: string; instruction: string }) {
-  if (process.env.DEMO_NATIVE_DISABLED === '1') throw new Error('此验证实例未开放真实原生启动');
-  if (process.platform !== 'darwin') throw new Error('本机作业终端启动当前仅支持 macOS');
-  if (!await installed(binary)) throw new Error('配套 iCode 尚未安装');
   const args = ['-C', input.directory, '--agent', input.agent, '--model', input.model, ...(input.sessionId ? ['--session', input.sessionId] : [])];
-  const command = 'cd ' + shellQuote(input.directory) + ' && printf ' + shellQuote('%s\n') + ' ' + shellQuote(input.instruction) + ' && ' + [binary, ...args].map(shellQuote).join(' ');
-  const script = 'on run argv\ntell application "Terminal"\nactivate\ndo script (item 1 of argv)\nend tell\nend run';
-  await execute('/usr/bin/osascript', ['-e', script, command], { timeout: 15000 });
-  return { command };
+  return terminalLauncher.launch({ executable: binary, directory: input.directory, args, instruction: input.instruction });
 }
 
 /** Read-only terminal discovery. A title match is not an assertion that context was adopted. */

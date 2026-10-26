@@ -118,10 +118,10 @@ node scripts/teams-demo.mjs operation get --operation-id progress-001
 
 - 公开仓库不附带 iCode、原始会话或原始压缩包；使用者自行安装，可通过 `DEMO_ICODE_BINARY` 指定可执行文件。开发目录仍允许相邻 `runtime/icode-0.31.0/icode`。CardDemo 新作业使用已核验的导入源码快照 `workspace/carddemo-java-1025`；自行提供原始素材后，历史恢复使用 `workspace` 目录及会话 `6b82c08d-eb3b-4bdc-b373-54fed16a7fcd`。原 Teams 快照和新增项目按当前演示角色单独绑定本机 Git 根目录并核验 origin，原只读参考仓不可绑定。不会替换系统命令、clone 或在绑定时写入项目目录。
 - 作业确认使用原生 `-C / --agent / --model`，恢复额外使用 `--session`。启动前只读获取 Teams 上下文并导出工作标识、Skill 路径和 CLI 命令；iCode 0.31.0 无首轮提示参数，未安装生产 Teams 受管 Hook，因此由终端显示指引并在会话中显式读取，不声称自动加载或自动上报。新会话原生 ID 尚待观测，先用稳定 runId 关联；已有历史会话不自动采用当前任务。核验使用真实 ACP initialize、session/list、_session/history、session/load。核验不会调用模型或发送开发提示。
-- 当原生会话已在另一实例运行时，页面显示原生运行进程与终端应用，提供打开现有应用的入口，并明确区分历史读取成功与加载被占用。不会关闭或抢占已有会话。
-- Terminal 启动回执仅表示系统已接受启动请求，原生历史核验单独显示。上下文文件导出不代表 Agent 已读或已采用。
+- 当原生会话已在另一实例运行时，页面显示原生运行进程与终端应用；仅可可靠定位时提供进入入口。Windows 暂不具备可靠窗口定位，提示在原终端继续，不重复恢复。历史读取成功与加载被占用分别呈现，不会关闭或抢占已有会话。
+- Windows 通过 PowerShell EncodedCommand 与 ProcessStartInfo 启动新终端；在 Windows Terminal 中运行服务时可复用当前窗口的新标签页。独立控制台使用 Start-Process，不重定向工具标准句柄。macOS 保持 Terminal 路径。回执展示实际终端，只表示系统已受理，原生历史核验单独显示；上下文文件导出不代表 Agent 已读或已采用。Windows 可见桌面与键盘交互尚未人工验证，配置及探针见 [快速启动](docs/quick-start.md)。
 - 本地桥是本演示的限定实现，不是完整 Teams Gateway/Core，也不宣称实现生产 work-launch manifest 合同。
-- OpenCode 从 PATH 发现可执行程序并探测版本。安装存在时支持启动；当前设备未安装时明确显示未安装。原生配置和会话能力通过标记清楚的接入示例呈现，不修改本机配置。
+- OpenCode 从 PATH 或 `DEMO_OPENCODE_BINARY` 发现程序并探测版本；Windows 自动启动要求 `.exe`，检测到 `.cmd/.bat` 时明确提示配置原生 `opencode.exe` 的绝对路径。当前设备未安装时明确显示未安装。原生配置和会话能力通过标记清楚的接入示例呈现，不修改本机配置。
 - 业务流程、账户验收、运营与 Token 数据、组织连接配置，以及 Talent 构建/分析/评估/发布结果均为 mock。项目多需求分析含两条预置样本；历史证据、静态源码分析、模拟交互与真实本机接入各自标记。
 - 返现验收使用隔离的固定样例：初始欠款 2550.75，消费 120 后返 6，结果 2664.75。首次奖励已领取，不重复展示首刷奖励。
 - 现有安全扫描报告缺失，鉴权及事务边界风险保留。功能验收不会改变生产安全“未验证”状态。

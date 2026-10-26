@@ -13,7 +13,7 @@ import { sessionId, workspace } from '../server/config.js';
 const fixtures = await readFixtures();
 function transport() {
   const calls: any[] = []; let active = false, fail = false;
-  const value: WorkTransport = { defaults: async () => ({agent:'role',agentLabel:'Code',model:'model',modelLabel:'Model'}), history: async () => ({available:true,directory:workspace,title:'history',configuration:{agent:'original-role',agentLabel:'Original',model:'original-model',modelLabel:'Original model'},active:active?{pid:123,application:'Ghostty',tty:'ttys123',terminal:{id:'surface',title:'history',directory:workspace}}:null}), start: async input => { calls.push(input); if(fail)throw new Error('transport uncertain'); }, focus:async input=>{calls.push(input);return {status:'terminal-focused',note:'focused known terminal'};} };
+  const value: WorkTransport = { defaults: async () => ({agent:'role',agentLabel:'Code',model:'model',modelLabel:'Model'}), history: async () => ({available:true,directory:workspace,title:'history',configuration:{agent:'original-role',agentLabel:'Original',model:'original-model',modelLabel:'Original model'},active:active?{pid:123,application:'Ghostty',tty:'ttys123',terminal:{id:'surface',title:'history',directory:workspace}}:null}), start: async input => { calls.push(input); if(fail)throw new Error('transport uncertain'); return { terminal: 'PowerShell' }; }, focus:async input=>{calls.push(input);return {status:'terminal-focused',note:'focused known terminal'};} };
   return {value,calls,setActive:()=>active=true,setFail:()=>fail=true};
 }
 test('work resolves precise Card/Teams/new-project scope and does not substitute Card history', async () => {
@@ -36,8 +36,8 @@ test('one confirmation pins scope/config, repeated request does not launch again
   try {
     const service=new ProjectWorkService(()=>state,fixtures,dir,t.value), before=JSON.stringify(state), plan=await service.plan('member',{projectId:'carddemo',tab:'delivery',nodeId:'develop'});
     const body={requestId:randomUUID(),target:plan.target,action:'new' as const,planToken:plan.planToken};
-    const [one,two]=await Promise.all([service.start('member',body),service.start('member',body)]);assert.deepEqual(one,two);assert.equal(t.calls.length,1);assert.equal(one.sessionId,null);assert.equal(t.calls[0].agent,'role');assert.equal(t.calls[0].sessionId,undefined);
-    const context=await readFile(one.contextPath,'utf8');assert.match(context,/DEMO-MKT-001/);assert.match(context,/develop/);assert.match(context,/teams-demo-collaboration/);assert.match(context,/context.*get/);assert.equal(JSON.stringify(state),before);
+    const [one,two]=await Promise.all([service.start('member',body),service.start('member',body)]);assert.deepEqual(one,two);assert.equal(t.calls.length,1);assert.equal(one.sessionId,null);assert.equal(one.terminal,'PowerShell');assert.match(one.note,/PowerShell/);assert.equal(t.calls[0].agent,'role');assert.equal(t.calls[0].sessionId,undefined);
+    const context=await readFile(one.contextPath,'utf8');assert.match(context,/DEMO-MKT-001/);assert.match(context,/develop/);assert.match(context,/teams-demo-collaboration/);assert.match(context,/context.*get/);assert.match(context,/--input-file/);assert.deepEqual(JSON.parse(await readFile(join(dir,'work-contexts',body.requestId+'.scope.json'),'utf8')),plan.target);assert.equal(JSON.stringify(state),before);
     await assert.rejects(service.start('member',{...body,action:'resume'}),/另一项/);
     state={...state,revision:state.revision+1};await assert.rejects(service.start('member',{...body,requestId:randomUUID()}),/依据已变化/);
     assert.equal(t.calls.length,1);

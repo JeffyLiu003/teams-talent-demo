@@ -13,6 +13,8 @@ description: 在本机 Teams 演示中开始或继续项目任务，读取所选
 node /ABSOLUTE/PATH/TO/demo/scripts/teams-demo.mjs --endpoint http://127.0.0.1:45970 context get --project PROJECT --task TASK --node NODE --output /tmp/teams-task-context.json
 ```
 
+Windows PowerShell 中，优先复制启动材料给出的 `& 'Node绝对路径' 'CLI绝对路径' ... --input-file 'scope文件绝对路径'` 命令；scope 文件已由作业入口导出。手工读取也可使用上面的 `--project / --task / --node` 分字段形式，并将输出改为本机路径，例如 `--output "$env:TEMP/teams-task-context.json"`。写入 JSON 使用 `--input-file`，不要在 PowerShell 5.1 中通过 `--input` 内联 JSON，避免原生参数绑定剥掉双引号。文件内容使用 UTF-8；命令只获取材料，不自动采用。
+
 从启动材料复制标识和 endpoint，勿照抄占位符或改用固定任务。项目级材料没有任务时只读取项目上下文；先在 Teams 选择有效任务与节点，再回传任务进度。原生 sessionId 尚未观测时传 null，以 runId 保留启动关联；已知后续 sessionId 需要明确重新采用并保留原记录。
 
 读取输出中的范围、约定与验收标准、节点工作要求、版本、关联正文和缺失项。`mode=preparation` 表示当前准备信息，`mode=frozen` 表示冻结版本。获取文件不等于已阅读或采用。Talent 不可用、冻结知识版本缺失、Skill 只有示例正文等限制会显式返回；先报告影响，不用其他版本替代。

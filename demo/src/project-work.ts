@@ -15,6 +15,7 @@ export interface ProjectWorkReceipt {
   status: 'prepared' | 'terminal-requested' | 'terminal-focused' | 'uncertain';
   at: string;
   directory: string;
+  terminal?: string;
   sessionId: string | null;
   contextPath: string;
   instruction: string;

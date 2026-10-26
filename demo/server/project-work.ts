@@ -7,8 +7,9 @@ import { createHash } from 'node:crypto';
 import { DomainError, type DemoState, type Role } from '../src/domain.js';
 import type { Presentation } from '../src/api.js';
 import type { ProjectWorkAction, ProjectWorkPlan, ProjectWorkReceipt, ProjectWorkSelection } from '../src/project-work.js';
-import { activeSession, focusWorkTerminal, locateWorkTerminal, shellQuote, nativeWorkDefaults, startNativeWork } from './native.js';
+import { activeSession, focusWorkTerminal, locateWorkTerminal, nativeWorkDefaults, startNativeWork } from './native.js';
 import { codeRoot, root, runtimeDir, sessionId, workspace, origin } from './config.js';
+import { formatShellCommand } from './terminal-launcher.js';
 import { collaborationContext, collaborationSkillPath } from './collaboration-service.js';
 import { atomicJson, atomicText } from './store.js';
 
@@ -161,7 +162,9 @@ export class ProjectWorkService {
     const context = await collaborationContext(this.current(), this.data, plan.target);
     const contextJsonPath = join(this.directory, 'work-contexts', body.requestId + '.json');
     await atomicJson(contextJsonPath, context);
-    const command = [process.execPath, join(root, 'scripts/teams-demo.mjs'), '--endpoint', origin, '--role', role, 'context', 'get', '--input', JSON.stringify(plan.target), '--output', contextJsonPath].map(shellQuote).join(' ');
+    const scopePath = join(this.directory, 'work-contexts', body.requestId + '.scope.json');
+    await atomicJson(scopePath, plan.target);
+    const command = formatShellCommand([process.execPath, join(root, 'scripts/teams-demo.mjs'), '--endpoint', origin, '--role', role, 'context', 'get', '--input-file', scopePath, '--output', contextJsonPath]);
     const instruction = `请先读取 Teams 演示协作 Skill：${collaborationSkillPath}，再读取本次作业入口 ${contextPath}。当前演示角色 ${role}，后续 CLI 命令保留 --role ${role}。开始时执行：${command}。按 Skill 明确记录实际采用的输入，并以 runId=${body.requestId} 回传进展与证据；新会话 ID 尚未确认，不得填入其他会话。`;
     const content = `# ${plan.projectName} · ${plan.title}\n\n工作位置：${plan.location}\n来源：${plan.source}\n\n${plan.context.summary}\n采用版本：${plan.context.versions}\n\n## 工作标识\n${JSON.stringify({ ...plan.target, role, runId: body.requestId, sessionId: body.action === 'new' ? null : plan.history!.sessionId }, null, 2)}\n\n## 项目资料与选择\n${JSON.stringify(plan.context, null, 2)}\n\n## 开始工作时读取\n${instruction}\n\n准备时读取的结构化上下文：${contextJsonPath}\n\n本文件由演示服务导出。提供入口不代表 iCode 已读取、采用或完成工作。\n`;
     await atomicText(contextPath, content);
@@ -169,7 +172,7 @@ export class ProjectWorkService {
     await atomicJson(path, { identity, receipt });
     try {
       if (body.action === 'focus') { const focused = await this.transport.focus(plan.history!); receipt.status = 'terminal-focused'; receipt.note = focused.note; }
-      else { await this.transport.start({ directory, agent: body.action === 'resume' ? plan.history!.configuration!.agent : plan.instance.agent!, model: body.action === 'resume' ? plan.history!.configuration!.model : plan.instance.model!, ...(receipt.sessionId ? { sessionId: receipt.sessionId } : {}), instruction }); receipt.status = 'terminal-requested'; receipt.note = '已请求 Terminal 打开对应工作目录的 iCode；终端受理不等于模型执行、上下文读取或任务完成。'; }
+      else { const started = await this.transport.start({ directory, agent: body.action === 'resume' ? plan.history!.configuration!.agent : plan.instance.agent!, model: body.action === 'resume' ? plan.history!.configuration!.model : plan.instance.model!, ...(receipt.sessionId ? { sessionId: receipt.sessionId } : {}), instruction }); receipt.status = 'terminal-requested'; if (started && typeof started === 'object' && 'terminal' in started && typeof started.terminal === 'string') receipt.terminal = started.terminal; receipt.note = '已请求 ' + (receipt.terminal ?? '系统终端') + ' 打开对应工作目录的 iCode；终端受理不等于模型执行、上下文读取或任务完成。'; }
       await atomicJson(path, { identity, receipt }); return receipt;
     } catch (error) {
       receipt.status = 'uncertain'; receipt.note = '原生请求结果待核对：' + (error as Error).message + '。原请求已保留，不会自动重发或另开会话。'; await atomicJson(path, { identity, receipt }); throw new DomainError(receipt.note);

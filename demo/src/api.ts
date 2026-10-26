@@ -17,8 +17,9 @@ export interface Presentation {
   baseline: { sourceRoot: string; commit: string; files: { source: string; target: string; sha256: string }[] };
 }
 export interface NativeStatus {
+  terminalName?: string;
   icode: { installed: boolean; path: string; version: string | null; workspace: string; sessionId: string; sessionAvailable: boolean; active: { pid: number; application: string | null; tty: string } | null };
-  opencode: { installed: boolean; path: string | null; version: string | null };
+  opencode: { installed: boolean; path: string | null; version: string | null; unsupportedReason?: string };
   verification: { status: string; at: string; messageCount: number; note: string } | null;
 }
 const tokens = new Map<string, string>();

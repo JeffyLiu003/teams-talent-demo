@@ -75,7 +75,27 @@ npm run launch
 
 Windows PowerShell 使用 `$env:DEMO_ICODE_BINARY = "C:\实际安装目录\icode.exe"`。本机探测与会话合同按 iCode 0.31.0 开发，其他版本需另行核验。
 
-**自动打开终端的桥目前仅支持 macOS**，使用 Terminal；进入运行中的历史会话需能核对 Ghostty 终端。macOS 可能要求允许控制终端或确认下载程序来源，按系统提示核对后授权，不关闭系统安全机制。Windows 可以运行网页和 Skill/CLI，原生工具请自行在终端启动，不声称已实现 Windows GUI 自动启动。`DEMO_NATIVE_DISABLED=1` 可显式禁用自动原生启动。
+Windows 已实现页面打开原生终端：项目页「iCode 作业」确认后，按确认的目录、Agent、模型及可选历史 session 启动 iCode；Agent 管理的 iCode / OpenCode 入口共用启动器。服务从 Windows Terminal 内启动且检测到 `wt.exe` 时，在当前窗口创建新标签页并保留有效的 `WT_PROFILE_ID`；其他情况使用 PowerShell 创建独立控制台。启动前选定路线，失败会明确报错，不改用另一种终端重复启动。
+
+PowerShell 优先使用 `pwsh.exe`，其次为 Windows PowerShell；可显式配置。下面是 PowerShell 示例，路径须替换为已安装程序的绝对路径：
+
+```powershell
+$env:DEMO_ICODE_BINARY = "C:\Tools\iCode\icode.exe"
+$env:DEMO_POWERSHELL_BINARY = "C:\Program Files\PowerShell\7\pwsh.exe"
+# 可选：强制独立 PowerShell 控制台；不设置则按 WT_SESSION / wt.exe 探测
+$env:DEMO_WINDOWS_TERMINAL = "none"
+# 可选：使用 OpenCode 原生 exe
+$env:DEMO_OPENCODE_BINARY = "C:\Tools\OpenCode\opencode.exe"
+npm run dev
+```
+
+`DEMO_WINDOWS_TERMINAL` 也可配置 `wt.exe` 的绝对路径；有 `WT_SESSION` 时才复用当前 Terminal 窗口。OpenCode 会检查 PATH 的 `.exe` / `.cmd` / `.bat`；Windows 自动启动只执行 `.exe`。若只发现 npm 的 `opencode.cmd`，请自行取得原生 `opencode.exe` 并设置 `DEMO_OPENCODE_BINARY`，或在原终端手工运行，演示不会自动安装或通过 cmd 再解释参数。Linux 的自动终端启动仍明确不支持。
+
+启动器使用 UTF-16LE EncodedCommand，目录留在 PowerShell 安全字面量中；原生参数通过 ProcessStartInfo 传递，避免 PowerShell 5.1 丢失空串或内嵌双引号。新控制台不重定向工具标准句柄。回执只代表系统受理或创建终端，不代表工具已读取上下文、模型已执行或任务已完成。Windows 已运行历史会话暂不能可靠定位窗口，页面禁用再次进入，提示在原终端继续；不会重复恢复、绕锁或关闭原会话。
+
+macOS 仍使用 Terminal 打开新会话，已运行历史会话只有能核对 Ghostty 终端时才直接进入。macOS 可能要求允许控制终端或确认下载程序来源，按系统提示核对后授权，不关闭系统安全机制。`DEMO_NATIVE_DISABLED=1` 可显式禁用自动原生启动。
+
+本次开发宿主为 macOS，已验证生产启动模块的注入测试、页面/API 合同与 macOS 路由回归；尚未人工验证 Windows 可见窗口、键盘交互及 Windows Terminal 标签页。仓库提供 `node --import tsx tests/windows-terminal-runtime.ts` 与 Windows CI，使用无模型本地探针核对 PowerShell 5.1 / 7 的精确 cwd/argv 和三个控制台句柄；这与人工桌面验收分开记录，不以文件回执冒充交互成功。
 
 ## 可选：导入历史会话
 
@@ -104,5 +124,7 @@ node scripts/restore-history.mjs --session-root "你的临时目录/teams-histor
 ```sh
 node scripts/teams-demo.mjs --endpoint http://127.0.0.1:45970 context get --project carddemo --task DEMO-MKT-001 --node prepare
 ```
+
+Windows PowerShell 可直接运行上面的分字段命令。作业入口提供带 `&` 的绝对路径命令，并用 `--input-file` 读取已导出的 scope JSON；不要把 JSON 内联到 PowerShell 5.1 的原生程序参数中。
 
 完整合同见 `skills/teams-demo-collaboration/SKILL.md`；启动材料会提供当前解压位置的绝对路径。读取不等于采用；进度写入需 scope、run/session、采用回执及稳定操作 ID。iCode 0.31.0 没有首轮提示参数，需在会话中显式阅读工作入口，不宣称自动加载。

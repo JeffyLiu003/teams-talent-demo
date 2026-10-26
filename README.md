@@ -22,7 +22,7 @@ npm run dev
 
 按 `Ctrl+C` 停止前台服务。首次启动会生成独立的 Teams 与 Talent 状态，后续重启保留进度。网页右上角切换角色，按照「演示指引」体验完整流程。
 
-Windows 可双击根目录 `start-demo.cmd`；macOS 可双击「启动演示.command」，再用「停止演示.command」停止后台服务。macOS 已实测；Windows 使用跨平台 Node/npm 入口，尚未进行 Windows 实机验证。端口、后台运行、停止及可选工具配置见 [快速启动说明](demo/docs/quick-start.md)。
+Windows 可双击根目录 `start-demo.cmd`；macOS 可双击「启动演示.command」，再用「停止演示.command」停止后台服务。macOS 已实测；Windows 使用跨平台 Node/npm 入口，已实现 PowerShell / Windows Terminal 原生启动桥；可见桌面与键盘交互尚未人工验收。端口、后台运行、停止及可选工具配置见 [快速启动说明](demo/docs/quick-start.md)。
 
 ## 目录
 
@@ -49,7 +49,7 @@ node scripts/teams-demo.mjs --help
 
 ## 可选原生工具与历史素材
 
-网页和演示 CLI 无需 iCode 或模型账号。使用原生工具时自行安装合适版本，并配置自己的模型与凭据；通过 `DEMO_ICODE_BINARY` 指定可执行文件。自动打开终端与进入已运行会话的桥仅支持 macOS；Windows 需手工启动原生工具。
+网页和演示 CLI 无需 iCode 或模型账号。使用原生工具时自行安装合适版本，并配置自己的模型与凭据；通过 `DEMO_ICODE_BINARY` 指定可执行文件。Windows 的项目作业与 Agent 管理入口已实现通过 PowerShell / Windows Terminal 打开新终端，macOS 继续使用 Terminal。Windows 已运行历史会话无法可靠定位时，页面提示回原窗口继续，不启动重复实例。OpenCode 自动启动要求原生 `.exe`，可用 `DEMO_OPENCODE_BINARY` 指定；只有 `.cmd` 时会给出操作提示。配置、参数边界和待人工验证范围见[快速启动说明](demo/docs/quick-start.md)。
 
 公开仓库未附带原始历史会话。`restore-history.mjs` 为可选迁移工具，只有另外获得匹配、获准使用的历史素材后才能使用。脚本保留原路径前缀作为精确迁移输入，拒绝覆盖已有会话或锁，并保持大整数及原始轨迹文件字节。没有素材时无法导入或恢复原生历史，网页中的历史节选仍可查看。
 
