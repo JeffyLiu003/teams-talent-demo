@@ -4,7 +4,8 @@ import type { ReactNode } from 'react';
 import { useDemo } from '../context.js';
 import { actionLabels, type Action, type Role } from '../domain.js';
 export function Origin({ kind }: { kind: 'historical' | 'simulated' | 'static' | 'native' }) {
-  return <Tag className="origin-tag" color={{ historical: 'blue', simulated: 'default', static: 'purple', native: 'green' }[kind]}>{{ historical: '历史证据', simulated: '演示数据', static: '源码分析', native: '本机实接' }[kind]}</Tag>;
+  if (kind === 'simulated') return null;
+  return <Tag className="origin-tag" color={{ historical: 'blue', simulated: 'default', static: 'purple', native: 'green' }[kind]}>{{ historical: '历史证据', static: '源码分析', native: '本机实接' }[kind]}</Tag>;
 }
 export function ActionButton({ action, children, disabled, role: required, primary = true }: { action: Action; children?: ReactNode; disabled?: boolean; role?: Role; primary?: boolean }) {
   const { perform, role, busy } = useDemo();

@@ -23,7 +23,7 @@ export class DomainError extends Error { constructor(message: string, public sta
 function requireCondition(ok: unknown, message: string): asserts ok { if (!ok) throw new DomainError(message); }
 const owners: Action[] = ['assign', 'knowledge', 'candidate', 'evaluate', 'enroll', 'purchase', 'deduplicate', 'uat', 'accept', 'return', 'release', 'adopt'];
 const members: Action[] = ['prepare', 'replay', 'check-fail', 'fix', 'submit'];
-export const actionLabels: Record<Action, string> = { assign: '确认需求并分配', knowledge: '发起项目知识整合', prepare: '采用能力并冻结上下文', replay: '开始开发回放', 'check-fail': '回放首次检查', fix: '应用历史修复并复测', submit: '提交交付包', enroll: '报名餐饮返现活动', purchase: '消费 120 元', deduplicate: '重复评估同一交易', uat: '运行边界验收', accept: '通过功能验收', return: '退回补充', candidate: '生成改进候选', evaluate: '评估 Skill 与 Agent', release: '发布能力新版本', adopt: '项目采用新版本' };
+export const actionLabels: Record<Action, string> = { assign: '确认需求并分配', knowledge: '发起项目知识整合', prepare: '采用能力并冻结上下文', replay: '开始开发', 'check-fail': '查看首次检查结果', fix: '关联修复与复测结果', submit: '提交交付包', enroll: '报名餐饮返现活动', purchase: '消费 120 元', deduplicate: '重复评估同一交易', uat: '运行边界验收', accept: '通过功能验收', return: '退回补充', candidate: '生成改进候选', evaluate: '评估 Skill 与 Agent', release: '发布能力新版本', adopt: '项目采用新版本' };
 export function transition(previous: DemoState, action: Action, role: Role, payload: { reason?: string } = {}): DemoState {
   requireCondition(Object.hasOwn(actionLabels, action), '未知操作');
   if (owners.includes(action) && role !== 'owner' || members.includes(action) && role !== 'member') throw new DomainError('当前角色无权执行此操作', 403);
@@ -31,21 +31,21 @@ export function transition(previous: DemoState, action: Action, role: Role, payl
   let detail = '';
   switch (action) {
     case 'assign': requireCondition(!s.assigned, '需求只能分配一次'); s.assigned = true; s.stage = 'assigned'; detail = 'DEMO-MKT-001 → 陈晨 · 项目成员'; break;
-    case 'knowledge': requireCondition(s.workspace.project.assets.length && !s.knowledge, '请先关联项目资产；知识已生成时请使用现有版本'); requireCondition(s.workspace.connections.find(c=>c.id==='talent')?.enabled,'请先启用 Talent 演示接入'); s.knowledge = true; detail = 'Teams 项目资产 → Talent knowledge-v1 · 知识整合演示'; break;
+    case 'knowledge': requireCondition(s.workspace.project.assets.length && !s.knowledge, '请先关联项目资产；知识已生成时请使用现有版本'); requireCondition(s.workspace.connections.find(c=>c.id==='talent')?.enabled,'请先启用 Talent 接入'); s.knowledge = true; detail = 'Teams 项目资产 → Talent knowledge-v1 · 项目知识整合'; break;
     case 'prepare': requireCondition(s.assigned && s.knowledge && !s.context, '请先分配需求并完成知识构建；上下文不可重复冻结'); requireCondition(s.workspace.selectedSkills.length > 0 && s.workspace.selectedSkills.every(id => availableSkillIds.includes(id)), '请选择有效的项目或用户 Skill'); s.context = { id: 'CTX-MKT-001', skillVersion: s.adoptedSkill, agentVersion: s.adoptedAgent, knowledgeVersion: 'knowledge-v1', createdAt: new Date().toISOString(),selectedSkills:[...s.workspace.selectedSkills],materials:structuredClone(s.workspace.materials),assets:structuredClone(s.workspace.project.assets) }; detail = '冻结需求、验收标准、知识与能力版本'; break;
-    case 'replay': requireCondition(s.context && s.stage === 'assigned', '请先冻结上下文'); s.stage = 'developing'; detail = '关联真实历史会话，演示开发过程'; break;
-    case 'check-fail': requireCondition(s.stage === 'developing', '请先开始开发回放'); s.checks = 'failed'; s.stage = 'failed'; detail = '历史证据 E3 · 7/8 · 未显示报名按钮 · EXIT:1'; break;
+    case 'replay': requireCondition(s.context && s.stage === 'assigned', '请先冻结上下文'); s.stage = 'developing'; detail = '关联已有开发会话与工作记录'; break;
+    case 'check-fail': requireCondition(s.stage === 'developing', '请先开始开发'); s.checks = 'failed'; s.stage = 'failed'; detail = '历史证据 E3 · 7/8 · 未显示报名按钮 · EXIT:1'; break;
     case 'fix': requireCondition(s.stage === 'failed' || s.stage === 'returned', '当前没有待修复事项'); s.checks = 'passed'; s.stage = 'fixed'; s.uat = false; detail = '历史修复 E4 → 复测 E5 · 9/9 · 安全仍待验证'; break;
     case 'submit': requireCondition(s.stage === 'fixed' && s.checks === 'passed', '检查未通过，不能提交'); s.stage = 'submitted'; detail = 'DELIVERY-MKT-001 · 包含变更、失败与复测证据'; break;
-    case 'enroll': requireCondition(s.stage === 'submitted' && !s.enrolled, '当前不能报名'); s.enrolled = true; detail = '卡尾号 9900 · 报名成功（模拟）'; break;
-    case 'purchase': requireCondition(s.stage === 'submitted' && s.enrolled && !s.transactions.length, '请先报名；该演示交易只记账一次'); s.transactions.push({ id: 'TX-DEMO-120', amount: 120, reward: 6 }); s.balance = 2664.75; detail = '消费 120 → 返现 6 → 欠款 2664.75（模拟）'; break;
-    case 'deduplicate': requireCondition(s.stage === 'submitted' && s.transactions.length === 1 && !s.duplicateChecked, '请先完成交易'); s.duplicateChecked = true; detail = 'ALREADY_EVALUATED · 奖励条数仍为 1（模拟）'; break;
-    case 'uat': requireCondition(s.stage === 'submitted' && s.duplicateChecked, '请先验证报名、消费与去重'); s.uat = true; detail = '边界与 PENDING 重试：7 个模拟案例通过；不代表真实服务测试'; break;
+    case 'enroll': requireCondition(s.stage === 'submitted' && !s.enrolled, '当前不能报名'); s.enrolled = true; detail = '卡尾号 9900 · 报名已记录'; break;
+    case 'purchase': requireCondition(s.stage === 'submitted' && s.enrolled && !s.transactions.length, '请先报名；该交易只记账一次'); s.transactions.push({ id: 'TX-DEMO-120', amount: 120, reward: 6 }); s.balance = 2664.75; detail = '消费记录 120 → 返现 6 → 欠款 2664.75'; break;
+    case 'deduplicate': requireCondition(s.stage === 'submitted' && s.transactions.length === 1 && !s.duplicateChecked, '请先完成交易'); s.duplicateChecked = true; detail = 'ALREADY_EVALUATED · 奖励条数仍为 1'; break;
+    case 'uat': requireCondition(s.stage === 'submitted' && s.duplicateChecked, '请先验证报名、消费与去重'); s.uat = true; detail = '已记录 7 项边界与 PENDING 重试验收结果；服务端测试待核验'; break;
     case 'accept': requireCondition(s.stage === 'submitted' && s.uat && s.checks === 'passed', '验收条件未完成'); s.stage = 'accepted'; detail = '功能验收通过 · 生产安全放行仍未验证'; break;
     case 'return': requireCondition(s.stage === 'submitted' && payload.reason?.trim(), '请填写退回原因'); s.stage = 'returned'; s.returnReason = payload.reason!.trim().slice(0, 500); s.uat = false; detail = s.returnReason; break;
-    case 'candidate': requireCondition(s.stage === 'accepted' && s.evolution === 'none', '请先完成验收');requireCondition(s.workspace.analysis.status==='analyzed','请先完成 Talent 轨迹分析'); s.evolution = 'candidate'; detail = 'Talent 从 E3/E4/E5 生成 Skill 1.1.0 与 Agent r2 候选（模拟）'; break;
-    case 'evaluate': requireCondition(s.evolution === 'candidate', '请先生成候选'); s.evolution = 'evaluated'; detail = '固定输入的 Skill / Agent 独立对照评估（模拟结果）'; break;
-    case 'release': requireCondition(s.evolution === 'evaluated', '候选尚未评估'); s.evolution = 'published'; detail = 'Talent 发布 Skill 1.1.0、Agent r2 演示版本'; break;
+    case 'candidate': requireCondition(s.stage === 'accepted' && s.evolution === 'none', '请先完成验收');requireCondition(s.workspace.analysis.status==='analyzed','请先完成 Talent 轨迹分析'); s.evolution = 'candidate'; detail = 'Talent 根据 E3/E4/E5 记录 Skill 1.1.0 与 Agent r2 改进候选'; break;
+    case 'evaluate': requireCondition(s.evolution === 'candidate', '请先生成候选'); s.evolution = 'evaluated'; detail = '固定输入的 Skill / Agent 独立对照评估结果'; break;
+    case 'release': requireCondition(s.evolution === 'evaluated', '候选尚未评估'); s.evolution = 'published'; detail = 'Talent 发布 Skill 1.1.0、Agent r2 版本'; break;
     case 'adopt': requireCondition(s.evolution === 'published', '请先在 Talent 发布候选'); s.evolution = 'adopted'; s.adoptedSkill = '1.1.0'; s.adoptedAgent = 'r2'; detail = '供下一次作业采用；CTX-MKT-001 仍保持 Skill 1.0.0 / Agent r1'; break;
   }
   s.revision++;

@@ -1,6 +1,6 @@
 # 快速启动
 
-已验证 Node.js **24.14.1**。Teams 与 Talent 使用两个独立 Node 进程，默认端口分别为 `45970` 和 `45980`。包内**不附带 iCode**；网页演示与 Teams 协作 CLI 不依赖原生工具、模型凭据或历史会话导入。
+已验证 Node.js **24.14.1**。Teams 与 Talent 使用两个独立 Node 进程，默认端口分别为 `45970` 和 `45980`。包内**不附带 iCode**；网页与 Teams 协作 CLI 不依赖原生工具、模型凭据或历史会话导入。
 
 ## Windows / macOS：前台启动
 
@@ -43,7 +43,7 @@ npm run stop:teams
 
 ## 更换端口
 
-同一设备运行另一份演示时，给两个进程设置同一组地址。macOS 终端：
+同一设备运行另一份实例时，给两个进程设置同一组地址。macOS 终端：
 
 ```sh
 export DEMO_PORT=46070
@@ -65,7 +65,7 @@ npm run dev
 
 ## 可选：自行安装 iCode
 
-没有 iCode 时页面显示未安装，普通演示继续可用。用户需自行安装适合设备的 iCode，并配置模型、Agent 与服务凭据；包内不包含 HOME 配置、API Key 或登录信息。配置 `DEMO_ICODE_BINARY` 为可执行文件的绝对路径，再启动演示服务：
+没有 iCode 时页面显示未安装，其他页面继续可用。用户需自行安装适合设备的 iCode，并配置模型、Agent 与服务凭据；包内不包含 HOME 配置、API Key 或登录信息。配置 `DEMO_ICODE_BINARY` 为可执行文件的绝对路径，再启动服务：
 
 ```sh
 # macOS 示例，请替换实际路径
@@ -89,7 +89,7 @@ $env:DEMO_OPENCODE_BINARY = "C:\Tools\OpenCode\opencode.exe"
 npm run dev
 ```
 
-`DEMO_WINDOWS_TERMINAL` 也可配置 `wt.exe` 的绝对路径；有 `WT_SESSION` 时才复用当前 Terminal 窗口。OpenCode 会检查 PATH 的 `.exe` / `.cmd` / `.bat`；Windows 自动启动只执行 `.exe`。若只发现 npm 的 `opencode.cmd`，请自行取得原生 `opencode.exe` 并设置 `DEMO_OPENCODE_BINARY`，或在原终端手工运行，演示不会自动安装或通过 cmd 再解释参数。Linux 的自动终端启动仍明确不支持。
+`DEMO_WINDOWS_TERMINAL` 也可配置 `wt.exe` 的绝对路径；有 `WT_SESSION` 时才复用当前 Terminal 窗口。OpenCode 会检查 PATH 的 `.exe` / `.cmd` / `.bat`；Windows 自动启动只执行 `.exe`。若只发现 npm 的 `opencode.cmd`，请自行取得原生 `opencode.exe` 并设置 `DEMO_OPENCODE_BINARY`，或在原终端手工运行，系统不会自动安装或通过 cmd 再解释参数。Linux 的自动终端启动仍明确不支持。
 
 启动器使用 UTF-16LE EncodedCommand，目录留在 PowerShell 安全字面量中；原生参数通过 ProcessStartInfo 传递，避免 PowerShell 5.1 丢失空串或内嵌双引号。新控制台不重定向工具标准句柄。回执只代表系统受理或创建终端，不代表工具已读取上下文、模型已执行或任务已完成。Windows 已运行历史会话暂不能可靠定位窗口，页面禁用再次进入，提示在原终端继续；不会重复恢复、绕锁或关闭原会话。
 

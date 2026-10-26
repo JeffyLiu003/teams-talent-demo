@@ -15,7 +15,7 @@ export async function serviceHealth(service) {
     if (!response.ok) throw new Error(service.origin + ' 已被其他服务占用');
     const data = await response.json();
     if (data.app !== service.app) throw new Error(service.origin + ' 已被其他服务占用');
-    if (data.workspaceRoot !== root || data.stateRoot !== service.runtimeDir) throw new Error(service.origin + ' 已有其他目录或旧版演示服务，未接管；请选择另一组 DEMO_PORT / DEMO_TALENT_PORT');
+    if (data.workspaceRoot !== root || data.stateRoot !== service.runtimeDir) throw new Error(service.origin + ' 已有其他目录或旧版服务，未接管；请选择另一组 DEMO_PORT / DEMO_TALENT_PORT');
     return data;
   } catch (error) { if (error.cause?.code === 'ECONNREFUSED') return null; throw error; }
 }

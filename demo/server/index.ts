@@ -34,7 +34,7 @@ const server = createServer(async (request, response) => {
     if (request.method === 'GET' && path === '/api/state') { json(200, store.state); return; }
     if (request.method === 'GET' && path === '/api/project-work') {
       const { role, ...target } = Object.fromEntries(url.searchParams);
-      if (role !== 'owner' && role !== 'member') throw new DomainError('请选择演示角色', 400);
+      if (role !== 'owner' && role !== 'member') throw new DomainError('请选择角色', 400);
       json(200, await work.plan(role, target as any)); return;
     }
     if (request.method === 'GET' && path === '/api/collaboration/context') { json(200, await collaborationContext(store.state, fixtures, Object.fromEntries(url.searchParams))); return; }
@@ -42,13 +42,13 @@ const server = createServer(async (request, response) => {
     if (request.method === 'GET' && path === '/api/tools') { json(200, await toolsStatus()); return; }
     if (request.method === 'POST' && path.startsWith('/api/')) {
       if (!([origin, talentOrigin].includes(request.headers.origin ?? '')) || request.headers['x-demo-token'] !== token || !request.headers['content-type']?.startsWith('application/json')) {
-        json(403, { error: '请求来源或演示令牌不匹配，请重新打开页面' }); return;
+        json(403, { error: '请求来源或访问令牌不匹配，请重新打开页面' }); return;
       }
       const body = await bodyJson(request);
-      if (!body || !['owner', 'member'].includes(body.role)) throw new DomainError('请选择演示角色', 400);
+      if (!body || !['owner', 'member'].includes(body.role)) throw new DomainError('请选择角色', 400);
       if (path === '/api/integrations/talent/results') {
         if (request.headers.origin !== talentOrigin || body.role !== 'owner' || body.projectId !== 'carddemo' || ![...talentActions, 'analysis.run'].includes(body.action)) throw new DomainError('Talent 结果投影请求无效', 403);
-        if (body.generation !== (store.state.talentGeneration ?? 'initial')) throw new DomainError('Teams 演示已重置，请重新构建 Talent 成果');
+        if (body.generation !== (store.state.talentGeneration ?? 'initial')) throw new DomainError('Teams 工作区已重置，请重新构建 Talent 成果');
         const action = body.action as TalentAction, payload = body.payload ?? {};
         if (projectionApplied(store.state, action, payload)) { json(200, store.state); return; }
         json(200, action === 'analysis.run' ? await store.update(body.revision, action, 'owner', payload) : await store.apply(body.revision, action, 'owner', {})); return;
@@ -62,7 +62,7 @@ const server = createServer(async (request, response) => {
         json(200,await store.update(body.revision,body.kind as WorkspaceAction,body.role as Role,body.payload,sourceCatalog.list()));return;
       }
       if (path === '/api/reset') {
-        if (body.role !== 'owner') throw new DomainError('仅 Owner 可以重置演示', 403);
+        if (body.role !== 'owner') throw new DomainError('仅 Owner 可以重置工作区', 403);
         json(200, await store.reset(body.revision)); return;
       }
       if (path === '/api/collaboration') { json(200, await collaborationWrite(store, fixtures, body)); return; }
@@ -92,7 +92,7 @@ const server = createServer(async (request, response) => {
 server.on('error', error => { console.error(error.message); process.exitCode = 1; });
 server.listen(port, '127.0.0.1', async () => {
   await mkdir(runtimeDir, { recursive: true });
-  console.log('Teams Demo: ' + origin + '/teams');
+  console.log('Teams: ' + origin + '/teams');
   console.log('Talent 独立入口: ' + talentOrigin + '/talent');
 });
 for (const signal of ['SIGTERM', 'SIGINT'] as const) process.on(signal, () => { server.close(() => process.exit(0)); });

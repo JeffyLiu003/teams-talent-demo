@@ -27,7 +27,7 @@ try{
   const page=await browser.newPage({viewport:{width:1440,height:1000}});currentPage=page;page.setDefaultTimeout(8000);
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   let currentRole:'owner'|'member'='owner';
-  const visit=async(path:string)=>{const url=new URL(path,path.startsWith('/talent')?talentOrigin:origin);url.searchParams.set('demo-role',currentRole);await page.goto(url.toString());await page.getByRole('button',{name:'演示指引'}).waitFor();};
+  const visit=async(path:string)=>{const url=new URL(path,path.startsWith('/talent')?talentOrigin:origin);url.searchParams.set('demo-role',currentRole);await page.goto(url.toString());await page.getByRole('button',{name:'使用指引'}).waitFor();};
   const save=async(kind:string,button:Locator)=>{
     const [response]=await Promise.all([page.waitForResponse(r=>r.url()===(kind==='analysis.run'?talentOrigin:origin)+'/api/workspace'&&r.request().postDataJSON().kind===kind),button.click()]);
     assert.equal(response.status(),200,await response.text());if(kind==='analysis.run')assert.equal(response.request().postDataJSON().projectId,'carddemo');await page.waitForTimeout(120);
@@ -40,7 +40,7 @@ try{
   };
   const role=async(value:'owner'|'member')=>{
     currentRole=value;
-    await page.getByRole('combobox',{name:'切换演示角色'}).click();
+    await page.getByRole('combobox',{name:'切换角色'}).click();
     await page.locator('.ant-select-item-option-content').filter({hasText:value==='owner'?'林悦 · 项目 Owner':'陈晨 · 项目成员'}).click();
   };
   const cli=async(args:string[])=>JSON.parse((await promisify(execFile)(process.execPath,['scripts/teams-demo.mjs','--receipt-dir',join(dir,'cli-receipts'),...args],{env:{...process.env,DEMO_ORIGIN:origin}})).stdout);
@@ -69,14 +69,14 @@ try{
   await page.getByRole('button',{name:'查看所属版本'}).click();
   await page.getByRole('combobox',{name:'选择 Teams 发布版本'}).click();await page.locator('.ant-select-item-option-content').getByText('10.10 · 安装与启动优化',{exact:true}).click();
   await page.getByText('已回退至 10.03',{exact:true}).waitFor();await page.screenshot({path:output+'/imported-teams-release.png'});
-  await page.getByRole('button',{name:'iCode 作业示例'}).click();await page.getByRole('button',{name:'查看关联事项',exact:true}).first().click();
+  await page.getByRole('button',{name:'iCode 作业记录'}).click();await page.getByRole('button',{name:'查看关联事项',exact:true}).first().click();
   await page.getByRole('heading',{name:'R20 · Windows 重启后的连接恢复',exact:true}).waitFor();
   await visit('/teams#/projects?project=missing&tab=content');await page.getByText('项目不存在',{exact:true}).waitFor();
   await visit('/teams#/projects?tab=list');await page.getByRole('button',{name:'进入 iCode Teams'}).waitFor();await page.getByRole('button',{name:'进入项目',exact:true}).waitFor();
   assert.deepEqual(await state(),beforeImported,'browsing imported project must not mutate the CardDemo workflow');
   await visit('/teams#/home?tab=tokens');await page.locator('.ops-trend').waitFor();await page.screenshot({path:output+'/teams-token-usage.png',fullPage:true});
   await visit('/teams#/team');await page.getByRole('button',{name:'邀请成员'}).click();await page.getByRole('textbox',{name:'邀请成员姓名'}).fill('周宁');
-  await save('member.invite',page.getByRole('button',{name:'创建演示邀请'}));await save('member.approve',page.getByRole('button',{name:'模拟接受邀请'}));
+  await save('member.invite',page.getByRole('button',{name:'创建邀请'}));await save('member.approve',page.getByRole('button',{name:'接受邀请'}));
   assert.equal((await state()).workspace.team.members.find((m:any)=>m.name==='周宁').status,'active');await page.locator('.group-members').getByText('周宁',{exact:true}).waitFor();await page.screenshot({path:output+'/teams-team.png',fullPage:true});
   await visit('/teams#/connections');
   assert.equal(await page.locator('.enterprise-connections .enterprise-plugin-card').count(),6);
@@ -84,7 +84,7 @@ try{
   assert.equal(await page.locator('.enterprise-connections .metrics-row').count(),0);
   for(const text of ['知识整合','会话记录','验收记录','发布记录'])assert.equal(await page.locator('.enterprise-connections').getByText(text,{exact:true}).count(),0);
   await page.getByRole('button',{name:'配置测试资产平台',exact:true}).click();await page.getByRole('textbox',{name:'数据范围说明',exact:true}).fill('餐饮返现业务测试用例库。');
-  await save('connection.update',page.getByRole('button',{name:'保存演示配置',exact:true}));
+  await save('connection.update',page.getByRole('button',{name:'保存配置',exact:true}));
   assert.equal((await state()).workspace.connections.find((c:any)=>c.id==='test-assets').description,'餐饮返现业务测试用例库。');
   await page.getByRole('button',{name:'其他能力配置',exact:true}).click();
   await page.getByRole('switch',{name:'启用代码 Review',exact:true}).waitFor();await page.getByRole('tab',{name:'Talent 接入',exact:true}).click();
@@ -155,8 +155,8 @@ try{
   await page.getByRole('button',{name:'管理 Agent 配置',exact:true}).click();const agentDialog=page.locator('[data-config-dialog]');await agentDialog.locator('[data-editor]:visible').waitFor();
   assert.equal(await agentDialog.locator('[data-tabs] button').count(),6);assert.equal(await agentDialog.locator('[data-save]').isVisible(),false);
   await agentDialog.getByRole('button',{name:'切换配置的 Agent 工具',exact:true}).click();await agentDialog.locator('[data-config-tool-list]').getByRole('button',{name:'OpenCode',exact:true}).click();
-  await agentDialog.locator('[data-config-tool-title]').filter({hasText:'OpenCode 配置'}).waitFor();await agentDialog.locator('[data-tabs] button[data-category="agent"]:visible').click();await agentDialog.getByText('build · 接入示例',{exact:true}).last().waitFor();
-  await page.getByRole('button',{name:'关闭配置',exact:true}).click();await page.getByRole('button',{name:'实例管理',exact:true}).click();await page.getByText('OpenCode 原生 HTTP 接入示例',{exact:true}).waitFor();await page.getByRole('button',{name:'关闭实例管理',exact:true}).click();
+  await agentDialog.locator('[data-config-tool-title]').filter({hasText:'OpenCode 配置'}).waitFor();await agentDialog.locator('[data-tabs] button[data-category="agent"]:visible').click();await agentDialog.getByText('build',{exact:true}).last().waitFor();
+  await page.getByRole('button',{name:'关闭配置',exact:true}).click();await page.getByRole('button',{name:'实例管理',exact:true}).click();await page.getByText('OpenCode 原生 HTTP 接入',{exact:true}).waitFor();await page.getByRole('button',{name:'关闭实例管理',exact:true}).click();
   assert.equal(await page.getByRole('tab',{name:'基础协作能力',exact:true}).count(),0);assert.equal(await page.getByRole('switch',{name:'启用进度同步',exact:true}).count(),0);
   assert.deepEqual(await state(),final,'read-only Agent configuration and sample inspection must preserve all seven-case workflow state');
   await visit('/teams#/trace');await page.getByRole('button',{name:/E3.*jsdom/}).click();assert.ok((await page.locator('.trace-layout .evidence-console').textContent())?.includes('EXIT:1'));

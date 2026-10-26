@@ -1,0 +1,18 @@
+/** Presentation-only labels. Never apply to protocol values, paths, hashes, or source/Skill text. */
+export function displayRequirementId(value: string): string {
+  return value.replace(/\bDEMO-MKT-001\b/g, 'MKT-001');
+}
+/** Use explicitly on product metadata or saved UI messages; source bodies stay untouched. */
+export function displayText(value: string): string {
+  return displayRequirementId(value)
+    .replace(/（(?:演示|模拟|样例|示例)）|\((?:demo|mock)\)/gi, '')
+    .replace(/(?:演示|模拟)(?:数据|记录)/g, '记录')
+    .replace(/演示工程/g, '工作区').replace(/演示服务/g, '服务').replace(/演示角色/g, '角色')
+    .replace(/演示配置/g, '配置').replace(/演示项目/g, '项目').replace(/演示流程/g, '流程')
+    .replace(/演示日/g, '当日').replace(/演示接入/g, '本地接入')
+    .replace(/演示示例|演示样例|接入示例|接入样例/g, '配置参考')
+    .replace(/演示|模拟/g, '')
+    .replace(/(?<![\w/.:-])(?:mock|demo)(?![\w/.:-])\s*/gi, '')
+    .replace(/样例|示例/g, '参考')
+    .replace(/ {2,}/g, ' ').trim();
+}

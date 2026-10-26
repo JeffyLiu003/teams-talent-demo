@@ -26,7 +26,7 @@ try{
   assert.equal(await page.locator('[data-platform="requirements"]').getByRole('button',{name:'在项目中使用',exact:true}).isEnabled(),false);
   const checks=[
     ['repository','代码托管平台','CardDemo Java 项目','carddemo-java-1025',6],
-    ['requirements','需求平台','餐饮消费返现','DEMO-MKT-001',7],
+    ['requirements','需求平台','餐饮消费返现','MKT-001',7],
     ['defects','缺陷平台','未报名时应提供餐饮活动报名入口','CARD-BUG-001',3],
     ['design-library','设计文档 / 知识库','营销能力设计','marketing-capability',7],
     ['test-assets','测试资产平台','餐饮活动报名与未报名消费','CARD-TC-01',8],
@@ -35,7 +35,7 @@ try{
     await page.getByRole('button',{name:'查看'+name+'数据',exact:true}).click();const drawer=page.locator('.enterprise-source-drawer');await drawer.getByRole('button',{name:title,exact:true}).waitFor();
     assert.equal(await drawer.locator('.ant-table-row').count(),count);await drawer.getByText('信用卡营销交付',{exact:true}).first().waitFor();await drawer.getByText('iCode Teams',{exact:true}).first().waitFor();
     await drawer.getByRole('button',{name:title,exact:true}).click();await drawer.getByRole('heading',{name:title,exact:true}).waitFor();await drawer.getByText(record,{exact:true}).waitFor();
-    assert.ok((await drawer.locator('.enterprise-source-detail').innerText()).includes('插件 mock 记录'));
+    assert.ok((await drawer.locator('.enterprise-source-detail').innerText()).includes('来源记录'));
     if(id==='design-library'){await drawer.getByRole('button',{name:'阅读营销能力设计',exact:true}).click();await drawer.locator('.enterprise-source-reference pre').waitFor();assert.ok((await drawer.locator('.enterprise-source-reference pre').innerText()).includes('营销'));}
     if(id==='test-assets')assert.ok((await drawer.locator('.enterprise-source-detail').innerText()).includes('预期结果'));
     await page.screenshot({path:output+'/'+id+'-detail.png',fullPage:true,animations:'disabled'});await drawer.getByRole('button',{name:'返回数据',exact:true}).click();await drawer.locator('.ant-table-row').first().waitFor();await drawer.locator('.ant-drawer-close').click();await drawer.waitFor({state:'hidden'});
@@ -55,7 +55,7 @@ try{
     await drawer.locator('.enterprise-source-detail').waitFor();measure=await page.evaluate(()=>({width:innerWidth,scrollWidth:document.documentElement.scrollWidth}));assert.ok(measure.scrollWidth<=width);layouts.push({mode,page:'detail',...measure});
     await page.screenshot({path:output+'/'+mode+'-'+width+'-detail.png',fullPage:true,animations:'disabled'});await drawer.locator('.ant-drawer-close').click();await drawer.waitFor({state:'hidden'});
   }
-  await page.getByRole('combobox',{name:'切换演示角色'}).click();await page.locator('.ant-select-item-option-content').getByText('陈晨 · 项目成员',{exact:true}).click();await page.getByText('此页面面向项目 Owner',{exact:true}).waitFor();
+  await page.getByRole('combobox',{name:'切换角色'}).click();await page.locator('.ant-select-item-option-content').getByText('陈晨 · 项目成员',{exact:true}).click();await page.getByText('此页面面向项目 Owner',{exact:true}).waitFor();
   assert.equal(await page.getByRole('button',{name:'查看需求平台数据',exact:true}).count(),0);
   assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);assert.deepEqual(await(await fetch(origin+'/api/state')).json(),initial);assert.equal(await readFile(join(dir,'state.json'),'utf8'),before);
   await writeFile(output+'/result.json',JSON.stringify({passed:true,plugins:[...checks.map(([id])=>id),'business-knowledge'],knowledgeApiFixtures:['not-built','ready','error','retry'],layouts,pageErrors:errors,posts:writes,stateUnchanged:true,memberGuard:true},null,2));console.log('PASS: 6 source plugin drawers, knowledge API empty/ready/error/retry, local reference, read-only state, role guard, 8 layouts');

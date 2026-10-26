@@ -5,7 +5,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash, randomUUID } from 'node:crypto';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const help = `Teams CLI · 本机演示接入
+const help = `Teams CLI · 本机接入
 context get | inputs adopt | progress add | result submit | session report | operation get
 --endpoint http://127.0.0.1:45970 (或 DEMO_ORIGIN)
 --input '{"projectId":"…","taskId":"…","nodeId":"…"}' 或 --input-file FILE
@@ -25,10 +25,10 @@ try {
   const allowed = new Set(['endpoint','input','input-file','project','task','node','tab','operation-id','output','receipt-dir','role']);
   for (let i = 0; i < tokens.length; i++) { const token = tokens[i]; if (token === '--help' || token === '-h') { console.log(help); process.exit(0); } if (!token.startsWith('--')) { positional.push(token); continue; } const name = token.slice(2); if (!allowed.has(name) || Object.hasOwn(options,name) || tokens[i+1] === undefined || tokens[i+1].startsWith('--')) throw new Error('未知、重复或缺少值的参数：' + token); options[name] = tokens[++i]; }
   const command = positional.join(' '), base = options.endpoint ?? process.env.DEMO_ORIGIN ?? 'http://127.0.0.1:45970';
-  const parsed = new URL(base); if (parsed.hostname !== '127.0.0.1' || parsed.protocol !== 'http:' || parsed.pathname !== '/' || parsed.search || parsed.hash || parsed.username || parsed.password) throw new Error('演示 CLI 仅允许明确的本机 HTTP origin');
+  const parsed = new URL(base); if (parsed.hostname !== '127.0.0.1' || parsed.protocol !== 'http:' || parsed.pathname !== '/' || parsed.search || parsed.hash || parsed.username || parsed.password) throw new Error('Teams CLI 仅允许明确的本机 HTTP origin');
   const origin = parsed.origin;
   async function request(path, body, token) { const response = await fetch(origin + path, { redirect: 'error', signal: AbortSignal.timeout(15000), ...(body ? { method: 'POST', headers: { 'content-type':'application/json', origin, 'x-demo-token':token }, body:JSON.stringify(body) } : {}) }); const value = await response.json(); if (!response.ok) throw new Error(`HTTP ${response.status}: ${value.error ?? '请求失败'}`); return value; }
-  const health = await request('/api/health'); if (health.app !== 'teams-talent-carddemo' || health.service !== 'teams') throw new Error('目标不是 Teams 演示服务；未执行协作调用');
+  const health = await request('/api/health'); if (health.app !== 'teams-talent-carddemo' || health.service !== 'teams') throw new Error('目标不是 Teams 服务；未执行协作调用');
   if (options.input && options['input-file']) throw new Error('--input 和 --input-file 只能选一项');
   const input = JSON.parse(options.input ?? (options['input-file'] ? await readFile(options['input-file'],'utf8') : '{}'));
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('input 必须为 JSON 对象');

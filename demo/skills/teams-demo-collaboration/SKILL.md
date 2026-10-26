@@ -1,11 +1,11 @@
 ---
 name: teams-demo-collaboration
-description: 在本机 Teams 演示中开始或继续项目任务，读取所选任务节点上下文，明确采用依据，并向同一任务回传进度、阻塞和成果引用。用于 Teams 演示启动材料提供了项目与任务范围的会话。
+description: 在本机 Teams中开始或继续项目任务，读取所选任务节点上下文，明确采用依据，并向同一任务回传进度、阻塞和成果引用。用于 Teams启动材料提供了项目与任务范围的会话。
 ---
 
-# Teams 协作 · 演示接入
+# Teams 协作
 
-使用启动材料给出的 Teams endpoint、projectId、taskId、nodeId 和 runId。CLI 位于演示工程的 `scripts/teams-demo.mjs`；使用启动材料提供的当前绝对路径；运行 `node <CLI> --help` 查看合同。此 Skill 以独立 demo 名称提供，不覆盖生产 Teams Skill 或 `teams` 命令。所有写入仅在本机演示服务发生。
+使用启动材料给出的 Teams endpoint、projectId、taskId、nodeId 和 runId。CLI 位于当前工程的 `scripts/teams-demo.mjs`；使用启动材料提供的当前绝对路径；运行 `node <CLI> --help` 查看合同。此 Skill 与 `teams` 命令分别管理。所有写入仅在本机 Teams 服务发生。
 
 开始工作先运行：
 
@@ -29,4 +29,4 @@ Windows PowerShell 中，优先复制启动材料给出的 `& 'Node绝对路径'
 
 每次写入使用一个稳定 operationId。CLI 发送前保存完整请求，成功后保存服务回执；默认目录为 demo `.runtime/cli-receipts`，可用 `--receipt-dir` 指定。非零退出码或失败回执必须向会话明确报告。超时/响应丢失时先 `operation get --operation-id OP`；需要重试时保持原 ID 和完整原载荷。revision 冲突时重新读取并判断如何协调，不能换 ID 绕过冲突。相同 ID 不同载荷会被拒绝。
 
-演示角色只用于本机流程校验，不代表企业认证。不要通过 CLI 改验收、测试或安全字段。启动提示提供这份文件和读取命令；模型是否实际读取由会话执行确认，不能声称自动加载或自动完成同步。
+当前角色只用于本机流程校验，不代表企业认证。不要通过 CLI 改验收、测试或安全字段。启动提示提供这份文件和读取命令；模型是否实际读取由会话执行确认，不能声称自动加载或自动完成同步。

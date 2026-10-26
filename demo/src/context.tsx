@@ -11,4 +11,4 @@ export interface DemoContext {
   navigate(route: string): void;
 }
 export const Context = createContext<DemoContext | null>(null);
-export function useDemo() { const value = useContext(Context); if (!value) throw new Error('Demo context missing'); return value; }
+export function useDemo() { const value = useContext(Context); if (!value) throw new Error('Workspace context missing'); return value; }

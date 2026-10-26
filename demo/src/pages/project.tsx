@@ -1,3 +1,4 @@
+import { displayText } from '../display-text.js';
 import { Alert, Button, Descriptions, Space, Tag } from 'antd';
 import { ArrowLeftOutlined, FileTextOutlined, SettingOutlined } from '@ant-design/icons';
 import { useDemo } from '../context.js';
@@ -15,7 +16,7 @@ import '../project.css';
 export function Project({ tab = 'content', node }: { tab?: string; node?: string }) {
   const { state, role, navigate } = useDemo();
   if (tab === 'list') return <div className="page-stack project-workspace"><Heading eyebrow="团队空间" title="项目" description={role === 'owner' ? '准备项目资产与知识，组织需求交付并确认成果。' : '进入参与的项目，准备需求上下文并开展开发。'} actions={role === 'owner' ? <CreateProjectButton /> : undefined} />
-    <FrameworkCard title={state.workspace.project.name} action={<Tag color={state.stage === 'accepted' ? 'green' : 'purple'}>{stageLabels[state.stage]}</Tag>}><p>{state.workspace.project.description}</p><Descriptions size="small" column={2} items={[{ key: 'team', label: '所属团队', children: state.workspace.team.name }, { key: 'people', label: '协作角色', children: 'Owner 林悦 · 成员 陈晨' }, { key: 'repository', label: '主仓', children: state.workspace.project.repository }, { key: 'task', label: '本次需求', children: '餐饮消费返现 · DEMO-MKT-001' }]} /><Space wrap><Button type="primary" onClick={() => navigate('projects?tab=content')}>进入项目</Button><Button onClick={() => navigate('projects?tab=management')}>任务管理</Button><Button onClick={() => navigate('projects?tab=delivery&node=prepare')}>任务交付</Button>{role === 'owner' && <Button onClick={() => navigate('projects?tab=settings')}>编辑项目</Button>}</Space></FrameworkCard>
+    <FrameworkCard title={state.workspace.project.name} action={<Tag color={state.stage === 'accepted' ? 'green' : 'purple'}>{stageLabels[state.stage]}</Tag>}><p>{displayText(state.workspace.project.description)}</p><Descriptions size="small" column={2} items={[{ key: 'team', label: '所属团队', children: state.workspace.team.name }, { key: 'people', label: '协作角色', children: 'Owner 林悦 · 成员 陈晨' }, { key: 'repository', label: '主仓', children: state.workspace.project.repository }, { key: 'task', label: '本次需求', children: '餐饮消费返现 · MKT-001' }]} /><Space wrap><Button type="primary" onClick={() => navigate('projects?tab=content')}>进入项目</Button><Button onClick={() => navigate('projects?tab=management')}>任务管理</Button><Button onClick={() => navigate('projects?tab=delivery&node=prepare')}>任务交付</Button>{role === 'owner' && <Button onClick={() => navigate('projects?tab=settings')}>编辑项目</Button>}</Space></FrameworkCard>
     <TeamsProjectCard />
     {(state.workspace.projects ?? []).map(project => <CreatedProjectCard key={project.id} project={project} />)}
   </div>;

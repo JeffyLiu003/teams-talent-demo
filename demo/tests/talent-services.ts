@@ -72,9 +72,9 @@ try {
   await page.getByRole('button', { name: '重新读取业务知识', exact: true }).click();
   await page.getByRole('button', { name: '报名与资格分别判断', exact: true }).waitFor();
   await page.goto(talent + '/talent?demo-role=owner#/knowledge?project=' + projectId);
-  await page.getByText('演示来源索引', { exact: false }).waitFor();
+  await page.getByText('来源索引', { exact: false }).waitFor();
   await page.screenshot({ path: 'test-results/talent-independent-project.png', fullPage: true, animations: 'disabled' });
-  await page.getByRole('combobox', {name:'切换演示角色'}).click();
+  await page.getByRole('combobox', {name:'切换角色'}).click();
   await page.getByText('陈晨 · 项目成员', {exact:true}).last().click();
   await page.getByRole('link', {name:'返回 Teams 项目',exact:true}).first().click();
   await page.locator('.breadcrumb strong[title="独立知识验证项目"]').waitFor();

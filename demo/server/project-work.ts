@@ -42,7 +42,7 @@ export function resolveProjectWork(state: DemoState, data: Presentation, input: 
     }
     if (input.discussionId) { const discussion = snapshot.discussions.find(item => item.id === input.discussionId); if (!discussion) throw new DomainError('任务讨论不存在', 400); target.discussionId = discussion.id; title = discussion.title; }
     if (input.releaseId) { if (!snapshot.releases.some(item => item.name === input.releaseId)) throw new DomainError('发布版本不存在', 400); target.releaseId = input.releaseId; }
-    return { target, projectName: snapshot.project.name, title, location, source: '原 Teams 项目快照；作业示例没有可恢复的本机 session 证据', repository: 'github.com/SEAL-iCode/iCode-teams', assets: snapshot.documents.map(item => ({ title: item.path, location: item.path })), skills: snapshot.project.skills.map(skill => typeof skill === 'string' ? skill : String((skill as any).name ?? (skill as any).id)) };
+    return { target, projectName: snapshot.project.name, title, location, source: 'Teams 项目快照；尚无可恢复的本机会话记录', repository: 'github.com/SEAL-iCode/iCode-teams', assets: snapshot.documents.map(item => ({ title: item.path, location: item.path })), skills: snapshot.project.skills.map(skill => typeof skill === 'string' ? skill : String((skill as any).name ?? (skill as any).id)) };
   }
   const project = state.workspace.projects?.find(project => project.id === input.projectId);
   if (!project) throw new DomainError('项目不存在', 404);
@@ -63,7 +63,7 @@ async function inspectDirectory(directory: string, repository: string, sourceRoo
   const canonical = await realpath(directory);
   let reference: string | undefined;
   try { reference = await realpath(sourceRoot); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
-  if (reference && (canonical === reference || canonical.startsWith(reference + '/'))) throw new DomainError('此目录是演示的只读原 Teams 参考仓；请绑定自己的可工作检出目录');
+  if (reference && (canonical === reference || canonical.startsWith(reference + '/'))) throw new DomainError('此目录是只读的 Teams 参考仓；请绑定自己的可工作检出目录');
   const env = { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.toUpperCase().startsWith('GIT_'))), LC_ALL: 'C', LANG: 'C' };
   const git = async (args: string[]) => (await execute('git', ['-C', canonical, ...args], { env, timeout: 5000, maxBuffer: 65536 })).stdout.trim();
   if (await realpath(await git(['rev-parse', '--show-toplevel'])) !== canonical) throw new DomainError('请选择 Git checkout 或 worktree 根目录');
@@ -165,8 +165,8 @@ export class ProjectWorkService {
     const scopePath = join(this.directory, 'work-contexts', body.requestId + '.scope.json');
     await atomicJson(scopePath, plan.target);
     const command = formatShellCommand([process.execPath, join(root, 'scripts/teams-demo.mjs'), '--endpoint', origin, '--role', role, 'context', 'get', '--input-file', scopePath, '--output', contextJsonPath]);
-    const instruction = `请先读取 Teams 演示协作 Skill：${collaborationSkillPath}，再读取本次作业入口 ${contextPath}。当前演示角色 ${role}，后续 CLI 命令保留 --role ${role}。开始时执行：${command}。按 Skill 明确记录实际采用的输入，并以 runId=${body.requestId} 回传进展与证据；新会话 ID 尚未确认，不得填入其他会话。`;
-    const content = `# ${plan.projectName} · ${plan.title}\n\n工作位置：${plan.location}\n来源：${plan.source}\n\n${plan.context.summary}\n采用版本：${plan.context.versions}\n\n## 工作标识\n${JSON.stringify({ ...plan.target, role, runId: body.requestId, sessionId: body.action === 'new' ? null : plan.history!.sessionId }, null, 2)}\n\n## 项目资料与选择\n${JSON.stringify(plan.context, null, 2)}\n\n## 开始工作时读取\n${instruction}\n\n准备时读取的结构化上下文：${contextJsonPath}\n\n本文件由演示服务导出。提供入口不代表 iCode 已读取、采用或完成工作。\n`;
+    const instruction = `请先读取 Teams 协作 Skill：${collaborationSkillPath}，再读取本次作业入口 ${contextPath}。当前角色 ${role}，后续 CLI 命令保留 --role ${role}。开始时执行：${command}。按 Skill 明确记录实际采用的输入，并以 runId=${body.requestId} 回传进展与证据；新会话 ID 尚未确认，不得填入其他会话。`;
+    const content = `# ${plan.projectName} · ${plan.title}\n\n工作位置：${plan.location}\n来源：${plan.source}\n\n${plan.context.summary}\n采用版本：${plan.context.versions}\n\n## 工作标识\n${JSON.stringify({ ...plan.target, role, runId: body.requestId, sessionId: body.action === 'new' ? null : plan.history!.sessionId }, null, 2)}\n\n## 项目资料与选择\n${JSON.stringify(plan.context, null, 2)}\n\n## 开始工作时读取\n${instruction}\n\n准备时读取的结构化上下文：${contextJsonPath}\n\n本文件由 Teams 导出。提供入口不代表 iCode 已读取、采用或完成工作。\n`;
     await atomicText(contextPath, content);
     const receipt: ProjectWorkReceipt = { requestId: body.requestId, target: plan.target, action: body.action, status: 'prepared', at: new Date().toISOString(), directory, sessionId: body.action === 'new' ? null : plan.history!.sessionId, contextPath, instruction, note: '启动请求已准备；尚未观察到原生会话。' };
     await atomicJson(path, { identity, receipt });

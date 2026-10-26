@@ -1,3 +1,4 @@
+import { displayText } from '../display-text.js';
 import { useDemo } from '../context.js';
 import { OwnerProjectOverview } from './project-owner-overview.js';
 import type { ReactNode } from 'react';
@@ -12,7 +13,7 @@ export function ProjectContentTemplate({ projectId, name, description, origin, i
   skills: ProjectSkillEntry[]; skillFooter?: ReactNode;
 }) {
   const { role } = useDemo();
-  const basic = <FrameworkCard title="项目基础信息" action={origin}><p className="muted">{description || '尚未填写项目说明。'}</p><Descriptions size="small" column={{ xs: 1, sm: 2 }} items={information} /><Collapse size="small" ghost items={[{ key: 'members', label: '项目成员与职责', children: members }]} /></FrameworkCard>;
+  const basic = <FrameworkCard title="项目基础信息" action={origin}><p className="muted">{displayText(description) || '尚未填写项目说明。'}</p><Descriptions size="small" column={{ xs: 1, sm: 2 }} items={information} /><Collapse size="small" ghost items={[{ key: 'members', label: '项目成员与职责', children: members }]} /></FrameworkCard>;
   const skillContent = <ProjectSkills projectName={name} skills={skills} projectFooter={skillFooter} />;
   if (role === 'owner') return <OwnerProjectOverview key={projectId} projectId={projectId} origin={origin} skillCount={skills.length} skillContent={skillContent} resources={<>{basic}{assets}<FrameworkCard title="需求材料与来源">{requirements}</FrameworkCard></>} />;
   return <div className="page-stack project-content-template" data-project-content={name}>

@@ -14,13 +14,13 @@ export function buildMockKnowledge(context: TalentProjectContext, fixtures: Pres
   const inputs = context.assets.flatMap(asset => legacyAssetSourceIds(asset).map(id => catalog.get(id)).filter((asset): asset is SourcePluginAsset => !!asset));
   const make = (id: string, title: string, summary: string, references: SourcePluginAsset['references']): SourcePluginAsset => ({
     id: `business-knowledge:${context.id}:${id}`, pluginId: 'business-knowledge', sourceRecordId: id, kind: 'knowledge', title, summary,
-    detail: `Talent 构建的演示知识 · ${id}\n项目：${context.name}\n版本：knowledge-v1\n\n${summary}\n\n本条目由明确的 mock 构建生成，未运行模型抽取或全仓代码构图。已有本地原文按引用阅读，原文不属于派生知识正文。`,
+    detail: `Talent 项目知识 · ${id}\n项目：${context.name}\n版本：knowledge-v1\n\n${summary}\n\n本条目基于已关联资料整理；模型抽取与全仓代码构图尚未执行。已有本地原文按引用阅读，原文不属于派生知识正文。`,
     sourceProjectId: context.id, sourceProjectName: context.name, origin: 'plugin-mock', version: 'knowledge-v1', updatedAt: at,
     references, relatedRequirementIds: context.id === 'carddemo' ? ['requirements:carddemo:DEMO-MKT-001'] : [],
   });
   if (context.id === 'carddemo') return rules.filter(rule => inputs.some(input => input.references.some(reference => reference.path === rule.file))).map(rule => make(rule.id, rule.title, rule.text, [{ collection: 'sources', path: rule.file, label: '阅读原始业务资料', extent: 'full-file', origin: 'existing-local-file' }]));
   return context.assets.map((asset, index) => {
     const source = inputs.find(source => legacyAssetSourceIds(asset).includes(source.id));
-    return make(`INDEX-${index + 1}`, `${asset.title} · 来源索引`, `已为所选输入「${asset.title}」生成可追溯索引。位置：${asset.location}。此演示索引不推断业务规则；项目业务知识仍需后续抽取与确认。`, source?.references ?? []);
+    return make(`INDEX-${index + 1}`, `${asset.title} · 来源索引`, `已为所选输入「${asset.title}」生成可追溯索引。位置：${asset.location}。此索引仅记录来源；项目业务知识仍需后续抽取与确认。`, source?.references ?? []);
   });
 }

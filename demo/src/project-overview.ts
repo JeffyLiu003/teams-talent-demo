@@ -35,9 +35,9 @@ export function projectOverview(state: DemoState, data: Presentation, projectId:
     const item: OverviewRequirement = { id: source.id, source, owner: '未分配', phase: '待开展', due: undefined, overdue: false, scope: '已关联来源 · 未纳入 Teams 交付', pendingConfirmation: true, issues: [], quality: unknownQuality() };
     if (projectId === 'carddemo' && source.id === 'requirements:carddemo:DEMO-MKT-001') {
       item.taskId = 'DEMO-MKT-001'; item.owner = state.assigned ? '陈晨' : '待分配'; item.phase = phases[state.stage]; item.pendingConfirmation = !state.assigned;
-      item.scope = 'Teams 演示交付'; item.route = route(projectId, state.assigned ? 'delivery' : 'management', state.assigned ? { node: state.stage === 'submitted' || state.stage === 'accepted' ? 'accept' : state.stage === 'failed' || state.stage === 'fixed' ? 'verify' : state.stage === 'developing' || state.stage === 'returned' ? 'develop' : 'prepare' } : {});
+      item.scope = 'Teams 任务交付'; item.route = route(projectId, state.assigned ? 'delivery' : 'management', state.assigned ? { node: state.stage === 'submitted' || state.stage === 'accepted' ? 'accept' : state.stage === 'failed' || state.stage === 'fixed' ? 'verify' : state.stage === 'developing' || state.stage === 'returned' ? 'develop' : 'prepare' } : {});
       item.quality = [
-        { label: '功能', result: state.stage === 'accepted' ? '验收通过' : state.uat ? '边界验收通过（模拟）' : '待验收', passed: state.stage === 'accepted' },
+        { label: '功能', result: state.stage === 'accepted' ? '验收通过' : state.uat ? '边界验收结果已记录' : '待验收', passed: state.stage === 'accepted' },
         { label: 'Review', result: '1 项待核验', passed: false },
         { label: '测试', result: state.checks === 'passed' ? state.stage === 'returned' ? '历史 9/9 · 待复验' : '历史复测 9/9' : state.checks === 'failed' ? '历史检查 7/8 · 失败' : '未检查', passed: state.checks === 'passed' && state.stage !== 'returned' },
         { label: '安全', result: '待验证', passed: false },
@@ -72,7 +72,7 @@ export function projectOverview(state: DemoState, data: Presentation, projectId:
     return item;
   });
   for (const requirement of requirements) requirement.issues = issues.filter(issue => issue.closed !== true && issue.confirmed && issue.relatedIds.includes(requirement.id));
-  const result: ProjectOverview = { requirements, research, issues, counts: { all: requirements.length, active: 0, acceptance: 0, delivered: 0, open: 0, blocking: 0 }, scope: projectId === 'teams' ? `已纳入交付的 ${requirements.length} 项需求与 ${research.length} 项调研分别统计；待确认讨论尚未转成任务。进度与计划来自演示快照。` : projectId === 'carddemo' ? '本项目主需求及已关联来源；交付阶段随 Teams 演示状态更新。' : '仅统计本项目已关联的需求与问题；来源关联不代表已进入交付。', asOf };
+  const result: ProjectOverview = { requirements, research, issues, counts: { all: requirements.length, active: 0, acceptance: 0, delivered: 0, open: 0, blocking: 0 }, scope: projectId === 'teams' ? `已纳入交付的 ${requirements.length} 项需求与 ${research.length} 项调研分别统计；待确认讨论尚未转成任务。进度与计划来自已导入记录。` : projectId === 'carddemo' ? '本项目主需求及已关联来源；交付阶段随 Teams 任务状态更新。' : '仅统计本项目已关联的需求与问题；来源关联不代表已进入交付。', asOf };
   for (const filter of ['active', 'acceptance', 'delivered'] as const) result.counts[filter] = filterRequirements(result, filter).length;
   for (const filter of ['open', 'blocking'] as const) result.counts[filter] = filterIssues(result, filter).length;
   result.projectActivity = latestReport();

@@ -1,3 +1,5 @@
+import { displayTalentArtifact } from '../talent-artifacts.js';
+import { displayText } from '../display-text.js';
 import { useEffect, useState } from 'react';
 import { Alert, Button, Drawer, Empty, Space, Spin, Tag } from 'antd';
 import { getBusinessKnowledge } from '../api.js';
@@ -32,9 +34,9 @@ export function ProjectKnowledge({ projectId, compact = false }: { projectId: st
   const status = loading ? '读取中' : failure ? '读取失败' : ready ? `${assets[0]?.version ?? '项目知识'} 已就绪` : '尚未构建';
   const content = <div className="project-knowledge" data-knowledge-project={projectId}>
       {loading ? <Space><Spin size="small" /><span className="muted">正在读取 Talent 项目知识…</span></Space> : failure ? <Alert showIcon type="error" title="无法读取 Talent 项目知识" description={failure} action={<Button onClick={() => setAttempt(value => value + 1)}>重试</Button>} /> : ready ? <>
-        <div className="project-material-list">{assets.map(asset => <div className="project-material" key={asset.id}><div><strong>{asset.title}</strong><p>{asset.summary}</p><small>{asset.version} · Talent mock 构建</small></div><Button size="small" aria-label={'查看项目知识：' + asset.title} onClick={() => showText(asset.title, asset.detail)}>查看</Button></div>)}</div>
+        <div className="project-material-list">{assets.map(asset => <div className="project-material" key={asset.id}><div><strong>{displayText(asset.title)}</strong><p>{displayText(asset.summary)}</p><small>{displayText(asset.version ?? '未记录版本')} · Talent 构建</small></div><Button size="small" aria-label={'查看项目知识：' + asset.title} onClick={() => showText(displayText(asset.title), displayTalentArtifact(asset.detail))}>查看</Button></div>)}</div>
         {projectId !== 'carddemo' && <p className="muted">当前成果为已关联资料的来源索引，业务规则仍需抽取与确认。</p>}
-      </> : <><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="尚未生成项目知识" /><p className="muted">Talent 尚未为此项目构建成果。{projectId === 'carddemo' ? 'Owner 可基于关联资料发起演示知识整合。' : 'Owner 可基于关联资料显式构建来源索引。'}</p></>}
+      </> : <><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="尚未生成项目知识" /><p className="muted">Talent 尚未为此项目构建成果。{projectId === 'carddemo' ? 'Owner 可基于关联资料发起知识整合。' : 'Owner 可基于关联资料显式构建来源索引。'}</p></>}
       <Space wrap className="card-actions">
         {role === 'owner' && !loading && !failure && <Button data-action="knowledge" type="primary" loading={busy} disabled={ready || !hasInputs || !enabled} onClick={async () => { await perform('knowledge'); setAttempt(value => value + 1); }}>{ready ? '项目知识已整合' : '发起项目知识整合'}</Button>}
         <Button href={talentLink('knowledge', { projectId, role })}>在 Talent 查看成果</Button>

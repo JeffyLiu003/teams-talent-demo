@@ -33,7 +33,7 @@ try {
   browser = await chromium.launch({ channel: 'chrome', headless: true });
   page = await browser.newPage({ viewport: { width: 1440, height: 1000 } }); page.setDefaultTimeout(7000);
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
-  const visit = async (path: string) => { await page!.goto(origin + '/teams#/' + path); await page!.getByRole('button', { name: '演示指引' }).waitFor(); };
+  const visit = async (path: string) => { await page!.goto(origin + '/teams#/' + path); await page!.getByRole('button', { name: '使用指引' }).waitFor(); };
   const closePanels = async (target = page!) => { for (const selector of ['.owner-project-panel', '.project-knowledge-drawer']) { const panel = target.locator(selector); if (await panel.isVisible()) { await panel.locator('.ant-drawer-close').click(); await panel.waitFor({ state: 'hidden' }); } } };
   const openPanel = async (name: string, target = page!) => { await closePanels(target); await target.getByRole('button', { name, exact: true }).click(); };
   const closeText = async (target = page!) => { await target.locator('.ant-drawer').filter({ has: target.locator('.drawer-console') }).locator('.ant-drawer-close').click(); await target.locator('.drawer-console').waitFor({ state: 'hidden' }); };
@@ -78,7 +78,7 @@ try {
   await visit('projects?project=carddemo&tab=content'); await page.locator('.breadcrumb strong').getByText(initial.workspace.project.name, { exact: true }).waitFor(); await openPanel('项目资料'); await page.getByRole('button', { name: '关联项目资产' }).waitFor();
   await visit('projects?project=teams&tab=content'); await page.locator('.breadcrumb strong').getByText('iCode Teams', { exact: true }).waitFor(); await openPanel('项目资料'); await page.getByRole('button', { name: '查看 AGENTS.md', exact: true }).waitFor();
   const member = await browser.newPage({ viewport: { width: 1440, height: 1000 } }); await member.addInitScript(() => localStorage.setItem('carddemo-role', 'member'));
-  await member.goto(origin + '/teams#/projects?tab=list'); await member.getByRole('button', { name: '演示指引' }).waitFor(); assert.equal(await member.getByRole('button', { name: '添加项目', exact: true }).count(), 0);
+  await member.goto(origin + '/teams#/projects?tab=list'); await member.getByRole('button', { name: '使用指引' }).waitFor(); assert.equal(await member.getByRole('button', { name: '添加项目', exact: true }).count(), 0);
   await member.goto(origin + '/teams#/projects?project=' + projectId + '&tab=settings'); await member.getByText('项目成员可查看基础信息，由 Owner 维护。', { exact: true }).waitFor(); assert.equal(await member.getByRole('textbox', { name: '项目名称', exact: true }).isDisabled(), true);
   assert.equal((await request('member', 'project.metadata.update', { ...draft, id: projectId, name: '越权更新' })).status, 403);
   await closePanels(); await page.getByRole('button', { name: '切换到浅色模式' }).click();
@@ -91,7 +91,7 @@ try {
       await openPanel('知识成果', target); if (id !== 'carddemo') await target.getByText('尚未生成项目知识', { exact: true }).waitFor(); await closePanels(target);
       await openPanel('项目资料', target);
     } else { await target.locator('.project-content-template').waitFor(); assert.deepEqual(await target.locator('.project-content-template h2').allTextContents(), sharedTitles); if (id !== 'carddemo') await target.getByText('尚未生成项目知识', { exact: true }).waitFor(); }
-    if (id === 'teams') { assert.equal(await target.getByRole('button', { name: '关联项目资产', exact: true }).count(), 0); await target.getByRole('button', { name: '项目成员与职责', exact: true }).click(); await target.getByText('成员 A、B、C 沿用原 Teams 演示身份。', { exact: false }).waitFor(); }
+    if (id === 'teams') { assert.equal(await target.getByRole('button', { name: '关联项目资产', exact: true }).count(), 0); await target.getByRole('button', { name: '项目成员与职责', exact: true }).click(); await target.getByText('成员 A、B、C 为项目协作成员。', { exact: false }).waitFor(); }
     if (roleName === 'owner') await openPanel('查看 Skill', target);
     if (id === 'teams') for (const skill of bootstrap.data.teamsProject.project.skills) { await target.getByRole('button', { name: '查看 Skill：' + skill.name, exact: true }).click(); const original = bootstrap.data.teamsProject.documents.find((doc: any) => doc.path === '.agents/skills/' + skill.name + '/SKILL.md').content; assert.ok((await target.locator('.drawer-console').innerText()).includes(original)); await closeText(target); }
     await target.getByRole('tab', { name: '用户 Skill · 4', exact: true }).click(); await target.getByRole('button', { name: '查看 Skill：Teams 协作', exact: true }).click(); assert.ok((await target.locator('.drawer-console').innerText()).includes('跨项目可用')); await closeText(target); await closePanels(target);
@@ -104,7 +104,7 @@ try {
   await page.getByRole('combobox', { name: '选择来源资产', exact: true }).click(); await page.locator('.ant-select-item-option-content').getByText('餐饮消费返现 · 需求平台 · 信用卡营销交付', { exact: true }).click();
   await save('asset.link', '关联所选资产');
   await page.getByRole('button', { name: '查看来源：餐饮消费返现', exact: true }).click();
-  assert.ok((await page.locator('.drawer-console').innerText()).includes('插件 mock')); await closeText();
+  assert.ok((await page.locator('.drawer-console').innerText()).includes('来源插件')); await closeText();
   await page.reload(); await openPanel('项目资料'); await page.getByRole('button', { name: '查看来源：餐饮消费返现', exact: true }).waitFor(); await openPanel('知识成果');
   await page.locator('.project-knowledge').getByText('尚未生成项目知识', { exact: true }).waitFor();
   const beforeIndex = await state();

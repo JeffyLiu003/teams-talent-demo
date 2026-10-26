@@ -31,7 +31,7 @@ function buildResult(project: TalentProjectState, ctx: TalentIntegrationContext,
     if (!ctx.project.assets.length) throw new DomainError('请先在 Teams 关联项目资产');
     if (project.knowledge.status === 'ready') throw new DomainError('此项目已有知识版本，请使用现有成果');
     const assets = buildMockKnowledge(ctx.project, fixtures);
-    if (!assets.length) throw new DomainError('当前关联资料无法生成演示知识，请关联原始设计资料后重试');
+    if (!assets.length) throw new DomainError('当前关联资料无法生成项目知识，请关联原始设计资料后重试');
     project.knowledge = { status: 'ready', version: 'knowledge-v1', builtAt: at, inputAssetIds: ctx.project.assets.map(asset => asset.sourceAssetId ?? asset.id), assets, graphInput: ctx.project.id === 'carddemo' && ctx.project.assets.some(asset => asset.id === 'code' || asset.kind === 'repository') ? 'existing-local-excerpts' : 'not-provided' };
     return;
   }
@@ -52,7 +52,7 @@ function buildResult(project: TalentProjectState, ctx: TalentIntegrationContext,
   } else if (action === 'evaluate') {
     if (project.evolution.status !== 'candidate') throw new DomainError('请先在 Talent 生成候选');
     project.evolution.status = 'evaluated';
-    project.evolution.evaluations = [{ kind: 'skill', result: '固定 Agent/模型/工具，三组预置业务规则用例通过（模拟，未运行真实模型实验）' }, { kind: 'agent', result: '固定 Skill/模型/工具，三组预置完成判定用例通过（模拟，未运行真实模型实验）' }];
+    project.evolution.evaluations = [{ kind: 'skill', result: '固定 Agent/模型/工具，已记录三组业务规则用例的对照结果；未执行模型实验。' }, { kind: 'agent', result: '固定 Skill/模型/工具，已记录三组完成判定用例的对照结果；未执行模型实验。' }];
   } else {
     if (project.evolution.status !== 'evaluated') throw new DomainError('请先完成两组候选评估');
     project.evolution.status = 'published'; project.evolution.publishedAt = at;
@@ -103,7 +103,7 @@ const server = createServer(async (request, response) => {
       json(200, data); return;
     }
     if (request.method === 'POST' && path.startsWith('/api/')) {
-      if (![origin, talentOrigin].includes(request.headers.origin ?? '') || request.headers['x-demo-token'] !== token || !request.headers['content-type']?.startsWith('application/json')) throw new DomainError('请求来源或演示令牌不匹配，请重新打开页面', 403);
+      if (![origin, talentOrigin].includes(request.headers.origin ?? '') || request.headers['x-demo-token'] !== token || !request.headers['content-type']?.startsWith('application/json')) throw new DomainError('请求来源或访问令牌不匹配，请重新打开页面', 403);
       const body = await bodyJson(request);
       if (path === '/api/action' && talentActions.includes(body.action)) { json(200, await operate(body, body.action)); return; }
       if (path === '/api/workspace' && body.kind === 'analysis.run' && body.payload && typeof body.payload === 'object') { json(200, await operate(body, 'analysis.run')); return; }
@@ -114,5 +114,5 @@ const server = createServer(async (request, response) => {
   } catch (error) { json(error instanceof DomainError ? error.status : 500, { error: (error as Error).message }); }
 });
 server.on('error', error => { console.error(error.message); process.exitCode = 1; });
-server.listen(talentPort, '127.0.0.1', () => console.log('Talent Demo: ' + talentOrigin + '/talent'));
+server.listen(talentPort, '127.0.0.1', () => console.log('Talent: ' + talentOrigin + '/talent'));
 for (const signal of ['SIGINT', 'SIGTERM'] as const) process.on(signal, () => server.close(() => process.exit(0)));

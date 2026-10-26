@@ -150,20 +150,20 @@ export async function writeContext(state: DemoState) {
   const path = join(runtimeDir, 'contexts', state.context.id + '-' + createHash('sha256').update(state.context.createdAt).digest('hex').slice(0, 12) + '-v3.md');
   const content = [
     '# 餐饮消费返现 · DEMO-MKT-001', '',
-    '这是演示需求的上下文材料。当前项目代码已包含历史实现；阅读与核对即可，不要重新执行部署、发送消息或修改全局配置。', '',
+    '这是当前需求的上下文材料。当前项目代码已包含历史实现；阅读与核对即可，不要重新执行部署、发送消息或修改全局配置。', '',
     '## 验收标准', '报名后，餐饮类别0001，消费满50元返5%，单笔最多30元，每卡最多5次。120元消费应返6元，同交易重复评估不重复入账。账户接口异常保存PENDING，后续按同一rewardId重试。', '',
     '## 采用依据', JSON.stringify(state.context, null, 2), '',
     '## 本机资料', '项目：' + codeRoot, '需求设计：' + join(codeRoot, 'docs/design/08-marketing-capability.md'), '知识与设计：' + join(codeRoot, 'docs/design'), 'Skill：' + join(workspace, 'skills'), '',
-    chosen.some(name=>userSkillExamples.some(skill=>skill.id===name)) ? '## 本次选用 Skill（项目与用户）' : '## 本次项目选用 Skill', ...chosen.map(name => { const example=userSkillExamples.find(skill=>skill.id===name);return example ? '- '+example.name+'（'+name+' · 用户 Skill 演示示例，未核验本机安装）：'+example.content : '- ' + name + '：' + join(workspace, 'skills', name, 'SKILL.md'); }), '',
+    chosen.some(name=>userSkillExamples.some(skill=>skill.id===name)) ? '## 本次选用 Skill（项目与用户）' : '## 本次项目选用 Skill', ...chosen.map(name => { const example=userSkillExamples.find(skill=>skill.id===name);return example ? '- '+example.name+'（'+name+' · 用户 Skill，未核验本机安装）：'+example.content : '- ' + name + '：' + join(workspace, 'skills', name, 'SKILL.md'); }), '',
     '## 需求补充材料', ...state.context.materials.flatMap(m=>['### '+m.title,m.body,'']),
-    '## Agent 基础协作', 'Teams 进度同步 Skill：'+foundation.path,'通过本地演示 CLI 回传进度。业务 Skill 与该基础能力分别管理。','',
+    '## Agent 基础协作', 'Teams 进度同步 Skill：'+foundation.path,'通过 Teams CLI 回传进度。业务 Skill 与该基础能力分别管理。','',
     '## 已知问题', '历史报名按钮问题已经修复；安全扫描证据缺失，ADR-007记录了鉴权范围限制。功能验收不代表生产放行。', '',
-    '## 历史会话', sessionId, '', '上下文由 Teams 演示工程导出；提供文件不等于 iCode 已读取或已采用。'
+    '## 历史会话', sessionId, '', '上下文由 Teams 导出；提供文件不等于 iCode 已读取或已采用。'
   ].join('\n');
   await mkdir(join(runtimeDir, 'contexts'), { recursive: true });
   let previous: string | undefined;
   try { previous = await readFile(path, 'utf8'); } catch (e) { if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e; }
-  if (previous !== undefined && previous !== content) throw new Error('已冻结上下文文件不同，请重置演示后重新准备');
+  if (previous !== undefined && previous !== content) throw new Error('已冻结上下文文件不同，请重置工作区后重新准备');
   if (previous === undefined) await atomicText(path, content);
   return { path, sha256: createHash('sha256').update(content).digest('hex'), content, prompt: '请读取并核对这份项目上下文，先不要修改代码：' + path };
 }
@@ -175,7 +175,7 @@ export function launch(tool: 'icode' | 'opencode', restore: boolean, requestId: 
   const result = (async () => {
     const entry = tool === 'icode' ? binary : await openCodePath();
     if (!entry || !await installed(entry)) throw new Error(tool + ' 尚未安装');
-    if (restore && tool !== 'icode') throw new Error('OpenCode 恢复不在本演示范围内');
+    if (restore && tool !== 'icode') throw new Error('当前未提供 OpenCode 会话恢复');
     if (restore) {
       const history = JSON.parse(await readFile(join(homedir(), '.chrys/sessions/6b82c08deb3b/session.json'), 'utf8'));
       if (history.meta?.session_id !== sessionId || await realpath(history.meta.primary_cwd) !== await realpath(workspace)) throw new Error('历史会话与当前工作目录不匹配，请在原目录继续');

@@ -92,7 +92,7 @@
       "sha256": "be7fa9e81f5c640552cba3804e0a2cdcf509f2a3799f029877b744216080f461",
       "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
       "sourceSha256": "be7fa9e81f5c640552cba3804e0a2cdcf509f2a3799f029877b744216080f461",
-      "targetSha256": "abcb9e5f79a7a61ea3145f6f418ce6b5ecb46bb0e271a17a4676f768dbc868ed",
+      "targetSha256": "cee791676b30b61b39873421f483b7efe352a875efc1871e6cdc992c6f30e24a",
       "mode": "react-presentation-port",
       "adaptation": "Ports left group list, pending invitation and member detail display. Demo team roles and fixed identities retain demo semantics."
     },
@@ -112,7 +112,7 @@
       "sha256": "e5e76236926fe81061f61ee7393ffa1b8da4b25cf6890dac97d95348711a1b0b",
       "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
       "sourceSha256": "e5e76236926fe81061f61ee7393ffa1b8da4b25cf6890dac97d95348711a1b0b",
-      "targetSha256": "b0c8dda96271878452d4b3200d2c025954cdf5dee54a28f66ba9d21852a17913",
+      "targetSha256": "9e412f4ba9cd988240b20e71aaf2480effcf6ff77d2e26b9327a095e6b7c9eba",
       "mode": "react-presentation-port",
       "adaptation": "Ports WorkRow and quick-entry-grid; TeamsPageIntro is a demo integration helper."
     },
@@ -122,7 +122,7 @@
       "sha256": "fb4fcbdf295d2eae81965a51cdf2faae54f46c375412fe5de4606f92fb405716",
       "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
       "sourceSha256": "fb4fcbdf295d2eae81965a51cdf2faae54f46c375412fe5de4606f92fb405716",
-      "targetSha256": "f11a2fd6fcaceb71d6bfcf41bcd690cc9f63ddbfc43488819d7d8ee7109b1c57",
+      "targetSha256": "5d82421d202637f646d1140a21466af2f1371c988e1edbee9e6c13f357cc6d11",
       "mode": "entry-reference-and-demo-extension",
       "adaptation": "Upstream connections is a pending capability placeholder. Demo external platform connections reuse existing resource-card/header/meta/footer structure; each source has independent configuration and status. Read-only source-data drawer uses the demo source-plugin provider and retains existing local reference contents.",
       "supportingSources": [
@@ -154,9 +154,9 @@
       "sha256": "74b4ecc8eaa080835f6f63b91db9a44f041b24bc2b04e0975e9c4df678ef3334",
       "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
       "sourceSha256": "74b4ecc8eaa080835f6f63b91db9a44f041b24bc2b04e0975e9c4df678ef3334",
-      "targetSha256": "8fbc16e8ba0901dc3a3819fa0bd28a85516f84b6b050fac22721454b08bdf57e",
+      "targetSha256": "b816821279d46b5d9230c278b0506bcca334aa44038f5bcc8676f93a40420e65",
       "mode": "adapted-copy",
-      "adaptation": "Adds source header/local imports and updates read-only source wording for explicit demo records. HTML templates and inline CSS retained."
+      "adaptation": "Adds source header/local imports and product-facing read-only configuration wording. HTML templates and inline CSS retained."
     },
     {
       "source": "business/domain/agent-management/src/client/ui/configuration-controls.ts",
