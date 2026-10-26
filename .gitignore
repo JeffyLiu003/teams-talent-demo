@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.runtime/
+.talent-runtime/
+test-results/
+target/
+__pycache__/
+*.py[cod]
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+/runtime/
+/archives/
+/sessions-original/
+/restoration/

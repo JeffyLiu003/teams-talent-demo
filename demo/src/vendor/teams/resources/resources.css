@@ -1,0 +1,56 @@
+/* Source: business/domain/agent-resources/src/client/ui/index.ts market CSS (150–206). */
+.teams-resource-market{width:100%;max-width:none;min-width:0;box-sizing:border-box;gap:var(--ui-space-2)}
+.teams-resource-market .market-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--ui-space-2)}
+.teams-resource-market .market-head p{margin:0}
+.teams-resource-market .market-head button{flex:none}
+.teams-resource-market .resource-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--ui-space-2);margin-bottom:0;min-width:0}
+.teams-resource-market .resource-toolbar .ant-input-affix-wrapper{flex:1 1 260px;min-width:0;max-width:100%;box-sizing:border-box;font:inherit;padding:9px;border:1px solid var(--ui-color-border);border-radius:var(--ui-radius);background:var(--ui-color-surface);color:var(--ui-color-text)}
+.teams-resource-market .resource-tools{display:flex;flex:1 1 300px;min-width:0;gap:var(--ui-space-1);flex-wrap:wrap}
+.teams-resource-market select{width:auto;min-width:0;max-width:100%;font:inherit;font-size:var(--ui-font-size-note);padding:8px;border:1px solid var(--ui-color-border);border-radius:var(--ui-radius);background:var(--ui-color-surface);color:var(--ui-color-text)}
+.teams-resource-market [data-view-toggle]{display:flex;border:1px solid var(--ui-color-border);border-radius:var(--ui-radius);overflow:hidden}
+.teams-resource-market [data-view-toggle] button{border:0;background:var(--ui-color-surface);color:var(--ui-color-muted);padding:6px 10px;min-height:0;width:auto;cursor:pointer}
+.teams-resource-market [data-view-toggle] button[aria-pressed=true]{background:var(--ui-color-primary-soft);color:var(--ui-color-primary-hover)}
+.teams-resource-market .catalog-categories{display:flex;flex-wrap:wrap;gap:var(--ui-space-1);margin-bottom:0}
+.teams-resource-market .catalog-categories button{border:0;background:transparent;color:var(--ui-color-nav);font-size:var(--ui-font-size-note);font-weight:600;padding:6px var(--ui-space-2);border-radius:var(--ui-radius);min-height:0;width:auto;cursor:pointer}
+.teams-resource-market .catalog-categories button[aria-pressed=true]{background:var(--ui-color-primary-soft);color:var(--ui-color-primary-hover)}
+.teams-resource-market .catalog-summary{display:flex;flex-wrap:wrap;gap:var(--ui-space-2);margin-bottom:0;font-size:var(--ui-font-size-note);align-items:center}
+.teams-resource-market .resource-scopes{display:flex;gap:var(--ui-space-1);flex-wrap:wrap}
+.teams-resource-market .resource-scopes button{border:1px solid var(--ui-color-border);background:var(--ui-color-surface);color:var(--ui-color-text-secondary);border-radius:999px;padding:3px 12px;font-size:var(--ui-font-size-caption);min-height:0;width:auto;cursor:pointer}
+.teams-resource-market .resource-scopes button[aria-pressed=true]{background:var(--ui-color-primary-soft);color:var(--ui-color-primary-hover);border-color:transparent}
+.teams-resource-market .resource-heading{gap:var(--ui-space-2)}
+.teams-resource-market .resource-heading h3{margin:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;white-space:normal;line-height:1.5}
+.teams-resource-market .resource-description{margin:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;overflow-wrap:anywhere;line-height:1.5}
+.teams-resource-market .resource-badge{flex:none;align-self:flex-start;font-size:var(--ui-font-size-caption);line-height:1.7;padding:1px 10px;border-radius:999px;background:var(--ui-color-primary-soft);color:var(--ui-color-primary-deep);white-space:nowrap}
+.teams-resource-market .resource-badge-scope{background:var(--ui-color-fill);color:var(--ui-color-text-secondary)}
+.teams-resource-market .resource-rows{display:grid;gap:var(--ui-space-1)}
+.teams-resource-market .resource-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--ui-space-3);padding:var(--ui-space-2) var(--ui-space-3);border:var(--ui-border-block);border-radius:var(--ui-radius-framework);background:var(--ui-color-surface);min-width:0}
+.teams-resource-market .resource-row .resource-icon{width:38px;height:38px;font-size:var(--ui-font-size-h3)}
+.teams-resource-market .resource-row-name{flex:1 1 240px;min-width:0;display:grid;gap:var(--ui-space-1)}
+.teams-resource-market .resource-row-name strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;white-space:normal;line-height:1.5}
+.teams-resource-market .resource-row .resource-meta{margin:0;padding:0;flex:1 1 160px;font-size:var(--ui-font-size-caption);color:var(--ui-color-muted)}
+.teams-resource-market [data-pagination]{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--ui-space-2);font-size:var(--ui-font-size-note);color:var(--ui-color-muted)}
+.teams-resource-market .resource-pages{display:flex;gap:var(--ui-space-1)}
+.teams-resource-market .resource-pages button{min-width:30px;min-height:30px;width:auto;padding:0 var(--ui-space-1);border:1px solid var(--ui-color-border);border-radius:var(--ui-radius);background:var(--ui-color-surface);color:var(--ui-color-text);cursor:pointer}
+.teams-resource-market .resource-pages button[aria-current=true]{background:var(--ui-color-primary);border-color:var(--ui-color-primary);color:var(--ui-color-surface)}
+.teams-resource-market .resource-pages button:disabled{opacity:.5;cursor:not-allowed}
+.teams-resource-market .resource-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:var(--ui-space-2);width:100%;min-width:0}
+.teams-resource-market .resource-card{display:flex;flex-direction:column;gap:var(--ui-space-2);min-width:0;overflow:hidden}
+.teams-resource-market .resource-card .resource-icon{width:32px;height:32px;flex:none;font-size:var(--ui-font-size-h3)}
+.teams-resource-market .resource-card footer{gap:var(--ui-space-1);flex-wrap:wrap;margin-top:auto}
+.teams-resource-market .resource-card footer button{white-space:nowrap}
+.teams-resource-market .resource-card footer .ui-note{flex-basis:100%;font-size:var(--ui-font-size-caption)}
+.teams-resource-market .resource-heading>div{flex:1;min-width:0}
+.teams-resource-market .resource-meta{display:flex;flex-wrap:wrap;gap:var(--ui-space-1);align-items:center;font-size:var(--ui-font-size-caption);overflow-wrap:anywhere;white-space:normal}
+.teams-resource-market .resource-owner{flex-basis:100%;min-width:0;color:var(--ui-color-faint)}
+.teams-resource-market .resource-pages{align-items:center}
+.teams-resource-market .resource-pages-gap{min-width:30px;text-align:center;color:var(--ui-color-muted)}
+.teams-resource-market .catalog-categories button:disabled,.teams-resource-market [data-view-toggle] button:disabled,.teams-resource-market select:disabled{opacity:.5;cursor:not-allowed}
+.teams-resource-market .resource-state{display:grid;gap:var(--ui-space-2);justify-items:center;text-align:center;padding:var(--ui-space-3);border:var(--ui-border-block);border-radius:var(--ui-radius-framework);background:var(--ui-color-surface)}
+.teams-resource-market .resource-state p{margin:0}
+.teams-resource-market .resource-state-title{font-weight:600}
+.teams-resource-market .market-kind-toggle{display:flex;gap:var(--ui-space-1);margin-bottom:var(--ui-space-3)}
+.teams-resource-market .market-kind-toggle button{border:1px solid var(--ui-color-border);background:var(--ui-color-surface);color:var(--ui-color-text-secondary);border-radius:999px;padding:4px 14px;font-size:var(--ui-font-size-note);min-height:0;width:auto;cursor:pointer}
+.teams-resource-market .market-kind-toggle button[aria-pressed=true]{background:var(--ui-color-primary-soft);color:var(--ui-color-primary-hover);border-color:transparent}
+.teams-resources{gap:var(--ui-space-2)}.teams-resources .ui-note{margin:0;color:var(--ui-color-muted);font-size:var(--ui-font-size-note);line-height:1.65}.teams-resources .market-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--ui-space-2)}.teams-resources .resource-toolbar .ant-input-affix-wrapper{padding:4px 11px;flex:1 1 260px}.teams-resources .resource-tools{flex:1 1 auto!important}.teams-resources .resource-tools .ant-select{min-width:132px}.teams-resources .resource-icon{display:grid;place-items:center;background:var(--ui-color-primary-soft);color:var(--ui-color-primary);border-radius:var(--ui-radius)}.teams-resources .resource-grid{gap:var(--ui-space-2)}.teams-resources .resource-card{padding:var(--ui-card-padding)}.teams-resources .resource-card p{line-height:1.5}.teams-resources .catalog-categories{border:0;padding:0;overflow:visible}.teams-resources .ant-pagination{margin:var(--ui-space-2) 0}.resource-filters{display:grid;gap:var(--ui-space-2)}.resource-filters>.ant-input-affix-wrapper{width:50%;min-width:min(280px,100%);max-width:100%;border-radius:999px}.resource-filters .catalog-categories{display:flex;flex-wrap:wrap;gap:var(--ui-space-1)}.resource-filters .catalog-categories button{border:1px solid transparent;background:var(--ui-color-fill);color:var(--ui-color-text-secondary);border-radius:999px;padding:4px 14px;font:inherit;font-size:var(--ui-font-size-note);cursor:pointer}.resource-filters .catalog-categories button[aria-pressed=true]{background:var(--ui-color-primary-soft);color:var(--ui-color-primary-hover)}.resource-library-list{display:grid;gap:var(--ui-space-2)}.resource-library-entry{padding:var(--ui-card-padding);border:var(--ui-border-block);border-radius:var(--ui-radius-framework);background:var(--ui-color-surface);min-width:0;overflow-wrap:anywhere}.resource-library-entry h3{margin:0 0 var(--ui-space-1);font-size:var(--ui-font-size-h3)}.resource-actions{display:flex;flex-wrap:wrap;gap:var(--ui-space-1);margin-top:var(--ui-space-2)}.resource-detail-lines{line-height:1.9;color:var(--ui-color-text-secondary);overflow-wrap:anywhere}.teams-resource-market .resource-row .resource-icon{flex:none}.teams-resource-market .resource-row{gap:var(--ui-space-2)}
+
+.teams-resources .ant-pagination{display:flex;flex-wrap:wrap;gap:var(--ui-space-1)}.teams-resources .ant-pagination>li{margin-inline-end:0}

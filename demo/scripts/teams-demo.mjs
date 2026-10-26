@@ -1,0 +1,60 @@
+#!/usr/bin/env node
+// Demo adaptation of Teams collaboration CLI. All writes stay on the explicit local demo endpoint.
+import { readFile, mkdir, open, rename } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createHash, randomUUID } from 'node:crypto';
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const help = `Teams CLI · 本机演示接入
+context get | inputs adopt | progress add | result submit | session report | operation get
+--endpoint http://127.0.0.1:45970 (或 DEMO_ORIGIN)
+--input '{"projectId":"…","taskId":"…","nodeId":"…"}' 或 --input-file FILE
+context get 可用 --project / --task / --node；--output FILE 保存完整 JSON。
+写操作：--operation-id ID；input 包含 expectedRevision、runId、sessionId（未知时 null）。
+inputs adopt：basisDigest、readReferences（实际阅读的引用 ID）。
+progress add：adoptionId、phase=started|progress|blocked、summary、blocker（阻塞时）、evidence[]。
+result submit：adoptionId、summary、至少一条 evidence[{kind:reference|local-file,value,description}]。
+成果报告只记录成员贡献；Owner 验收和质量门槛保持原流程。
+operation get：--operation-id ID。--receipt-dir DIR 指定本地请求和回执目录。
+session report：沿用已提交交付的 CardDemo 会话追溯关联，需 adoptionId 与 sessionId。
+读取上下文不会冻结或采用；写失败保留原请求并返回非零退出码。`;
+let requestPath;
+async function atomic(path, text) { await mkdir(dirname(path), { recursive: true }); const temp = path + '.' + randomUUID() + '.tmp'; const f = await open(temp, 'wx', 0o600); try { await f.writeFile(text); await f.sync(); } finally { await f.close(); } await rename(temp, path); }
+try {
+  const tokens = process.argv.slice(2), options = {}, positional = [];
+  const allowed = new Set(['endpoint','input','input-file','project','task','node','tab','operation-id','output','receipt-dir','role']);
+  for (let i = 0; i < tokens.length; i++) { const token = tokens[i]; if (token === '--help' || token === '-h') { console.log(help); process.exit(0); } if (!token.startsWith('--')) { positional.push(token); continue; } const name = token.slice(2); if (!allowed.has(name) || Object.hasOwn(options,name) || tokens[i+1] === undefined || tokens[i+1].startsWith('--')) throw new Error('未知、重复或缺少值的参数：' + token); options[name] = tokens[++i]; }
+  const command = positional.join(' '), base = options.endpoint ?? process.env.DEMO_ORIGIN ?? 'http://127.0.0.1:45970';
+  const parsed = new URL(base); if (parsed.hostname !== '127.0.0.1' || parsed.protocol !== 'http:' || parsed.pathname !== '/' || parsed.search || parsed.hash || parsed.username || parsed.password) throw new Error('演示 CLI 仅允许明确的本机 HTTP origin');
+  const origin = parsed.origin;
+  async function request(path, body, token) { const response = await fetch(origin + path, { redirect: 'error', signal: AbortSignal.timeout(15000), ...(body ? { method: 'POST', headers: { 'content-type':'application/json', origin, 'x-demo-token':token }, body:JSON.stringify(body) } : {}) }); const value = await response.json(); if (!response.ok) throw new Error(`HTTP ${response.status}: ${value.error ?? '请求失败'}`); return value; }
+  const health = await request('/api/health'); if (health.app !== 'teams-talent-carddemo' || health.service !== 'teams') throw new Error('目标不是 Teams 演示服务；未执行协作调用');
+  if (options.input && options['input-file']) throw new Error('--input 和 --input-file 只能选一项');
+  const input = JSON.parse(options.input ?? (options['input-file'] ? await readFile(options['input-file'],'utf8') : '{}'));
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('input 必须为 JSON 对象');
+  for (const [flag,key] of [['project','projectId'],['task','taskId'],['node','nodeId'],['tab','tab']]) if (options[flag]) { if (input[key] !== undefined) throw new Error(key + ' 重复'); input[key] = options[flag]; }
+  let result;
+  if (command === 'context get' || command === 'status') {
+    const query = new URLSearchParams(); for (const key of ['projectId','taskId','nodeId','tab']) if (input[key] !== undefined) query.set(key,input[key]);
+    if (!input.projectId) throw new Error('读取上下文必须指定 projectId，任务上下文同时指定 taskId 和 nodeId');
+    result = await request('/api/collaboration/context?' + query);
+  } else if (command === 'operation get') {
+    if (!options['operation-id']) throw new Error('operation get 需要原 operation-id');
+    result = await request('/api/collaboration/operation?operationId=' + encodeURIComponent(options['operation-id']));
+  } else {
+    const kind = ({ 'inputs adopt':'inputs.adopt', 'progress add':'progress.add', 'result submit':'result.submit', 'session report':'session.report' })[command];
+    if (!kind) throw new Error(help);
+    if (!options['operation-id']) throw new Error('每个逻辑写操作需要稳定 --operation-id；重试保留原 ID 与载荷');
+    const payload = { role: options.role ?? 'member', kind, input, operationId: options['operation-id'] };
+    const envelope = JSON.stringify({ endpoint:origin, payload },null,2) + '\n';
+    const name = createHash('sha256').update(origin + ':' + payload.operationId).digest('hex');
+    requestPath = join(resolve(options['receipt-dir'] ?? process.env.DEMO_CLI_RECEIPTS ?? join(root,'.runtime/cli-receipts')),name + '.request.json');
+    await mkdir(dirname(requestPath),{recursive:true});
+    try { const f = await open(requestPath,'wx',0o600); try { await f.writeFile(envelope); await f.sync(); } finally { await f.close(); } }
+    catch (error) { if (error.code !== 'EEXIST') throw error; if (await readFile(requestPath,'utf8') !== envelope) throw new Error('本地已有相同操作 ID 的不同请求；拒绝覆盖。'); }
+    const session = await request('/api/session'); result = await request('/api/collaboration',payload,session.token);
+    const receiptPath = requestPath.replace('.request.json','.receipt.json'); await atomic(receiptPath,JSON.stringify(result,null,2)+'\n'); result = { ...result, requestPath, receiptPath };
+  }
+  if (options.output) { const path=resolve(options.output); await atomic(path,JSON.stringify(result,null,2)+'\n'); result={...result,outputPath:path}; }
+  console.log(JSON.stringify(result,null,2));
+} catch (error) { console.error(JSON.stringify({ok:false,error:error.message,...(requestPath?{requestPath,retry:'先 operation get 核对原 operation-id；结果未知时保留相同 ID 和原载荷，不自动重试。'}:{})},null,2)); process.exitCode=1; }

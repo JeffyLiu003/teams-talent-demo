@@ -1,0 +1,146 @@
+E1 原始需求
+来源：session.json / state.compressed_msgs[0].messages[292]
+原文：把当前的代码提交保存为dev分支。   然后帮我设计一下增加信用卡营销能力的场景，修改前后台的功能
+请求ID：a2aad7e1f6b5cd6af7b1f978adc3449e
+时间：2026-10-26 00:39:12（北京时间）
+
+E2 验证入账触发返现、报名后二次返现与幂等评估
+来源：state.compressed_msgs[0].messages[358]
+operation_id：18765fcd7af557928c13adbf42dd8642
+工具：zsh
+=== 入账（卡6 消费 120，未报名餐饮）===
+{"status":"COMPLETED","processed":1,"posted":1,"rejected":0,"rejections":[],"duplicates":[]}
+=== 卡6 奖励（应 1 条：首刷 20）===
+total 1
+开卡首刷礼 20.0 GRANTED
+=== 报名餐饮活动 ===
+{"enrollmentId":"734151f5-e53e-4372-8646-f26a85f616d9","campaignId":"c0000000-0000-0000-0000-000000000002","cardNumber":"3344556677889900","accountId":"00000000
+=== 再消费 120（应再返 6）===
+{"status":"COMPLETED","processed":1,"posted":1,"rejected":0,"rejections":[],"duplicates":[]}
+=== 卡6 奖励（应 2 条：20 + 6）===
+total 2
+餐饮消费 5% 返现 6.0 GRANTED
+开卡首刷礼 20.0 GRANTED
+=== 账户6余额（2450.75 + 240 - 26 = 2664.75）===
+2664.75
+=== 直接评估（账户1，模拟已入账交易）===
+grants [('开卡首刷礼', 20.0, 'GRANTED'), ('餐饮消费 5% 返现', 6.0, 'GRANTED')]
+skipped [('现金预支双倍积分', 'CATEGORY_MISMATCH')]
+=== 账户1余额（1940 - 26 = 1914）===
+1914.0
+
+[exit_code: 0]
+
+E3 用 jsdom 验证营销页面端到端流程
+来源：state.compressed_msgs[0].messages[364]
+operation_id：8f7a8c6fd4784ad7857943f5e88c6904
+工具：zsh
+PASS  管理员登录并看到营销菜单
+FAIL  活动中心展示可报名按钮
+PASS  奖励记录展示返现与状态
+PASS  活动管理列表展示预算与状态
+PASS  新建活动进入详情且为草稿
+PASS  草稿活动提供发布按钮
+PASS  发布活动成功
+PASS  营销会话无前端脚本错误
+
+7/8 项通过
+EXIT:1
+
+[exit_code: 0]
+
+E4 edit_file
+来源：state.compressed_msgs[0].messages[366]
+operation_id：15348763c4f1028f6be6ee6e8b59d5fe
+工具：edit_file
+旧逻辑：function offerCard(offer) {
+    const enrolledBadge = offer.enrolled
+        ? '<span class="badge ok">已报名</span>'
+        : offer.eligible
+            ? '<span class="badge neutral">可参与</span>'
+            : '<span class="badge warn">暂不可参与</span>';
+    const action = !offer.eligible
+        ? `<div class="alert info" style="margin:14px 0 0">${esc(reasonText(offer.reason))}</div>`
+        : offer.enrollmentRequired && !offer.enrolled
+            ? `<div class="form-actions"><button class="btn primary small" data-enroll="${esc(offer.campaignId)}">立即报名</button></div>`
+            : '<div class="hint mt-16">已满足参与条件，达标消费会自动发放奖励。</div>';
+新逻辑：function offerCard(offer) {
+    const needsEnrollment = offer.enrollmentRequired && !offer.enrolled;
+    const enrolledBadge = offer.enrolled
+        ? '<span class="badge ok">已报名</span>'
+        : needsEnrollment
+            ? '<span class="badge warn">需报名</span>'
+            : offer.eligible
+                ? '<span class="badge neutral">可参与</span>'
+                : '<span class="badge warn">暂不可参与</span>';
+    const action = needsEnrollment
+        ? `<div class="alert info" style="margin:14px 0 0">该活动需要报名，报名后消费达标即可获得奖励。</div>
+           <div class="form-actions"><button class="btn primary small" data-enroll="${esc(offer.campaignId)}">立即报名</button></div>`
+        : !offer.eligible
+            ? `<div class="alert info" style="margin:14px 0 0">${esc(reasonText(offer.reason))}</div>`
+            : '<div class="hint mt-16">已满足参与条件，达标消费会自动发放奖励。</div>';
+
+E5 重建 web-ui 并重跑营销页面端到端验证
+来源：state.compressed_msgs[0].messages[368]
+operation_id：6981515fb5fefd520a116a9dbe3424c1
+工具：zsh
+PKG:0
+ Container carddemo-postgres Healthy 
+ Container carddemo-web-ui Starting 
+ Container carddemo-web-ui Started 
+PASS  管理员登录并看到营销菜单
+PASS  活动中心展示可报名按钮
+PASS  活动报名成功并刷新为已报名
+PASS  奖励记录展示返现与状态
+PASS  活动管理列表展示预算与状态
+PASS  新建活动进入详情且为草稿
+PASS  草稿活动提供发布按钮
+PASS  发布活动成功
+PASS  营销会话无前端脚本错误
+
+9/9 项通过
+EXIT:0
+
+[exit_code: 0]
+
+E6 回归基线 UI 端到端并统计各服务测试数
+来源：state.compressed_msgs[0].messages[372]
+operation_id：b71c04be1c693072ce9b31a209d3f0fb
+工具：zsh
+PASS  用户编辑页渲染（密码留空不改）
+PASS  管理员会话无前端脚本错误
+PASS  普通用户登录成功
+PASS  普通用户不显示用户管理菜单
+PASS  普通用户访问用户管理被拒绝
+PASS  普通用户会话无前端脚本错误
+
+18/18 项通过
+UI_EXIT:0
+services/account-service tests=13 failures=0
+services/authorization-service tests=26 failures=0
+services/card-service tests=29 failures=0
+services/customer-service tests=30 failures=0
+services/iam-service tests=35 failures=0
+services/marketing-service tests=30 failures=0
+services/transaction-service tests=30 failures=0
+services/web-ui tests=4 failures=0
+
+[exit_code: 0]
+
+E7 验证奖励幂等与活动创建发布流程
+来源：state.compressed_msgs[0].messages[360]
+operation_id：3b053fcbf49053718a02b51119525fce
+工具：zsh
+=== 幂等：重复评估同一交易 ===
+grants 0 skipped [('开卡首刷礼', 'ALREADY_EVALUATED'), ('餐饮消费 5% 返现', 'ALREADY_EVALUATED'), ('现金预支双倍积分', 'CATEGORY_MISMATCH')]
+=== 新建活动（草稿）===
+7d9c345e-ffba-4217-9681-9cd355d01b95 DRAFT 周末加油立减
+=== 发布 ===
+ACTIVE
+=== 效果 ===
+{'enrolledCount': 0, 'grantedCount': 0, 'cashbackTotal': 0.0, 'budgetUtilization': 0.0}
+=== 列表总数 ===
+5
+
+[exit_code: 0]
+

@@ -1,0 +1,1006 @@
+{
+  "id": "teams",
+  "origin": "teams-demo-snapshot",
+  "importedAt": "2026-10-26T08:36:28.354Z",
+  "sourceRoot": "/__teams_demo_reference_not_shipped__/iCode-teams",
+  "sourceCommit": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+  "sourceFiles": [
+    {
+      "path": "business/domain/project-management/src/client/ui/demo-data.ts",
+      "sha256": "7f6970dcdd9f5c9d02106856d67b96c2586e02f4210b97f657e0750ca5c0799c"
+    },
+    {
+      "path": "business/domain/team-collaboration/src/client/ui/project-demo-data.ts",
+      "sha256": "d0030bf81a4edebfc88fcadc68d45c1cfa921d6192918d6136c66f2df037cb69"
+    },
+    {
+      "path": "business/domain/team-collaboration/src/client/ui/project-demo-state.ts",
+      "sha256": "ceaa79773f442b554f3a281f4ec807c1168f943bb79480117c32f6ca7c2ee69d"
+    },
+    {
+      "path": "business/domain/requirement-intake/src/client/ui/project-demo-data.ts",
+      "sha256": "a29c31e20d27273c0539aad6a605ad3ac21334adcc030a0b64146981da9ef050"
+    },
+    {
+      "path": "business/domain/team-collaboration/src/client/ui/project-release-data.ts",
+      "sha256": "3546b521b9dd68149f4a84b5c7405e1420a0286283b475f603b610c1dd4ec19f"
+    },
+    {
+      "path": "business/domain/project-management/src/client/ui/project-icode-seeds.ts",
+      "sha256": "dae16e16f691dc780afdbb0e4ce1befdd5de92af08c844430f4f6266ab43c5c9"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "57e9615ff5a2f425c7905be120571059f5899ce94d2338d8368e5647aa221cd4"
+    },
+    {
+      "path": "README.md",
+      "sha256": "d2dbec402289d11f22490b7831e3855c603169acbec1e844b8c12bfca386b0c3"
+    },
+    {
+      "path": "docs/README.md",
+      "sha256": "7affee2818bbbd20040accf35c5d6c80f435f3bf4f50638757f484473860bb76"
+    },
+    {
+      "path": "docs/product/teams-roadmap.md",
+      "sha256": "23991fff91013a17b8c49eda5228d09cd1db695c06bd54219f9eb51cad05b514"
+    },
+    {
+      "path": ".agents/skills/architecture-self-check/SKILL.md",
+      "sha256": "8c43a4debca925c238c920e2dcc177a7d0551c663ea47e4cd4e72eefacce97dd"
+    },
+    {
+      "path": ".agents/skills/icode-teams-control/SKILL.md",
+      "sha256": "46dceb881189a055e755ffb5c89ac6ad285a5c6d2d8b90d3d2a13a11058623b1"
+    },
+    {
+      "path": ".agents/skills/icode-teams-delivery/SKILL.md",
+      "sha256": "4aa926711eeacc261b9da8651acf7ec34815e9fb2bd143484efb7c3c2c08cd13"
+    }
+  ],
+  "project": {
+    "name": "iCode Teams",
+    "initial": "T",
+    "owner": "A",
+    "phase": "内部试用",
+    "description": "面向企业内部 Agent 应用的客户端与发布平台。",
+    "repos": [
+      {
+        "name": "SEAL-iCode/iCode-teams",
+        "branch": "main",
+        "path": "iCode-teams/",
+        "note": "Client、Service、Control 在同一个代码仓中。"
+      }
+    ],
+    "repoNote": "Client · Service · Control",
+    "agents": true,
+    "agentsNote": "包含目录与依赖边界、测试约定、公共样式、Fallback 约束和交付要求。",
+    "skills": [
+      {
+        "name": "architecture-self-check",
+        "description": "检查架构边界、通用门禁和必要验证。"
+      },
+      {
+        "name": "icode-teams-control",
+        "description": "通过 Control 查询、部署和验证 Teams 组件。"
+      },
+      {
+        "name": "icode-teams-delivery",
+        "description": "衔接本地验证、测试部署、PR 检查与发布。"
+      }
+    ],
+    "docs": [
+      {
+        "name": "开发指导",
+        "path": "README.md",
+        "description": "本地环境、源码调试、出包与升级。"
+      },
+      {
+        "name": "架构与业务文档",
+        "path": "docs/README.md",
+        "description": "跨域架构、业务规范和开发文档索引。"
+      },
+      {
+        "name": "产品规划",
+        "path": "docs/product/teams-roadmap.md",
+        "description": "团队共享与协作能力的阶段目标。"
+      }
+    ],
+    "sources": [
+      {
+        "name": "需求与问题",
+        "description": "独立需求系统与 GitHub 问题记录，保留来源和原始讨论。",
+        "status": "关联示意 · 由任务管理归并处理"
+      },
+      {
+        "name": "团队讨论",
+        "description": "从本地 iCode 会话回传结论，或随手记录待讨论事项。",
+        "status": "Skill + CLI 回传示意"
+      },
+      {
+        "name": "版本反馈",
+        "description": "版本观察中的问题、异常样本及特性 Owner 的结论。",
+        "status": "可从发布跟踪生成跟进任务"
+      }
+    ],
+    "runtime": "门禁、构建与制品关联 GitHub 工程记录；发布回执、客户端升级和使用数据来自 Control。按任务和版本分别呈现。"
+  },
+  "members": [
+    {
+      "id": "A",
+      "name": "成员 A",
+      "role": "项目 Owner"
+    },
+    {
+      "id": "B",
+      "name": "成员 B",
+      "role": "开发与特性交付"
+    },
+    {
+      "id": "C",
+      "name": "成员 C",
+      "role": "评审与验证"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T104",
+      "title": "加入团队后获取项目配置",
+      "type": "需求",
+      "owner": "B",
+      "version": "10.23",
+      "due": "2026-10-22",
+      "status": "进行中",
+      "goal": "新成员加入团队后拿到项目资料和配置，能够开始工作。",
+      "scope": "项目资料获取与配置应用。",
+      "criteria": [
+        "加入团队后可以查看关联项目与配置。",
+        "应用前展示配置内容与影响范围。",
+        "验证新成员首次加入与重复加入场景。"
+      ],
+      "sourceIds": [],
+      "origin": "Owner 确认 · 项目入口讨论",
+      "nodes": [
+        {
+          "id": "clarify",
+          "name": "需求澄清",
+          "status": "已确认",
+          "owner": "A、B",
+          "brief": "目标、范围与验收标准已确认",
+          "output": "澄清结论 v1"
+        },
+        {
+          "id": "design",
+          "name": "方案设计",
+          "status": "已提交",
+          "owner": "B",
+          "brief": "配置应用方案 v1 · 目录选择、预览与应用",
+          "output": "设计方案 v1"
+        },
+        {
+          "id": "review",
+          "name": "设计评审",
+          "status": "待 C 评审",
+          "owner": "A、C",
+          "brief": "A 已确认产品范围，等待 C 检查技术方案",
+          "output": "评审意见"
+        },
+        {
+          "id": "build",
+          "name": "开发实现",
+          "status": "未开始",
+          "owner": "B",
+          "brief": "尚未回传实现结果",
+          "output": "—"
+        },
+        {
+          "id": "test",
+          "name": "测试验证",
+          "status": "未执行",
+          "owner": "B、C",
+          "brief": "等待可验证的实现结果和验证场景",
+          "output": "—"
+        },
+        {
+          "id": "accept",
+          "name": "交付验收",
+          "status": "未提交",
+          "owner": "A",
+          "brief": "对照交付标准确认成果与验证记录",
+          "output": "—"
+        },
+        {
+          "id": "prep",
+          "name": "测试准备",
+          "status": "已形成场景",
+          "owner": "C",
+          "brief": "已有验证场景，可与设计、实现并行完善",
+          "output": "验证场景清单"
+        }
+      ]
+    },
+    {
+      "id": "T105",
+      "title": "团队项目入口与项目切换",
+      "type": "需求",
+      "owner": "B",
+      "version": "10.23",
+      "due": "2026-10-22",
+      "status": "已验收",
+      "goal": "成员能够找到团队项目并切换项目上下文。",
+      "scope": "团队项目入口和项目选择。",
+      "criteria": [
+        "展示团队关联的项目。",
+        "切换项目后展示相应工作内容。",
+        "验证多项目和无项目状态。"
+      ],
+      "sourceIds": [],
+      "origin": "Owner 确认 · 团队入口规划",
+      "nodes": [
+        {
+          "id": "clarify",
+          "name": "需求澄清",
+          "status": "已完成",
+          "owner": "A、B",
+          "brief": "目标、范围与验收标准已确认",
+          "output": "澄清结论 v1"
+        },
+        {
+          "id": "build",
+          "name": "开发实现",
+          "status": "已完成",
+          "owner": "B",
+          "brief": "尚未回传实现结果",
+          "output": "开发实现记录"
+        },
+        {
+          "id": "test",
+          "name": "测试验证",
+          "status": "已完成",
+          "owner": "B、C",
+          "brief": "等待可验证的实现结果和验证场景",
+          "output": "测试验证记录"
+        },
+        {
+          "id": "accept",
+          "name": "交付验收",
+          "status": "已完成",
+          "owner": "A",
+          "brief": "对照交付标准确认成果与验证记录",
+          "output": "交付验收记录"
+        }
+      ]
+    },
+    {
+      "id": "T106",
+      "title": "项目规范与 Skill 可见性",
+      "type": "需求",
+      "owner": "C",
+      "version": "10.23",
+      "due": "2026-10-21",
+      "status": "待验收",
+      "goal": "成员可以看到项目规范和 Skill 的实际情况。",
+      "scope": "AGENTS.md 和项目级 Skill 的发现与展示。",
+      "criteria": [
+        "显示 AGENTS.md 的来源及内容入口。",
+        "显示项目级 Skill 列表与用途。",
+        "未核验加载情况时明确标注。"
+      ],
+      "sourceIds": [],
+      "origin": "Owner 确认 · Agent 规范讨论",
+      "nodes": [
+        {
+          "id": "clarify",
+          "name": "需求澄清",
+          "status": "已完成",
+          "owner": "A、B",
+          "brief": "目标、范围与验收标准已确认",
+          "output": "澄清结论 v1"
+        },
+        {
+          "id": "build",
+          "name": "开发实现",
+          "status": "已完成",
+          "owner": "C",
+          "brief": "尚未回传实现结果",
+          "output": "开发实现记录"
+        },
+        {
+          "id": "test",
+          "name": "测试验证",
+          "status": "已完成",
+          "owner": "B、C",
+          "brief": "等待可验证的实现结果和验证场景",
+          "output": "测试验证记录"
+        },
+        {
+          "id": "accept",
+          "name": "交付验收",
+          "status": "待 A 确认",
+          "owner": "A",
+          "brief": "对照交付标准确认成果与验证记录",
+          "output": "交付说明与验证记录"
+        }
+      ]
+    },
+    {
+      "id": "T107",
+      "title": "代码仓与本地工作目录关联",
+      "type": "需求",
+      "owner": "B",
+      "version": "10.23",
+      "due": "2026-10-21",
+      "status": "已验收",
+      "goal": "项目关联仓库后，可选择本地工作目录。",
+      "scope": "仓库信息与本地目录关联。",
+      "criteria": [
+        "展示项目关联的代码仓。",
+        "可选择有效的本地工作目录。",
+        "目录与仓库不匹配时明确提示。"
+      ],
+      "sourceIds": [],
+      "origin": "Owner 确认 · 项目开工准备",
+      "nodes": [
+        {
+          "id": "clarify",
+          "name": "需求澄清",
+          "status": "已完成",
+          "owner": "A、B",
+          "brief": "目标、范围与验收标准已确认",
+          "output": "澄清结论 v1"
+        },
+        {
+          "id": "build",
+          "name": "开发实现",
+          "status": "已完成",
+          "owner": "B",
+          "brief": "尚未回传实现结果",
+          "output": "开发实现记录"
+        },
+        {
+          "id": "test",
+          "name": "测试验证",
+          "status": "已完成",
+          "owner": "B、C",
+          "brief": "等待可验证的实现结果和验证场景",
+          "output": "测试验证记录"
+        },
+        {
+          "id": "accept",
+          "name": "交付验收",
+          "status": "已完成",
+          "owner": "A",
+          "brief": "对照交付标准确认成果与验证记录",
+          "output": "交付验收记录"
+        }
+      ]
+    },
+    {
+      "id": "T108",
+      "title": "调研外部需求系统接入范围",
+      "type": "调研",
+      "owner": "C",
+      "version": "10.30",
+      "due": "2026-10-28",
+      "status": "待开始",
+      "goal": "明确 Teams 首批需要接入的需求来源及信息范围。",
+      "scope": "GitHub、独立需求系统与会话记录。",
+      "criteria": [
+        "比较三类来源的接入方式与信息粒度。",
+        "列出结论、依据和仍待验证的问题。",
+        "提出首批接入范围及后续任务建议。"
+      ],
+      "sourceIds": [],
+      "origin": "R16 · 产品规划讨论",
+      "nodes": [
+        {
+          "id": "clarify",
+          "name": "需求澄清",
+          "status": "已确认",
+          "owner": "A、B",
+          "brief": "目标、范围与验收标准已确认",
+          "output": "澄清结论 v1"
+        },
+        {
+          "id": "research",
+          "name": "来源调研",
+          "status": "未开始",
+          "owner": "C",
+          "brief": "按确认的范围收集来源样本",
+          "output": "—"
+        },
+        {
+          "id": "proposal",
+          "name": "接入建议",
+          "status": "未开始",
+          "owner": "C",
+          "brief": "形成首期接入范围与取舍依据",
+          "output": "—"
+        },
+        {
+          "id": "accept",
+          "name": "交付验收",
+          "status": "未提交",
+          "owner": "A",
+          "brief": "对照交付标准确认成果与验证记录",
+          "output": "—"
+        }
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "D203",
+      "title": "升级失败后给出恢复指引",
+      "source": "版本反馈",
+      "ref": "10.17 版本观察",
+      "time": "今天 10:20",
+      "author": "B",
+      "text": "试用成员升级后连接失败，不知道该等待、重试还是重新安装。需要明确当前状态，并给出可执行的恢复操作。",
+      "discussion": null
+    },
+    {
+      "id": "D204",
+      "title": "连接失败时，不知道下一步怎么办",
+      "source": "团队会话",
+      "ref": "Teams 开发群 · 讨论摘录",
+      "time": "今天 09:40",
+      "author": "B",
+      "text": "B：成员遇到连接失败时往往直接重装。\nC：需要先区分等待连接和真正失败，也要能拿到诊断信息。\nA：和版本观察里的升级恢复问题一起讨论。",
+      "discussion": null
+    },
+    {
+      "id": "D202",
+      "title": "项目 Skill 更新后提醒协作者",
+      "source": "团队会话",
+      "ref": "项目规范讨论",
+      "time": "昨天 16:30",
+      "author": "A",
+      "text": "项目 Skill 有增删和修改时，协作者应该能看到具体变化，再决定是否重新加载。不能把文件存在理解成 Agent 已加载。",
+      "discussion": "R18"
+    },
+    {
+      "id": "D205",
+      "title": "应用团队配置前查看适用范围",
+      "source": "需求系统",
+      "ref": "REQ-42 · 示例需求",
+      "time": "昨天 15:10",
+      "author": "A",
+      "text": "成员加入团队后，会在本机选择一个或多个工作目录。应用项目配置前，应展示将影响哪些目录、哪些配置项。",
+      "discussion": "R19"
+    },
+    {
+      "id": "D201",
+      "title": "Windows 重启后恢复 Agent 连接",
+      "source": "GitHub",
+      "ref": "GitHub issue 282 · 10.20 早间快照",
+      "time": "昨天 14:25",
+      "author": "C",
+      "text": "Windows 环境重启后连接恢复存在问题。需要补充复现步骤，分别验证正常重启和异常退出后的恢复路径。",
+      "discussion": "R20"
+    }
+  ],
+  "discussions": [
+    {
+      "id": "R18",
+      "title": "项目 Skill 更新后提醒协作者",
+      "type": "需求",
+      "status": "review",
+      "owner": "A",
+      "sourceIds": [
+        "D202"
+      ],
+      "summary": "复用项目规范入口，新增变化提示。提醒由成员自行处理，暂不做自动加载。",
+      "goal": "让协作者知道项目 Skill 发生了什么变化，并决定是否重新加载。",
+      "scope": "覆盖 Skill 新增、修改和删除；本次不做自动加载。",
+      "criteria": [
+        "显示变化的 Skill、更新时间和来源。",
+        "可查看变化内容，并由成员决定是否重新加载。",
+        "验证新增、修改、删除三种情况；文件状态与 Agent 加载状态分开展示。"
+      ],
+      "next": "等待 A 确认任务标准",
+      "time": "14:10 回传",
+      "task": null
+    },
+    {
+      "id": "R19",
+      "title": "团队配置的适用范围",
+      "type": "需求",
+      "status": "waiting",
+      "owner": "A",
+      "sourceIds": [
+        "D205"
+      ],
+      "summary": "已有 T104 覆盖加入团队后的配置获取，建议先补齐适用范围的约定。",
+      "goal": "成员应用团队配置前可以确认受影响的本地目录。",
+      "scope": "加入团队后的配置应用。",
+      "criteria": [
+        "应用前展示所选目录与配置项。",
+        "成员确认后才应用配置。",
+        "验证多个本地工作目录的选择与应用结果。"
+      ],
+      "question": "有多个工作目录时，默认应用到全部，还是让成员选择？",
+      "next": "等待 A 确认目录选择规则",
+      "time": "13:45 回传",
+      "task": null
+    },
+    {
+      "id": "R20",
+      "title": "Windows 重启后的连接恢复",
+      "type": "问题",
+      "status": "discussing",
+      "owner": "C",
+      "sourceIds": [
+        "D201"
+      ],
+      "summary": "已确认正常重启和异常退出是两条不同路径，需要补齐复现条件。",
+      "goal": "重启后能恢复 Agent 连接，并给出失败原因。",
+      "scope": "Windows 的正常重启与异常退出恢复。",
+      "criteria": [
+        "提供可复现的环境信息和操作步骤。",
+        "正常重启与异常退出后均能恢复，失败时有诊断信息。",
+        "提交两条路径的回归记录。"
+      ],
+      "question": "需要补充异常退出后的复现记录。",
+      "next": "C 在 iCode 中补充复现条件",
+      "time": "13:20 更新",
+      "task": null
+    }
+  ],
+  "releases": [
+    {
+      "id": "1023",
+      "name": "10.23",
+      "title": "团队协作",
+      "kind": "active",
+      "status": "观察中",
+      "date": "10-23 18:00",
+      "owner": "A",
+      "window": "10-23 18:00 至 10-24 18:00",
+      "cutoff": "10-24 18:00",
+      "releaseResult": "已发布",
+      "target": 40,
+      "upgraded": 32,
+      "offline": 5,
+      "pending": 2,
+      "failed": 1,
+      "summary": "成员加入团队后获取项目配置，查看项目规范与 Skill，并改进配置应用与工作目录关联体验。",
+      "features": [
+        {
+          "id": "config",
+          "name": "加入团队后获取项目配置",
+          "owner": "B",
+          "kind": "新增",
+          "ready": true,
+          "observed": 42,
+          "completed": 39,
+          "failed": 2,
+          "pending": 1,
+          "devices": 18,
+          "status": "issue",
+          "conclusion": "已确认同名配置处理异常，需要建立修复任务。",
+          "task": "T104",
+          "scope": "新加入团队的成员",
+          "component": "客户端 · 团队服务",
+          "change": "加入团队后展示关联项目，并在成员选定工作目录后应用项目配置。",
+          "impact": "首次加入与切换团队时新增项目配置入口；同名本地配置冲突时需要成员确认。",
+          "criterion": "观察加入团队、获取项目、应用配置的完整路径；冲突必须明确提示，保留本地修改。",
+          "signal": "2 次失败来自已有同名配置的工作目录。"
+        },
+        {
+          "id": "skills",
+          "name": "项目规范与 Skill 可见性",
+          "owner": "C",
+          "kind": "新增",
+          "ready": true,
+          "observed": 58,
+          "completed": 58,
+          "failed": 0,
+          "pending": 0,
+          "devices": 21,
+          "status": "review",
+          "conclusion": "",
+          "task": "T106",
+          "scope": "项目成员",
+          "component": "客户端 · 项目资料",
+          "change": "展示 AGENTS.md、项目 Skill 清单及来源，区分发现和实际加载状态。",
+          "impact": "项目资料中增加规范入口；项目维护者需要确认 Skill 目录来源。",
+          "criterion": "抽查规范与仓库来源一致，规范来源准确，未核验加载时明确标注。",
+          "signal": "58 次加载完成，待 Owner 核对具体样本。"
+        },
+        {
+          "id": "retry",
+          "name": "配置重复应用保护",
+          "owner": "B",
+          "kind": "修复",
+          "ready": true,
+          "observed": 0,
+          "completed": 0,
+          "failed": 0,
+          "pending": 0,
+          "devices": 0,
+          "status": "observe",
+          "conclusion": "",
+          "task": "T109",
+          "scope": "重复应用配置的成员",
+          "component": "客户端 · 配置应用",
+          "change": "同一项目配置重复应用时保留首次结果，避免重复写入。",
+          "impact": "连续点击或恢复会话后重复操作时，已有工作目录内容应保持一致。",
+          "criterion": "核对重复应用是否被识别、已有内容是否保持一致；安排 3 个试用客户端验证目标场景。",
+          "signal": "当前窗口无匹配样本，需确认实际使用与数据采集。"
+        },
+        {
+          "id": "directory",
+          "name": "工作目录关联提示",
+          "owner": "A",
+          "kind": "改进",
+          "ready": true,
+          "observed": 26,
+          "completed": 26,
+          "failed": 0,
+          "pending": 0,
+          "devices": 15,
+          "status": "confirmed",
+          "conclusion": "已核对 3 条业务样本，路径与项目对应正确，提示符合交付约定。",
+          "task": "T110",
+          "scope": "首次关联项目的成员",
+          "component": "客户端 · 项目入口",
+          "change": "关联工作目录时补充路径预览与所属项目提示。",
+          "impact": "调整关联提示，目录选择与权限规则保持一致。",
+          "criterion": "抽查路径和项目的对应关系，确认关联结果与错误提示符合约定。",
+          "signal": "26 次关联完成。",
+          "confirmedAt": "10-24 16:20"
+        }
+      ]
+    },
+    {
+      "id": "1030",
+      "name": "10.30",
+      "title": "需求输入与任务流转",
+      "kind": "planned",
+      "status": "准备中",
+      "date": "10-30 18:00",
+      "owner": "A",
+      "target": 40,
+      "upgraded": 0,
+      "offline": 0,
+      "pending": 40,
+      "failed": 0,
+      "window": "发布后 48 小时",
+      "cutoff": "尚未发布",
+      "summary": "接入项目需求来源，支持从会话形成任务，并把发布后发现的问题关联回任务管理。",
+      "features": [
+        {
+          "id": "sources",
+          "name": "项目输入源关联",
+          "owner": "A",
+          "kind": "新增",
+          "ready": true,
+          "observed": 0,
+          "completed": 0,
+          "failed": 0,
+          "pending": 0,
+          "devices": 0,
+          "status": "observe",
+          "conclusion": "",
+          "task": "T120",
+          "scope": "项目 Owner",
+          "component": "团队服务 · 来源接入",
+          "change": "把需求系统、讨论记录与代码仓反馈关联到项目输入列表。",
+          "impact": "Owner 可以按来源查看待处理信息；来源凭据由项目管理员配置。",
+          "criterion": "抽查输入条目的来源、权限与更新时间；发布后观察拉取成功情况。"
+        },
+        {
+          "id": "conversation",
+          "name": "从会话形成需求任务",
+          "owner": "C",
+          "kind": "新增",
+          "ready": true,
+          "observed": 0,
+          "completed": 0,
+          "failed": 0,
+          "pending": 0,
+          "devices": 0,
+          "status": "observe",
+          "conclusion": "",
+          "task": "T123",
+          "scope": "需求管理人员",
+          "component": "客户端 · 任务管理",
+          "change": "将本地需求讨论结论回传为结构化任务，保留背景、来源和交付标准。",
+          "impact": "新增任务回传入口，不自动覆盖已经确认的任务约定。",
+          "criterion": "核对任务与原讨论结论一致，任务来源与交付标准完整。"
+        },
+        {
+          "id": "feedback",
+          "name": "发布后异常回流",
+          "owner": "B",
+          "kind": "新增",
+          "ready": false,
+          "observed": 0,
+          "completed": 0,
+          "failed": 0,
+          "pending": 0,
+          "devices": 0,
+          "status": "observe",
+          "conclusion": "",
+          "task": "T125",
+          "scope": "特性 Owner",
+          "component": "发布跟踪 · 任务管理",
+          "change": "从特性观察结果生成跟进任务，并关联版本、异常样本与负责人员。",
+          "impact": "跟进任务进入待安排列表，由项目 Owner 决定交付版本。",
+          "criterion": "安排 3 次异常回流场景，核对任务关联信息与来源证据。"
+        }
+      ]
+    },
+    {
+      "id": "1017",
+      "name": "10.17",
+      "title": "客户端升级体验",
+      "kind": "closed",
+      "status": "观察结束",
+      "date": "10-17 18:30",
+      "owner": "A",
+      "target": 36,
+      "upgraded": 35,
+      "offline": 1,
+      "pending": 0,
+      "failed": 0,
+      "window": "10-17 18:30 至 10-20 18:30",
+      "cutoff": "10-20 18:30",
+      "releaseResult": "已发布",
+      "summary": "完善组件版本识别、升级失败诊断，并修复上一版本的 Windows 路径兼容问题。",
+      "features": [
+        {
+          "id": "versions",
+          "name": "组件版本识别",
+          "owner": "B",
+          "kind": "改进",
+          "ready": true,
+          "observed": 120,
+          "completed": 120,
+          "failed": 0,
+          "pending": 0,
+          "devices": 35,
+          "status": "confirmed",
+          "conclusion": "抽查升级前后版本与回执一致，未发现错误的版本状态。",
+          "task": "T096",
+          "scope": "内部试用客户端",
+          "component": "客户端 · 升级",
+          "change": "展示各组件实际版本与目标版本，说明当前升级状态。",
+          "impact": "影响客户端版本展示和升级判断。",
+          "criterion": "核对实际组件版本与升级回执一致。",
+          "signal": "120 次版本检查完成。",
+          "confirmedAt": "10-20 15:10"
+        },
+        {
+          "id": "diagnostics",
+          "name": "升级失败诊断",
+          "owner": "C",
+          "kind": "改进",
+          "ready": true,
+          "observed": 8,
+          "completed": 8,
+          "failed": 0,
+          "pending": 0,
+          "devices": 5,
+          "status": "confirmed",
+          "conclusion": "核对 5 个客户端的诊断记录，操作、组件与失败原因关联完整。",
+          "task": "T098",
+          "scope": "升级异常的客户端",
+          "component": "Control · 诊断",
+          "change": "关联升级操作、组件回执与失败原因，支持定位异常。",
+          "impact": "发布人员可以从失败记录进入诊断上下文。",
+          "criterion": "确认失败操作与组件原因能完整关联。",
+          "signal": "8 次诊断查询完成。",
+          "confirmedAt": "10-20 16:00"
+        },
+        {
+          "id": "windowsfix",
+          "name": "修复 Windows 安装路径",
+          "owner": "B",
+          "kind": "修复",
+          "ready": true,
+          "observed": 16,
+          "completed": 16,
+          "failed": 0,
+          "pending": 0,
+          "devices": 8,
+          "status": "confirmed",
+          "conclusion": "8 个 Windows 客户端的目标路径场景均已核对，原问题未复现。",
+          "task": "T099",
+          "scope": "Windows 客户端",
+          "component": "客户端 · 安装",
+          "change": "修复带空格的安装路径在组件切换时的处理问题。",
+          "impact": "覆盖上一版本回退时发现的 Windows 安装场景。",
+          "criterion": "验证带空格路径的安装、启动和升级均正常。",
+          "signal": "16 次安装与升级完成。",
+          "confirmedAt": "10-20 17:20"
+        }
+      ]
+    },
+    {
+      "id": "1010",
+      "name": "10.10",
+      "title": "安装与启动优化",
+      "kind": "rollback",
+      "status": "已回退",
+      "date": "10-10 17:00",
+      "owner": "A",
+      "target": 30,
+      "upgraded": 0,
+      "offline": 0,
+      "pending": 0,
+      "failed": 0,
+      "window": "10-10 17:00 至 10-10 18:20",
+      "cutoff": "10-10 19:10",
+      "releaseResult": "已回退至 10.03",
+      "exposed": 8,
+      "returned": 8,
+      "summary": "试用发布时发现 Windows 带空格路径下的组件启动异常，已停止分发并回退。后续修复纳入 10.17。",
+      "features": [
+        {
+          "id": "install",
+          "name": "安装与组件切换优化",
+          "owner": "B",
+          "kind": "改进",
+          "ready": true,
+          "observed": 12,
+          "completed": 9,
+          "failed": 3,
+          "pending": 0,
+          "devices": 8,
+          "status": "issue",
+          "conclusion": "10-10 18:20 确认停止分发并回退，修复交由 T099，在 10.17 发布。",
+          "task": "T082",
+          "scope": "首次安装与升级的客户端",
+          "component": "客户端 · 安装",
+          "change": "统一安装后的组件切换与启动处理。",
+          "impact": "涉及客户端安装、升级和进程启动；Windows 路径场景受影响。",
+          "criterion": "确认安装后组件可启动，升级切换后可以继续使用。",
+          "signal": "3 次组件启动失败，集中在 Windows 带空格路径。",
+          "followup": "T099",
+          "confirmedAt": "10-10 18:20"
+        },
+        {
+          "id": "startup",
+          "name": "启动进度提示",
+          "owner": "A",
+          "kind": "改进",
+          "ready": true,
+          "observed": 12,
+          "completed": 12,
+          "failed": 0,
+          "pending": 0,
+          "devices": 8,
+          "status": "confirmed",
+          "conclusion": "提示行为符合预期；随版本整体回退，不作为当前已生效功能。",
+          "task": "T084",
+          "scope": "启动中的客户端",
+          "component": "客户端 · 启动界面",
+          "change": "启动时展示当前组件与进度，异常时给出可定位的原因。",
+          "impact": "改变启动等待界面的提示内容。",
+          "criterion": "核对启动阶段与实际进度一致，异常提示可理解。",
+          "signal": "12 次进度展示完成。",
+          "confirmedAt": "10-10 18:10"
+        }
+      ]
+    }
+  ],
+  "sessions": [
+    {
+      "projectId": "teams",
+      "target": {
+        "page": "management",
+        "item": "R20"
+      },
+      "key": "management:R20",
+      "title": "Windows 重启后的连接恢复",
+      "short": "R20",
+      "location": "任务讨论 / R20",
+      "action": "讨论需求",
+      "resultTitle": "需求与交付标准草稿",
+      "resultText": "补充正常重启和异常退出后的复现条件及回归记录。",
+      "owner": "C",
+      "status": "待核对",
+      "alternatives": [],
+      "inputs": [
+        "Windows 重启后的连接恢复",
+        "任务讨论 / R20",
+        "补充正常重启和异常退出后的复现条件及回归记录。"
+      ],
+      "criteria": [
+        "对照关联事项的目标、范围与可验证标准。",
+        "保留来源和证据，待负责人核对后采用。"
+      ]
+    },
+    {
+      "projectId": "teams",
+      "target": {
+        "page": "delivery",
+        "task": "T104",
+        "node": "review"
+      },
+      "key": "delivery:T104:review",
+      "title": "加入团队后获取项目配置",
+      "short": "T104 · 设计评审",
+      "location": "T104 / 设计评审",
+      "action": "辅助评审",
+      "resultTitle": "节点成果草稿",
+      "resultText": "检查取消操作、重复加入和目录配置覆盖边界。",
+      "owner": "C",
+      "status": "待核对",
+      "alternatives": [],
+      "inputs": [
+        "加入团队后获取项目配置",
+        "T104 / 设计评审",
+        "检查取消操作、重复加入和目录配置覆盖边界。"
+      ],
+      "criteria": [
+        "对照关联事项的目标、范围与可验证标准。",
+        "保留来源和证据，待负责人核对后采用。"
+      ]
+    },
+    {
+      "projectId": "teams",
+      "target": {
+        "page": "release",
+        "version": "10.17",
+        "phase": "post"
+      },
+      "key": "release:10.17:post:version",
+      "title": "10.17 · 客户端升级体验",
+      "short": "10.17 · 版本整体",
+      "location": "10.17 / 发布后跟踪 / 版本整体",
+      "action": "分析使用情况",
+      "resultTitle": "使用情况分析",
+      "resultText": "结合历史观察窗口的升级覆盖、使用样本与 Owner 结论，保留仍需核对的事项。",
+      "owner": "B",
+      "status": "待核对",
+      "alternatives": [],
+      "inputs": [
+        "10.17 · 客户端升级体验",
+        "10.17 / 发布后跟踪 / 版本整体",
+        "结合历史观察窗口的升级覆盖、使用样本与 Owner 结论，保留仍需核对的事项。"
+      ],
+      "criteria": [
+        "对照关联事项的目标、范围与可验证标准。",
+        "保留来源和证据，待负责人核对后采用。"
+      ]
+    }
+  ],
+  "documents": [
+    {
+      "path": "AGENTS.md",
+      "content": "# 项目导览\n\niCode Teams：面向企业内部 Agent 应用的客户端与发布平台。TypeScript ESM 单仓，Node 22+（CI 与测试门禁固定 24.14.1），插件框架为 `@deepseek-ai/cordis`，客户端 UI 用 React 19 + antd 6，服务端存储用 PostgreSQL（`pg`），观测走 OpenTelemetry OTLP 进 Control。\n\n## 目录与责任边界\n\n```text\nbusiness/       # 业务插件：domain/<业务插件>（含各自 docs/specs）；平台基础插件 foundation/（账号、认证、团队）；shared、tests、third-party\nframework/      # 客户端进程 client/{core,daemon,gateway,ui}；服务业务宿主 service/business-host；共享合同 shared/plugin-contracts 等；docs、tests\nconsole/        # 管理面 Control：src（单进程单 Store）、contracts、docs、tests\nengineering/    # 发布 release/；架构看护 architecture/（source-path-map、fallback-exceptions）；文档 docs/；测试 tests/ 与测试支撑 testing/（runner、登记表）\noperations/     # 部署与安装 applications/deployment（docs、src、install、tests）\nobservability/  # telemetry（src、contracts）与 diagnostics（feature-catalog 等）；docs\ndocs/           # 跨域文档：architecture/（跨域架构）、product/、specs/ 与 README 索引\n```\n\n模块 id 由 `engineering/architecture/source-path-map.json` 从物理路径映射；依赖方向由 `engineering/tests/unit/architecture/architecture-boundaries.test.ts` 静态执行：业务插件不导入宿主内部实现、跨 scope 互禁、只依赖平台插件公开 contract；`pg` 只允许业务宿主 PG 设施，插件存储一律走宿主 PluginDatabase 设施；插件直连 PG 属登记例外，当前仅 data-access 直连臂一项（`source-boundaries.ts` 白名单，2026-10-15 维护者授权）。改代码前先确定新文件落在哪个责任目录，并保持 source-path-map 与之一致。\n\n## 常用命令\n\n- `npm run dev`：起 Control(45830) + Service + Daemon/Core(45831) + Gateway(45833) 全套本地环境；前置要求 `ICODE_PG_URL` 指向本地 PostgreSQL。控制台 <http://127.0.0.1:45830>，demo 账号 `admin` / `icode-teams-demo-password`。\n- 提交前：`npm run typecheck`、`npm run lint:ui`（ESLint + 样式 token 检查），并按 `python3 engineering/testing/test_scope.py --base <固定PR基准>` 的必要计划补齐验证。PR 默认排除的交付测试见 `deferredDeliveryTests`；手动交付计划加 `--delivery`。`npm run test:pr` 仍是含打包的全量本地入口，不等同于 PR CI。\n- `npm test`（集成）、`npm run test:e2e`（端到端）、`npm run test:focus`（单文件，须在 `engineering/testing/test-targets.json` 登记）、`npm run test:fallback`（fallback 看护）；非本地测试需 `ICODE_TEST_PG_URL`。\n- 测试 runner 是自研 `engineering/testing/run-tests.mjs`（包装 `node:test`），不要直接调 `node --test` 或 `vitest`/`jest`。\n\n## 测试约定\n\n所有用例必须显式分类：业务用 `flowTest`，其余用 `caseTest` 并给 `reason`；禁止直接 import `node:test` 注册函数；business 断言必须落在 `operation.checkpoint(...)` 回调内，Trace 证据由生产实现产生，测试不得自造事件。详见[测试门禁](engineering/docs/testing-gates.md)，样例 `framework/tests/integration/client/installation/management-flow.test.ts`。\n\n## 编码规范\n\n- ESLint 只覆盖客户端与插件源码目录；`no-alert` 为 error，两个 react-hooks 规则是存量放行项、新代码不得沿用（`eslint.config.mjs`）。\n- 样式：禁裸 hex 色值（`npm run lint:style` 硬失败），一律引用 `--ui-*` CSS 变量并保持双主题完整；数据请求统一 `tracedFetch`/`tracedJson`，禁裸 fetch；只用 antd，插件 UI 走 `framework/client/ui/src/contracts/ui.ts` 契约。详见[前端公共样式规范](engineering/docs/前端公共样式规范.md)。\n- 持久化一律 flush+rename 原子提交；失败要显式，明确失败优于静默兜底。\n\n## 勿手改文件\n\n- `observability/diagnostics/src/feature-catalog.generated.ts`：由 `engineering/testing/feature-catalog.ts` 生成。\n- 受指纹/合同保护的登记表，改动有连锁影响：`engineering/release/release-components.json`（进入增量发布指纹）、`engineering/testing/test-targets.json`、`engineering/testing/control-test-scopes.json`、`engineering/architecture/fallback-exceptions.json`。\n- `coverage/`、`dist/`、`.demo-data/` 为输出目录，勿提交。\n\n详细开发流程（安装、出包、下发升级）见 [README](README.md) 与[文档索引](docs/README.md)。\n\n# 项目约束\n\n## Fallback 默认禁止\n\n- 未经明确要求，不新增或扩大 fallback、静默吞错、替代数据源、替代实现或旧协议兼容路径。\n- 仅明确需求或实际用户／实际测试暴露的异常可提出例外。先解释为什么不能修复根因，再确认允许的触发条件；不得为自己的实现补造需求。\n- 正常缺省配置、按合同处理首次安装的 ENOENT、显式失败及必要清理，不等同于 fallback；不得把损坏、权限错误、网络失败一并当作不存在。\n- 例外必须记录真实场景依据、保留理由和回归测试；测试须证明指定异常下的行为及其他异常不被掩盖。新增或扩大例外需用户／维护者明确确认，不能仅靠自己写注释或测试取得授权。\n- 详细规则与存量处置见 `engineering/docs/fallback-policy.md`。\n\n## 项目级通用门禁检查\n\n开发自检和 committor 检查统一使用仓库 [architecture-self-check Skill](.agents/skills/architecture-self-check/SKILL.md)。用户要求通用检查、提交前自检、提交、推送、创建或更新 PR 时使用，不依赖个人 Skill。流程为看变更、查问题、报结果；详细维度和证据边界见[通用检查规范](engineering/docs/pr-self-check.md)。\n\nSkill 只检查和报告，不修改被审代码、测试或规则，不负责修复，不批准例外或决定合入，也不扩大提交或发布权限。复用[测试门禁](engineering/docs/testing-gates.md)的完整 PR 必要计划及有效证据；缺失验证不得当作通过。检查器、公共用例、例外登记和触发规则自身的变化须呈现给 committor，不能为消除失败削弱保护。存在 Skill 不代表 CI 或分支保护已启用阻断。\n\n## 文档与过程输出\n\n- 仓库只维护当前规范、活跃设计、测试代码和必要决策／授权条件；详细分类见 [文档维护规则](./docs/README.md)。\n- 自检结论、实施进度和交付总结输出到当前回复或 PR 描述，不创建仓库过程文档。日志、截图和原始测量写入仓库外临时目录或已有被忽略的输出目录；CI 使用 artifact。\n- 不新建 docs/history/、docs/development/evidence/。新增长期文档须进入约定主题目录并从文档索引可达；Spec 写明状态、范围和负责角色，完成后提炼结论并删除过程稿。\n- 提交前按必要计划运行文档检查。检查器或治理规则变更须在 PR 中明确说明理由和保护变化，不能为消除失败而放宽规则。Skill 与测试 fixture 等共置材料按维护规则处理。\n"
+    },
+    {
+      "path": "README.md",
+      "content": "# iCode Teams\n\n面向企业内部 Agent 应用的客户端与发布平台，包含客户端、服务端控制面（Control）、服务端业务面（Service/Business）和可独立升级的插件。\n\n[开发指导](#开发指导) · [可选 npm 插件](#可选-npm-插件) · [本地源码调试](#本地源码调试) · [文档索引](./docs/README.md)\n\n## 开发指导\n\n日常开发顺序：安装测试客户端 → 修改代码并增量出包 → 控制台下发升级 → 验证功能。\n\n| 入口 | 用途 |\n| --- | --- |\n| [测试控制台](https://teams-test-helloicode.duckdns.org/) | 登录、查看设备、发布组件和检查部署结果；客户端控制服务与业务服务均使用此地址 |\n| [共享制品仓](https://teams-registry-helloicode.duckdns.org/npm-v2/) | 保存 test/prod 制品，`package:release` 默认发布到此处 |\n\n开始前向环境维护者申请测试账号、所需的部署权限及 GitHub Actions 发布权限。日常开发复用现有服务端；完整出包、服务端安装和环境配置见[出包与环境部署指南](operations/applications/deployment/docs/dual-environment.md)。\n\n### 客户端首次安装\n\n在待测试设备安装一次，后续通过控制台升级。macOS ARM64 / Linux x64：\n\n```bash\ncurl -fsSL https://teams-test-helloicode.duckdns.org/install.sh -o /tmp/icode-teams-install.sh && \\\nsh /tmp/icode-teams-install.sh --profile test --server https://teams-test-helloicode.duckdns.org\n```\n\nWindows x64，先在使用客户端的 Windows 用户会话中执行 `whoami /user`，记录 SID；再用同一用户的管理员 PowerShell 执行，将示例 SID 替换为实际值：\n\n```powershell\n$installer = \"$env:TEMP\\icode-teams-install.ps1\"\nInvoke-WebRequest https://teams-test-helloicode.duckdns.org/install.ps1 -OutFile $installer -UseBasicParsing -ErrorAction Stop\npowershell -ExecutionPolicy Bypass -File $installer -TargetUserSid 'S-1-5-21-111-222-333-1001' -Profile test -ServerUrl https://teams-test-helloicode.duckdns.org\n```\n\n安装不需要 token；打开客户端登录测试账号后，设备自动注册并绑定。在[测试控制台](https://teams-test-helloicode.duckdns.org/)的“客户端”页确认自己的设备在线，记下设备名称或 ID，后续升级只选择自己的测试设备。正式环境、自定义目录、重装和启停命令见[客户端安装与升级](framework/client/docs/client-installation.md)。\n\n<a id=\"package-release\"></a>\n\n### 增量出包\n\n开发与出包命令使用 Node.js 24.14.1。首次在仓库根目录安装依赖并登录 GitHub CLI：\n\n```bash\nnpm ci --no-audit\ngh auth login\n```\n\n完成代码修改和必要检查，将提交推送到远端开发分支，再在仓库根目录执行：\n\n```bash\nnpm run package:release -- --ref <开发分支> --channel test --scope components\n```\n\n将 `<开发分支>` 替换为实际分支名；已合入的代码可用 `main`。命令使用远端提交，自动分配版本，只构建变化组件并复用未变化制品。默认等待 Actions 完成并输出 npm 发布结果；出包成功后还需下发升级。\n\n测试版自动使用原始 GitHub 发布运行 ID 作为 `-test.N` 的编号。只发布某个组件时可将 scope 换为组件 ID，例如 `control-host`；多个组件用逗号分隔。只修改插件或 Host 时使用增量发布；安装器、Compose 或 updater 变化须发布完整包并由环境维护者部署。\n\n正式出包使用 `npm run package:release -- --ref main --channel prod --scope all`，版本从该固定源码提交的 `engineering/release/versions.json` 读取。main 集成环境通过 [Main integration 工作流](operations/applications/deployment/docs/dual-environment.md#main-集成工作流)验证明确发行版号的正式候选，发行版及全部 Teams 成员均须使用无预发布后缀的正式版本；prod 经验收和晋级后沿用同一候选的版本与制品。\n\n`channel` 决定发布版本分配方式，部署的 `environment` 决定目标配置和数据隔离。main 底层的 `test` 安装 profile 只用于环境隔离；测试版本不能作为 main/prod 候选，正式版本仍须取得相应环境准入。Registry 独立部署，发布目录与安装包统一使用 npm；配置及首次部署见[出包与部署指南](operations/applications/deployment/docs/dual-environment.md)。\n\n中断等待后，可用输出的运行 ID 继续查询同一次出包：\n\n```bash\nnpm run package:release -- --run-id <Actions运行ID>\n```\n\n### 下发升级\n\n确认 Actions 已完成出包，再登录[测试控制台](https://teams-test-helloicode.duckdns.org/)，点击顶部“刷新”读取发布目录。在“客户端”页按设备名称或 ID 找到自己的测试设备，确认在线，勾选后点击“批量升级”。\n\n| 升级方式 | 使用场景 |\n| --- | --- |\n| 全部客户端组件 | 整体更新所选测试设备，由 Control 按发布目录规划目标版本及配套依赖 |\n| 单个客户端组件 | 只指定一个客户端组件或 Teams 插件，选择组件及目标版本 |\n| 组件组合 | 指定多个组件、新插件或跨端组合，勾选本次参与组件并分别选择版本 |\n\n1. 点击“生成升级预览”，核对目标设备、实际参与组件、版本、配套依赖及重启影响；存在阻塞时先处理原因，再重新预览。\n2. “执行方式”默认是“各设备独立执行（默认）”。点击“开始准备此计划”后，普通客户端准备完成即可分别切换，无需等待整批设备；实际 Service 依赖仍按计划排序。\n3. 若选择“准备后由管理员确认切换”，需到“服务端”页打开该任务的“查看详情”，准备完成后点击“确认切换”。\n4. **包含 Core 的升级默认还需客户端本地确认。** 客户端提示“客户端更新已就绪”后，先保存编辑内容，再点击“刷新并更新”。这与 Control 的“确认切换”是两个确认步骤。\n5. 在 Control“服务端”页查看升级任务与设备详情，确认实际升级完成；再回到“客户端”页核对实际版本、健康状态和 Desired / Actual 收敛，并执行本次功能验证。离线设备上线后按原计划继续，不能把任务已受理或准备完成当成升级成功。\n\n已安装的服务端插件或 Host 在“服务端”页选择目标版本，点击“预览升级”，再按上述预览、准备和执行方式操作。Control Host 和 Business Host 独立选择，配套组件以真实依赖和 Host API 校验结果为准。新服务端插件也可从“组件发布”页的“选择组件”进入。\n\n“组件发布”页的“选择组件”默认选中全部客户端；测试发布涉及客户端时，应从“客户端”页先限定设备。服务端由团队共用，升级前与环境维护者协调。跨端发布的灰度、在线验收和回滚规则见[端到端发布](./docs/architecture/end-to-end-feature-release.md)。\n\n### 使用 Control CLI 升级客户端\n\n使用独立管理命令 `icode-teams-control`，需要 Control 管理员账号。以下示例在 macOS／Linux 的 Bash 中执行；使用前完成出包。执行准备脚本，自动获取发布目录中的最新 CLI；已安装且校验通过的同版会直接复用。制品仓地址通过私有配置提供：\n\n```bash\nnode .agents/skills/icode-teams-control/scripts/install-control-cli.mjs --registry \"$TEAMS_REGISTRY\"\nCONTROL_CLI='<安装器输出的 executable 绝对路径>'\n```\n\n配置测试环境并登录。管理员密码通过隐藏输入注入环境变量：\n\n```bash\n\"$CONTROL_CLI\" contexts list --json\n\"$CONTROL_CLI\" contexts set test --server https://teams-test-helloicode.duckdns.org --environment test --json\nread -r -s -p 'Control 管理员密码: ' ICODE_TEAMS_CONTROL_PASSWORD\nprintf '\\n'\nexport ICODE_TEAMS_CONTROL_PASSWORD\n\"$CONTROL_CLI\" auth login --context test --username <管理员用户名> --json\nunset ICODE_TEAMS_CONTROL_PASSWORD\n```\n\n查询设备和发布目录，复制自己设备的完整 `id`，预览全部客户端组件升级：\n\n```bash\n\"$CONTROL_CLI\" clients list --context test --json\n\"$CONTROL_CLI\" releases list --context test --json\nCLIENT_ID='<自己的设备 id>'\n\"$CONTROL_CLI\" deployments preview --context test --scope client --clients \"$CLIENT_ID\" --all-latest --json\n```\n\n核对预览中的组件、版本、依赖、目标设备及阻塞原因。确认可执行后，将预览输出的 `id` 填入 `DEPLOYMENT_ID`，启动并等待同一个计划：\n\n```bash\nDEPLOYMENT_ID='<preview 输出的 id>'\n\"$CONTROL_CLI\" deployments start --context test --id \"$DEPLOYMENT_ID\" --policy independent --json\n\"$CONTROL_CLI\" deployments wait --context test --id \"$DEPLOYMENT_ID\" --timeout 600 --json\n\"$CONTROL_CLI\" clients list --context test --json\n```\n\n包含 Core 时，等待期间默认仍需在客户端点击“刷新并更新”。测试环境可在 **preview** 命令中显式追加 `--auto-confirm-core`，授权该冻结计划中的 Core 更新；正式环境拒绝此选项。\n\n只更新指定组件时，用 `--targets '<组件ID>@<确切版本>'` 替换 `--all-latest`；多个目标和多个设备 ID 分别用逗号分隔。手动切换在首次 `start` 时选择 `--policy manual`，准备完成后执行 `deployments switch --context test --id \"$DEPLOYMENT_ID\" --json`，再等待结果。\n\n`wait` 超时退出码为 `4`，可用 `deployments status`／`deployments show` 查询同一 ID 后继续等待。输出 `outcome: deferred-offline` 表示离线设备尚未完成，即使退出码为 `0` 也不能当作全部升级成功。完整命令及状态核验见[CLI 部署说明](operations/applications/deployment/docs/dual-environment.md#使用-control-cli-下发组件)。\n\n### 验证功能\n\n1. 先核对 Actions 发布收据中的源码 SHA、组件版本、制品摘要和目录 revision，再在控制台确认目标版本可见。\n2. 核对部署完成回执、目标组件的实际版本和健康状态；客户端还需确认 Desired / Actual 已收敛。只升级 Control 时还应确认 Business 和未选插件未被升级。\n3. 在客户端或服务端实际执行本次修改涉及的功能，检查操作结果和数据是否符合预期。\n4. 若变更集进入在线观察阶段，验证通过后确认验收；失败时查看任务错误、“问题证据”和 Trace，再按发布记录定位或回滚。\n\n新终端执行 `icode-teams-test status` 可检查 Daemon / Gateway 基础健康；Core 和业务插件仍需按上述步骤验证。完整出包范围、服务端首次部署与重新部署见[内部部署指南](operations/applications/deployment/docs/dual-environment.md)。\n\n## 可选 npm 插件\n\n第三方可选 Plugin 是标准 npm 包，和上面的受管组件出包／Control 下发升级是两条流程。发布者构建后运行 `npm pack`，可在客户端“Teams 扩展 → 扩展发布”上传 `.tgz`，或用 `icode-teams-test plugin-publish <tgz> --registry <URL>`；上传后还要单独登记市场受众和确切版本。用户在“Teams 扩展 → 扩展市场”安装，也可用 `icode-teams-test plugin-install <包名> <确切版本> --registry <URL>`。正式客户端命令去掉 `-test`。普通 `npm install` 不会激活 Teams 插件；客户端内部使用自带的固定版本 pnpm，用户无需另装 pnpm。\n\n包的准备、页面与 CLI 操作、普通 `npm publish` 的凭据用法及权限限制，见[可选 npm 插件发布与安装指南](operations/applications/docs/npm-plugin-market.md)。\n\n## 本地源码调试\n\n使用 Node.js 24.14.1。先按[开发实操手册](engineering/docs/development-guide.md)准备可连接的 PostgreSQL，并设置 `ICODE_PG_URL` 或 `ICODE_PG_URL_FILE`；未配置或连接失败时 Service 拒绝启动。在仓库根目录执行：\n\n```bash\nnpm ci --no-audit\nnpm run dev\n```\n\n- 服务端控制台：<http://127.0.0.1:45830>\n- 本地客户端：<http://127.0.0.1:45833>\n- 开发账号：`admin` / `icode-teams-demo-password`\n\n常用检查为 `npm run typecheck`、`npm test`、`npm run test:e2e` 和 `npm run package`。`npm run test:pr` 执行全量本地检查；PR 必要范围与 CI 规则见[测试门禁](engineering/docs/testing-gates.md)。\n\n## 代码结构\n\n```text\nbusiness/             # 基础与领域业务插件、业务合同\nframework/            # 客户端、服务端业务宿主和公开运行合同\noperations/           # 设备与应用管理、部署与安装执行\nobservability/        # Telemetry、Trace 和诊断\nengineering/          # 开发、测试、架构检查、CI、出包与发布\nconsole/              # Control 管理接入与前后端装配\n```\n\n## 文档入口\n\n- [文档总索引](./docs/README.md)：全部规范、设计和维护规则\n- [当前架构](./docs/architecture/overview.md) · [业务插件开发](framework/docs/business-plugin.md)\n- [工作流设计器（重构版）](docs/specs/workflow-designer-refactor.md) · [设计与讨论索引](docs/specs/README.md)\n- [可选 npm 插件发布与安装](operations/applications/docs/npm-plugin-market.md)\n- [开发指南](./docs/development/README.md) · [开发实操](engineering/docs/development-guide.md) · [运行指南](engineering/docs/runtime-guide.md)\n- [完整出包与服务端部署](operations/applications/deployment/docs/dual-environment.md) · [客户端安装与升级](framework/client/docs/client-installation.md)\n- [业务端到端发布](./docs/architecture/end-to-end-feature-release.md) · [Chrys 升级维护](business/domain/agent-management/docs/chrys-upgrade.md)\n"
+    },
+    {
+      "path": "docs/README.md",
+      "content": "# 项目文档\n\n文档帮助读者找到当前边界、使用方法、设计理由和验证入口。实现事实以代码、测试和配置为准；部署与验收结果以对应提交、环境和实际运行证据为准。发现冲突时，在同一变更中修正文档，不靠新加一段补充说明长期覆盖错误正文。\n\n## 从哪里开始\n\n| 需要解决的问题 | 权威入口 |\n| --- | --- |\n| 查看框架／业务 Owner 从开发到上线的交付路线 | [工程交付地图](./development/delivery-map.md) |\n| 安装测试客户端、增量出包、下发升级和验证功能 | [开发指导](../README.md#开发指导) |\n| 组件发布、完整出包、服务端首次安装和重新部署 | [出包与环境部署](../operations/applications/deployment/docs/dual-environment.md) |\n| 根据已提供基础设施和鉴权执行业务部署 | [业务部署指南](../operations/applications/deployment/docs/business-deployment.md) |\n| main 验收后的独立 Linux 新装验证 | [Linux 新装旁路运维](../operations/applications/deployment/docs/business-deployment.md#linux-新装旁路运维) |\n| main 验收后的 Linux 双用户升级与基线维护 | [Linux 双用户升级旁路](../operations/applications/deployment/docs/business-deployment.md#linux-双用户升级旁路) |\n| 明确出包与发布的目标场景、功能边界和验收方式 | [出包与发布功能用例矩阵](../engineering/release/docs/specs/publication-usecases.md)（实现中） |\n| 客户端正式／测试安装、重装、启停与升级 | [客户端安装与升级](../framework/client/docs/client-installation.md) |\n| 评审 Linux 无 systemd 环境的客户端适配 | [Linux 客户端运行环境自动适配](./specs/linux-client-runtime-adaptation.md)（讨论中；基础实验不代表已交付） |\n| 理解当前组件边界与依赖方向 | [当前软件架构](./architecture/overview.md)；[开发架构速览](../engineering/docs/architecture.md)提供代码阅读入口 |\n| 开发或维护业务插件 | [业务插件规范](../framework/docs/business-plugin.md) |\n| 发布、安装及管理可选 npm 三方 Plugin | [npm Plugin 市场](../operations/applications/docs/npm-plugin-market.md) |\n| 管理 Agent 配置资源的共享、获取与应用边界 | [Agent 资源共享](./specs/agent-resource-sharing.md)（实现中） |\n| 调用外部凭证中心或接入企业登录 | [鉴权接口规范](../business/foundation/account-access/docs/auth.md) |\n| 维护账号存储的 PG 持久化与迁移语义 | [账号存储设计](../business/foundation/account-access/docs/specs/account-store-pg.md)（实现中） |\n| 维护 Chrys 归档与设备升级 | [Chrys 升级维护](../business/domain/agent-management/docs/chrys-upgrade.md) |\n| 使用本机 Agent 原生会话、恢复与能力限制 | [原生 Agent 会话](../business/domain/agent-management/docs/native-sessions.md) |\n| 本地调试、API 调用和问题定位 | [开发实操手册](../engineering/docs/development-guide.md)；[Pi 对话](../business/domain/agent-management/docs/pi-chat.md) |\n| 为某个工具接入 Hook 注册 | [Hook 接入：owner 插件指南](../business/domain/agent-management/docs/hook-management-owners.md) |\n| 维护 iCode 或 git 的 Hook provider | [iCode Hook provider](../business/domain/agent-management/docs/hook-management-icode.md)、[git Hook provider](../business/domain/agent-management/docs/hook-management-git.md) |\n| 理解运行、安装事务及恢复机制 | [运行与部署指南](../engineering/docs/runtime-guide.md)、[客户端安装与升级](../framework/client/docs/client-installation.md) |\n| 独立部署 npm 制品仓 | [Verdaccio 部署](../engineering/release/docs/verdaccio.md) |\n| 管理 Actions 与制品仓存储 | [Actions 存储](../engineering/docs/actions-storage.md)、[制品仓存储](../engineering/release/docs/archive-storage.md) |\n| 维护 GitHub Actions 自托管设备、环境与标签 | [自托管 Runner](../engineering/docs/self-hosted-runners.md) |\n| 配置正式、测试环境与 npm 仓 | [环境配置](../operations/applications/deployment/docs/dual-environment.md#服务端初次准备) |\n| 部署服务端 PostgreSQL 与两类客户端连接 | [PostgreSQL 部署与连接](../operations/applications/deployment/docs/postgres.md) |\n| 理解制品校验的保证与限制 | [发布信任边界](../engineering/release/docs/release-trust.md) |\n| 理解业务变更集、灰度与在线验收 | [端到端发布](./architecture/end-to-end-feature-release.md) |\n| 维护框架 Trace 入口与测试合同 | [框架观测入口](../observability/docs/framework-trace-boundaries.md) |\n| 接入 Trace 和客户端诊断 | [客户端可诊断性](../observability/docs/client-diagnosability.md) |\n| 用 Trace 分析业务实例与功能使用 | [Trace 功能分析](../observability/docs/trace-feature-analysis.md) |\n| 前端页面、组件与插件 UI 开发 | [前端公共样式规范](../engineering/docs/前端公共样式规范.md) |\n| 客户端目标布局、导航与设计图 | [客户端 UI 框架与视觉基线](../framework/client/ui/docs/specs/client-ui-framework.md)（实现中；各页面接入状态见正文） |\n| 设计或维护 Agent 工作流的编排、运行与验收 | [工作流设计器（重构版）](specs/workflow-designer-refactor.md)（实现中；实现与环境验收分别记录） |\n| 设计或评审团队协作的任务委派、本机执行与验收 | [团队协作任务工作流与本地 iCode 执行设计](specs/team-collaboration-workflow-node-redesign.md)（讨论中） |\n| 确定 PR 审查维度 | [架构与插件自检](../engineering/docs/pr-self-check.md)；[插件看护](../engineering/docs/pre-pr-review.md)提供资源扫描工具说明 |\n| 确定测试范围、CI 门禁及证据要求 | [测试门禁](../engineering/docs/testing-gates.md) |\n| 了解六个责任目录及当前实现边界 | [当前软件架构](./architecture/overview.md)、[开发架构速览](../engineering/docs/architecture.md) |\n| 讨论后续责任边界与测试归属 | [项目责任边界与仓库组织](./specs/repository-organization.md)（讨论中） |\n| 修改异常处理或了解受控例外 | [fallback 规则](../engineering/docs/fallback-policy.md) |\n| 理解服务端数据库能力与控制面持久化接缝 | [服务端数据库能力与控制面持久化接缝](../console/docs/specs/control-pg-state.md)（待核实；当前边界及收口证据） |\n| 开发服务端插件数据库访问 | [Worker 宿主数据库协议](../framework/service/business-host/docs/service-plugin-database.md) |\n| 开发框架对象存储接口、插件声明与部署绑定 | [服务端插件对象存储能力](../framework/service/business-host/docs/specs/service-plugin-object-storage.md)（首期框架与华为 OBS 已实现；消费业务待集成） |\n| 理解产品场景、方向与设计状态 | [产品场景](./product/scenarios.md)、[设计索引](./specs/README.md) |\n| 了解数据上报模块（本地事实、服务端与客户端设计，含代码归因） | [数据模块设计](./specs/data-platform/01-fact-flow-and-storage.md)、[服务端设计](./specs/data-platform/02-server-design.md)、[客户端设计](./specs/data-platform/03-client-design.md)、[iCode 运行时事实](./specs/data-platform/04-icode-runtime-facts.md)、[分支归档与代码变更上报](./specs/data-platform/05-branch-archive.md)、[Hook 触发与实时上报](./specs/data-platform/06-hook-trigger.md)、[工作区初始状态镜像](./specs/data-platform/07-workspace-state.md)、[内部会话数据接口（供其他业务消费）](./specs/data-platform/08-internal-session-data-api.md)、[代码归因总体设计](./specs/data-platform/09-attribution.md) |\n| 对齐 Teams 产品定位、核心价值、功能全景与 10—12 月规划 | [Teams 产品定位与交付规划](./product/teams-roadmap.md)（产品规划，非已交付能力清单） |\n| 理解 AI Agent 团队协作的研究依据、行业实践与待验证假设 | [产品研究](./product/research/README.md) |\n\n产品方向和设计提议不代表已交付能力。长期讨论中的边界选择需在当前规范与实现中确认后才能作为开发要求。\n\n## 分类与生命周期\n\n| 内容 | 放置位置 | 维护方式 |\n| --- | --- | --- |\n| 当前架构、合同、开发和运维说明 | 跨模块内容放 docs/ 的 architecture、development、deployment、product；模块内容放已登记的模块 docs/ | 随对应实现更新；一个主题一处详细规则，其他页面摘要并链接 |\n| 支撑产品演进的研究综述与待验证假设 | product/research/ | 按主题维护当前结论、来源与证据边界；不作为实现要求，不保存逐次研究日志；决策形成后提炼到产品规范或活跃 Spec |\n| 尚在讨论、实现或待核实的非平凡设计 | docs/specs/ 或所属模块 docs/specs/ | 写明状态、负责角色、范围与关联实现/Issue；统一从设计索引可达，完成后提炼有效结论，未完成事项转 Issue 或简短待办 |\n| 已完成的设计、实施过程与交付快照 | Git/PR | 提炼当前有效结论及必要证据、确认原文已提交并解除引用后删除；不维护 history 目录 |\n| 验收标准、预算与当前限制 | 对应主题规范、[测试门禁](../engineering/docs/testing-gates.md) | 随要求变更维护，必要授权保留来源，不混入逐次结果 |\n| 测试报告、测量、截图、日志与审查过程 | PR、CI artifact 或团队确认的持久制品存储 | 记录提交、环境、命令、结果与缺口；不在仓库维护 evidence 目录 |\n| Skill、测试 prompt、模板、程序读取的 Markdown | 与使用它的模块共置 | 随使用方维护，不为统一目录而迁入 docs |\n\n现有 [技术全景 HTML](./architecture/technical-guide.html)是 2026-09-07 固定提交的源码快照，[系统地图 HTML](./architecture/icode-teams-system-map.html)为早期概念参考，两者均不替代当前规范。独立打开的页面也需携带其基线与用途说明；固定快照不逐项改成当前源码，现行事实从主题规范进入。\n\n## 日常维护\n\n- 变更作者在同一 PR 更新受影响的行为、命令、配置和接口说明，由对应模块或业务 Owner 审核。没有行为变化时不必机械修改日期。\n- 先查本索引，优先修改已有权威文档；新增文档时补入所属索引，并明确受众与生命周期。\n- Spec 的“讨论中、实现中、已完成、已放弃”必须有依据。无法确认的旧计划标注“待核实”，不把过期排期当成活跃任务，也不自行宣告完成。\n- Spec 收口时将稳定结论归入规范，将剩余工作指向 Issue/待办或对应主题的简短待核实清单；过程记录留在 Git/PR。长期保留的决策应说明理由和适用边界，不使用某次会话的授权文字作为未来操作授权。\n- 删除历史材料前检查文档、Skill、测试及例外登记的引用，提炼有效标准与授权条件。结果保存与过期处理遵循[验收结果规则](../engineering/docs/testing-gates.md#验收结果的存放与引用)。\n- 每次版本收口复查活跃设计、待办及证据引用，删除或标明已失效内容。个人工作树、临时路径和旧测试数字只能作为历史线索，不能成为新人必备前提。\n\n历史原文可用 `git log --all -- <原文件路径>` 找到提交，再用 `git show <提交>:<原文件路径>` 查看。未提交的独有内容先提炼保留，不能假定 Git 已保存。\n\n## 文档变更检查\n\n检查相对文件链接和锚点、面向本仓库的 npm 命令是否仍在 package.json 中、当前规范是否残留被替代的说法，以及新增页面是否有索引入口。历史原文留在 Git/PR，按其基线判断。\n\n在仓库根目录执行 `python3 engineering/architecture/docs.py`。它检查根 README、顶层 docs/ 与 `MODULE_DOC_ROOTS` 登记的模块文档中的 Markdown：相对文件链接、Markdown/HTML 锚点和当前指南中的 npm 命令。支持内联链接、图片及引用链接定义、ATX/Setext 标题与 HTML id/name；代码围栏中的链接示例不参与检查，示例命令只检查名称，不执行。行内代码、代码示例中的源码路径、命令参数及前后章节的语义一致性仍需人工核对。\n\n当前指南中的 `npm run` 均视为本仓库命令。外部 URL 可用性、HTML 快照正文、完整 CommonMark 语法及内容是否符合实现不在此检查保证内，仍须评审。设计状态和 Owner 的真实性也需人工核实。\n\n文档检查已接入必要计划，纯文档和代码改动均执行；CI 结果指纹包含文档和仓库链接目标，避免使用过期成功记录。`python3 engineering/tests/unit/architecture/test_docs.py` 验证检查器行为，检查器变更时由必要计划选取。原 architecture-boundaries 的特定架构表述保护继续保留。测试选择遵循[测试门禁](../engineering/docs/testing-gates.md)，纯文档修改不启动无关业务或平台安装测试。\n\n## 自动结构门禁\n\n文档检查覆盖整个候选工作树：CI 检查候选提交，本地同时包含暂存、未暂存和未忽略的新文件；不只检查最后一次 push。具体规则如下：\n\n- 禁止 docs/history/、docs/development/evidence/ 及已登记模块文档中的 history/evidence 目录下的任何文件，包括非 Markdown 产物。\n- 跨模块文档位于 docs 的 architecture、development、deployment、product 或 specs 主题目录；docs 根只保留 README.md。模块文档位于[检查器](../engineering/architecture/docs.py)的 `MODULE_DOC_ROOTS` 明确登记的路径，不按六个一级目录任意放行。文档必须从根 README 和 docs/README.md 沿实际 Markdown 文件链接可达，孤立页面或孤立循环均失败。HTML 是索引目标，不用快照内部导航证明已进入当前索引。\n- 仓库根文档仅允许 README.md、AGENTS.md、CONTRIBUTING.md、CHANGELOG.md、SECURITY.md 和 LICENSE.md。上述文档目录之外的 Markdown/RST 仅允许共置 README/AGENTS、.agents/skills 下的 Skill 材料，以及 tests 下 fixtures/prompts/templates 材料。其他程序读取文档的用途必须在规则变更中说明并补合法/非法回归，不默默扩大豁免。\n- specs 中除目录 README 外均使用 Markdown；顶层 Spec 必须从 docs/specs/README.md 可达，模块 Spec 必须从所属模块的 docs/specs/README.md 可达，同时遵守根 README 和 docs/README.md 的全局可达要求。每份 Spec 各有一个非空字段：`- 状态：`、`- 范围：`、`- 负责角色：`。状态仅为讨论中、实现中或待核实；已完成或已放弃的设计先提炼结论再移除。负责角色可以是维护角色，尚未认领时要如实注明。\n\n检查器不凭“报告”“进度”等词判断文档用途，不能识别伪装成规范的过程稿，也不能证明状态和负责角色真实。内容仍需评审；修改结构规则和检查器必须说明保护变化并由维护者重点审查。CI 失败会使 local-gate 失败，是否阻止合入取决于仓库分支规则是否将该状态设为必需检查；本地配置不等于远端规则已启用。\n"
+    },
+    {
+      "path": "docs/product/teams-roadmap.md",
+      "content": "# Teams 产品定位、核心价值与功能特性\n\n更新日期：2026-10-14\n\n本文整理当前讨论形成的产品规划全景，用于后续对齐与细化。功能特性不代表均已实现；第四章汇总第四季度（10—12 月）的交付计划，待定范围、依赖与具体验收标准需进一步细化。\n\n## 一、定位\n\n### 1. 产品定位：面向用户\n\nTeams 是面向企业的人与 AI 协同的组织协作平台，当前聚焦软件研发与交付。\n\n### 2. 架构定位：面向产品与开发团队\n\nTeams 位于解决方案层，接入并管理 iCode 等 Agent 运行时，集成 iCode-talent 提供的会话摘要、知识挖掘等关键技术能力，将它们组合为面向企业的协作交付、能力沉淀与定制扩展方案。\n\n三者的职责关系为：\n\n- **Teams**：负责企业场景下的业务流程、协作体验与解决方案集成。\n- **iCode 等 Agent 运行时**：提供 Agent 的运行与执行能力，由 Teams 接入和管理。\n- **iCode-talent**：提供关键技术能力，例如复杂会话的准确摘要、知识挖掘，支撑 Teams 的上下文交接与能力沉淀。\n\n上述划分描述职责与依赖关系，不代表相关技术能力均已完成或达到目标效果。\n\n## 二、核心价值\n\n| 核心价值 | 价值说明 |\n| --- | --- |\n| 协作交付 | 围绕任务贯通上下文、执行阶段与成果验收，让个人或团队及其 Agent 在同一流程中完成交付，减少信息断层和协作损耗，让进度与质量可掌控。 |\n| 能力沉淀 | 将个人和团队的有效实践沉淀为可共享、可复用、可持续改进的组织能力，减少重复摸索，降低对个别成员经验的依赖。 |\n| 按需定制 | 通过配置、组合与扩展适配不同团队的流程和业务需求，连接已有系统，降低定制与持续调整的成本，让平台随团队需要演进。 |\n\n“过程可控”纳入“协作交付”，不单独作为一项核心价值。\n\n## 三、功能特性\n\n功能特性统一分为五类：团队共享、协作流程、智能辅助、定制扩展、基础能力。前四类是业务特性，基础能力提供共性支撑。功能特性与核心价值是多对多关系，一项特性可以支撑多个价值，一个价值也需要多项特性共同实现。以下描述规划全景，不代表均已实现。\n\n| 功能特性 | 主要内容 | 关联核心价值 |\n| --- | --- | --- |\n| 团队共享 | 组织、成员、角色权限与项目共享空间；Agent 配置及运行时接入管理；团队能力库中 Agent、Model、Skill、Workflow、模板与知识的发布、共享、应用、复用和版本管理；会话数据上报、共享订阅、个人数据开放、任务及数据关联与复盘分析 | 协作交付、能力沉淀、按需定制 |\n| 协作流程 | 围绕任务的端到端上下文、分工、阶段管理、Agent 执行、交接、干预与成果验收；支持可配置的流程与角色、串并行流程、角色关联任务 Session、上下文随角色流转及任务问答；计划集成 talent 的复杂会话摘要、交接上下文整理、知识挖掘，以及 Skill 评估、Agent 自演进与 Workflow 优化能力，支撑协作持续改进，并将有效知识与实践沉淀到团队能力库 | 协作交付、能力沉淀 |\n| 智能辅助 | 通过自然语言操作 Teams、配置 Agent 与 Workflow、查询进展与分析数据 | 协作交付、能力沉淀、按需定制 |\n| 定制扩展 | 自定义页面和业务能力、接入已有系统、第三方插件开发与发布 | 按需定制、能力沉淀 |\n| 基础能力 | 框架底座与鉴权；客户端、服务端及扩展的升级与独立更新、兼容性校验、失败恢复；覆盖所有功能的易用性、稳定性与性能保障 | 协作交付、能力沉淀、按需定制 |\n\n## 四、10—12 月交付计划\n\n交付计划沿用第三章的统一分类，每月仅列有交付事项的类别。易用性、稳定性与性能优化是覆盖所有功能的跨功能工作，归入“基础能力”。\n\n### 4.1 10 月交付计划\n\n10 月：完成基础能力迁移与稳定化，形成团队能力共享和任务协作的可用雏形。\n\n10 月交付主要面向内部团队使用。10 月 16 日以新框架承接基础能力、支持 iCode Workflow 配置与应用为目标；月底在此基础上完善能力与稳定性。以下为交付计划，不代表已经完成或通过验收。\n\n| 类别 | 10 月 16 日交付范围 | 10 月底增量目标 |\n| --- | --- | --- |\n| 团队共享 | 1、基础 Agent 管理与配置<br>2、基础群组管理<br>3、Agent、Model、Skill 的管理、共享与应用<br>4、会话数据上报 | 1、统一接入、管理 Agent 运行时，业务通过公共入口调用<br>2、群组管理无新增功能<br>3、延续已有 Agent、Model、Skill 能力<br>4、增加会话订阅与个人数据开放 |\n| 协作流程 | 1、支持 iCode Workflow 配置与应用，满足 CSPL 诉求 | 1、新增 Workflow 的团队共享与复用<br>2、自定义简单流程与角色，支持串行和并行<br>3、每个角色关联自己任务相关的 Session<br>4、任务上下文及关联 Session 随角色流转<br>5、支持围绕任务的问答与澄清<br>6、将 iCode Workflow 调用入口迁移至 Teams 统一运行时管理，收口执行与会话生命周期 |\n| 基础能力 | 1、新框架承接原 TUI manager 的基础能力<br>2、基础鉴权<br>3、客户端具备基础升级能力，稳定性尚未收口<br>4、服务端具备基础升级能力，稳定性尚未收口 | 1、完善框架底座稳定性，支撑新增能力<br>2、鉴权无新增功能<br>3、客户端升级稳定化，覆盖兼容性、升级后可用性和失败恢复<br>4、服务端升级稳定化，覆盖兼容性、升级后可用性和失败恢复 |\n\n补充说明与待细化事项：\n\n- **运行时接入原则**：业务通过公共管理入口调用 Agent 运行时，由适配器对接具体运行时；本计划不承诺一次性接入所有运行时或覆盖全部云端场景。\n- **协作流程雏形**：月底范围为简单流程与角色配置、串并行、角色关联任务 Session、上下文流转及任务问答；流程角色如何关联成员或 Agent、Session 共享权限等细节待细化。\n- **待确认建议**：查看任务进展与角色状态尚属建议，未纳入已确认的月底交付范围。\n- **个人数据开放**：开放范围及访问规则待明确。\n\n### 4.2 11 月交付计划\n\n11 月：完善团队协作流程，接入 talent 能力，并让团队开始通过插件和自然语言定制、使用 Teams。\n\n| 类别 | 功能清单 |\n| --- | --- |\n| 协作流程 | 1、完善任务分工、跨成员交接与共享上下文。<br>2、完善阶段推进、成果验收与返工。<br>3、接入 talent 的复杂会话摘要、交接上下文整理与知识挖掘能力。<br>4、接入 Skill 效果评估，提供评估结果。<br>5、接入 Agent 自演进与 Workflow 优化，先提供改进建议。 |\n| 智能辅助 | 1、通过自然语言查询任务、会话与团队能力。<br>2、通过自然语言创建和更新任务。<br>3、辅助配置 Agent 与 Workflow。<br>4、重要修改先展示方案，确认后应用。 |\n| 定制扩展 | 1、完善插件开发接口、模板与文档。<br>2、提供插件开发调试工具。<br>3、支持业务团队独立开发插件，扩展页面与业务逻辑。<br>4、通过插件接入团队已有系统。 |\n| 基础能力 | 1、改善已有功能的易用性、稳定性和性能。<br>2、解决内部试用中发现的问题。 |\n\n### 4.3 12 月交付计划\n\n12 月：支持复杂协作与能力持续优化，完善插件分发和智能辅助，支撑更多内部团队使用。\n\n| 类别 | 功能清单 |\n| --- | --- |\n| 协作流程 | 1、在简单串并行流程基础上，支持复杂任务拆分与并行分工。<br>2、支持任务依赖管理与阻塞处理。<br>3、沉淀和复用协作流程模板。<br>4、深化 Skill 评估、Agent 自演进与 Workflow 优化，形成评估、改进、验证、应用的闭环。<br>5、将确认有效的知识与实践沉淀到团队能力库。 |\n| 智能辅助 | 1、通过自然语言完成复杂 Workflow 的配置与调整。<br>2、结合任务与会话数据分析交付进展。<br>3、识别协作风险并提出改进建议。<br>4、辅助执行已获授权的调整。 |\n| 定制扩展 | 1、完善插件发布与团队分发。<br>2、完善插件发现、安装与使用体验。<br>3、完善版本升级与兼容管理。<br>4、组合扩展，形成可复用的团队定制方案。 |\n| 基础能力 | 1、持续优化体验、可靠性与性能。<br>2、支撑更多内部团队使用。 |\n\n11 月与 12 月内容为当前讨论形成的阶段计划，不代表能力已经完成或技术可行性已验证；具体范围及与 talent 的能力依赖需进一步对齐。\n"
+    },
+    {
+      "path": ".agents/skills/architecture-self-check/SKILL.md",
+      "content": "---\nname: architecture-self-check\ndescription: iCode-teams 项目级通用门禁检查，供开发自检和 committor 检查共用。用户要求通用检查、提交前自检、commit、push、创建或更新 PR 时使用；只检查和报告，不修复或决定合入。\n---\n\n# 项目级通用门禁检查\n\n沿用 `architecture-self-check` 名称与路径作为唯一通用 Skill，框架和插件使用同一入口，不依赖个人安装的 Skill。看护框架与通用逻辑，业务领域规则留给专项审查。详细规则见[通用检查规范](../../../engineering/docs/pr-self-check.md)，按变更读取相关权威规范。\n\n身份隔离、数据完整性、完成条件、权限及资源生命周期属于通用正确性，即使实现在业务插件中也须检查；产品策略和未声明支持的场景仍交业务 Owner 判断。\n\n任务明确要求聚焦 P0/P1 时，优先追踪会造成严重功能故障、数据损坏或丢失、越权及资源失控的路径；架构问题须说明具体严重后果。只报告有充分证据的 P0/P1，不展开已明确属于 P2/P3 的重构、风格或文档建议，不为凑问题数量上调严重性。仍覆盖整个候选 diff，简要保留保护变化、实际覆盖和验证缺口；无高优先级发现不等于验证通过。未指定严重性范围时沿用完整通用检查。\n\n本 Skill 只检查和报告，不修改被审代码、测试或规则，不开发检查器，不批准 fallback 例外，不决定合入。修复属于独立的开发任务；本入口不授权暂存、提交、推送、创建 PR、部署或操作真实安装。存在 Skill 不代表 CI 或分支保护已启用阻断。\n\n## 1. 看变更\n\n读取 [AGENTS.md](../../../AGENTS.md)、git status、完整候选 diff 及必要上下文。用户指定基准优先；已有 PR 使用实际 base 的 merge-base，记录解析提交。区分提交内、暂存、未暂存及相关未忽略的新文件；明确目标为当前 HEAD 的已提交候选，还是包含未提交改动的工作区候选，基准不可得时报告范围缺口。关注前后两侧及被删除的保护，不扩展成全仓审计。\n\n按规范选择五个通用维度：架构、框架契约、测试组织与触发范围、异常与 fallback、框架可观测性接入。范围确认、维度选择和证据核验均为内部动作，不增加逐步审批。\n\n涉及职责、依赖、装配或持久化变化时，按[当前架构](../../../docs/architecture/overview.md#依赖与状态)核对六个责任目录的边界、具名装配入口和唯一状态写者；涉及已登记的公共边界时，对照[合同、实现与消费者登记](../../../engineering/architecture/public-boundaries.json)审视前后变化。静态检查通过不代替职责与状态归属的判断。\n\n## 2. 查问题\n\n先审查候选行为与架构，再核对自动证据。按[行为与架构核查](../../../engineering/docs/pr-self-check.md#行为与架构核查)，对本次涉及的高风险路径沿真实入口、实现、状态提交和调用方追踪；相关上下文可以位于未修改文件。不得把类型/扫描/已有测试通过当作发现问题的边界，也不因代码位于业务目录而排除通用正确性问题。\n\n重点按变更触发：跨层调用核对整次预算、权限与容量；异步或并发核对请求身份、所有权及提交时序；分页和窗口核对持久进度与完成条件；恢复和切换核对后续操作、再次启动及旧实例；新增公共能力核对职责、实际消费者和凭据流向。检查实际涉及的路径，不扩展为全仓审计或所有 PR 的固定故障矩阵。\n\n从仓库根运行 `python3 engineering/testing/test_scope.py --base <固定PR基准>`。只检查当前 HEAD 的已提交候选（包括 CI）时才加 `--committed`；提交前检查即使全部改动已暂存也不加，该选项会排除所有未提交改动。复用[测试门禁](../../../engineering/docs/testing-gates.md)的必要计划、选择原因、检查实现及有效执行证据，不维护第二套规则或全量测试依赖表。读取计划 `changeFacts` 的前后片段、分类及 `gaps`，结合 `reasons` 核实影响；文本线索不是契约改变或保护削弱的判定。以计划判定范围：AGENTS/Skill 改动并不被现有选择器当作纯文档。默认 PR 计划排除交付测试，核对 `deferredDeliveryTests`，不把 PR 绿色报告为出包、部署或升级已验证；需检查手动交付范围时显式加 `--delivery`。\n\n创建、更新或检查 PR 时，读取实际正文或待发布草稿，按[PR 验证声明](../../../engineering/docs/testing-gates.md#pr-验证声明)核对代码 PR 必需的 `ci-validation`。已提交候选执行或复用既有 `ci_evidence.py validate-pr` 预检结果；精确场景名、平台及实际结果仍与运行证据核对。测试计划生成成功不代表声明通过，声明通过也不代表测试通过；未发布的声明按草稿报告。\n\n核对已有结果的候选、基准、输入、运行条件和平台，只对缺失或失效的必要结果执行适合当前环境的检查；有效验证不重复执行。自动 PR 最终准入核对可信协调器的 `PR validation result`；`PR execution result` 和 `PR workflow validation` 的成功不代替当前候选准入。代码 PR 公共保护全量保留，昂贵验证按新旧依赖影响选择；不能用上次 push 的 diff 缩小整个 PR 的必要范围。检查环境、权限或能力不足时继续可执行部分并报告缺口，不用模型推演代替验证。\n\n用既有自动结果、行为用例和真实入口代码交叉核验。检查相关测试是否建立了声称的场景，以及关键行为错误或未执行时断言是否仍会通过。资源或插件调用风险适用时使用[资源扫描工具](../../../engineering/docs/pre-pr-review.md)补线索；扫描不完整不能当作通过，命中需核实场景。每组命中保留位置与证据，区分已有保护／需要补用例／发现问题／不适用。测试存在、静态无命中和运行通过各自不能证明未覆盖行为。\n\n候选在检查中变化时说明哪些结论或证据失效，不声称旧结果覆盖新版本，也不自动无限重查。检查器、公共用例、例外登记和触发规则的变化必须呈现；修改后通过不代表原保护可被削弱。\n\n## 3. 报结果\n\n在当前回复或已授权编辑的 PR 描述中，简要交代基准、候选、实际覆盖与执行/复用结果，然后区分：\n\n- 已确认问题：在任务指定范围内标注 P0/P1/P2 等严重性、位置、触发场景、根因、后果、违反的既定规则及证据。区分代码路径证据、受控复现及真实宿主验证；严重性依据影响判断，不能仅因未运行实机而降级，也不能把缺少测试直接定为 P1。\n- 待 committor 审视的变更：前后事实、已知影响、理由及支持范围取舍；不因有意改变规则或契约就自动判为缺陷。\n- 验证缺口：未分析、未运行、失败、部分完成和未解决项及原因；不合并成“通过”。\n\n按风险合并表述，不要求固定长报告；自动检查验证既定规则，committor 判断规则、契约或架构变化是否合理。报告和临时证据按 [AGENTS 文档与过程输出规则](../../../AGENTS.md#文档与过程输出)存放，不创建仓库过程文档。\n"
+    },
+    {
+      "path": ".agents/skills/icode-teams-control/SKILL.md",
+      "content": "---\nname: icode-teams-control\ndescription: Deploy and verify Teams components in test, main, or prod using the Control remote CLI, including routing main candidate preparation through the existing integration workflow. Also use for Control contexts, authentication, clients, groups, releases, operations, and telemetry; not the local Teams client CLI.\n---\n\n# iCode Teams Control\n\nUse `icode-teams-control` as the supported adapter for Control administrator operations. Preserve the same business semantics as the Web UI; do not reproduce orchestration with lower-level HTTP calls.\n\nObtain the registry and Control origins from the task's private configuration or existing local contexts. Keep real addresses, credentials and raw output containing them out of repository files and public reports. Respect the requested target; inspect the selected context before remote operations. For the installation examples, set `TEAMS_REGISTRY` from that private input and require it to be nonempty; pass it explicitly to the preparation script.\n\n## Prepare the CLI automatically\n\nAt the start of every task using this Skill, run the preparation script from this Skill directory before any Control operation:\n\n```sh\nnode scripts/install-control-cli.mjs --registry \"$TEAMS_REGISTRY\"\n```\n\nIt selects the highest eligible CLI version from the committed publication catalog, reuses a verified local copy or installs it automatically, and returns its absolute `executable` path. Users do not need to choose a version or approve this local tool update. Keep using that returned path throughout the task; installations are isolated by registry and version so another task's update cannot replace it. Stop if preparation fails; do not continue with an older CLI or a source checkout.\n\nOnly use `--version <exact-version>` when the task explicitly requests a pinned version; it must also be committed and not withdrawn. If registry authentication is required, use the machine's existing npm configuration. Never place a token in a command argument, repository file, output, or Control context.\n\n## Configure and authenticate\n\nInspect existing contexts before changing them:\n\n```sh\n<cli> contexts list --json\n```\n\nCreate or update a named context only when the target Control origin and environment are known, then select it explicitly. Control requires HTTPS except for loopback development instances.\n\n```sh\n<cli> contexts set <name> --server <https-origin> --environment <environment> --json\n<cli> contexts use <name> --json\n```\n\nFor an interactive administrator login, provide the password only through `ICODE_TEAMS_CONTROL_PASSWORD`; do not write it into command history or messages. Automation should use a Control automation token associated with the recorded actor. Token creation returns the secret once, so do not repeat it in output.\n\n## Choose the deployment route\n\nUse the [delivery map](../../../docs/development/delivery-map.md) for the shared stages and completion conditions. Resolve the requested environment from private configuration, then inspect its actual identity with `<cli> server identity --context <name> --json`. A context name is a local label, not proof of the connected instance.\n\nThe map's `test` currently corresponds to instance purpose `dev`; `main` has purpose `main` and server installation profile `main` (runtime deployment environment remains `test`, and release candidates use stable `prod` versions), and `prod` has purpose/channel `prod`. Client bindings retain `profile=test, instance=main`; do not pass the server's profile to the client installer. Existing MAIN server resources under `test` require explicit state-preserving relocation before using the new deployment route.\n\nFor TEST end-to-end validation, follow the map's Linux server/registry and native client topology. Confirm the actual TEST configuration and selected devices; a local context label or an isolated CI fixture is not an environment identity. A required independent registry belongs on Linux and must be explicitly connected to the TEST services. Windows test devices run clients, not replacement registries or Control/Business Hosts. Report isolated regression results separately from real TEST deployment and business verification.\n\n| Requested work | Route |\n| --- | --- |\n| Test an already published branch component | Select its exact published version and intended targets, then use [component deployment](#upgrade-clients-and-components). |\n| Prepare or deploy a new main candidate | Follow [main integration](#main-integration); changing the CLI context alone does not bind a new candidate. |\n| Promote a main candidate or deploy prod-admitted components | Follow [production deployment](#production-deployment). |\n| First installation or full server package/configuration replacement | Follow the [business deployment guide](../../../operations/applications/deployment/docs/business-deployment.md); the existing scripts call Control for subsequent component operations. Infrastructure prerequisites belong to that guide. |\n\nIf the requested release does not yet exist, use the [publication instructions](../../../README.md#package-release) within the task's authorized source and component scope. This Skill routes to that entry rather than assembling or uploading its own release. Keep missing private configuration or access explicit; do not substitute another environment or enable repository automation as a side effect.\n\n### Main integration\n\nRead the [main integration workflow guide](../../../operations/applications/deployment/docs/dual-environment.md#main-集成工作流) and [main preparation and deployment guide](../../../operations/applications/deployment/docs/business-deployment.md#main-的准备与部署) for this route.\n\n- MAIN consumes independently archived component manifests from its configured registry. `deploy=true` freezes metadata once; it neither builds a complete combination nor downloads every component. Source/versions/digests stay fixed when main or latest advances. A workflow retry restores its original selection artifact and explicitly fails if that identity is unavailable, ambiguous or withdrawn.\n- The common server route is `prepare → plan → apply → verify` through the business deployment adapter. Reuse one task directory, compiled spec and exact published CLI. TEST and MAIN use the same execution contract with different environment inputs. Read actual installed state, stage only needed components, and verify both Hosts, plugins, health, database and effective server configuration. Preserve the local installation hold, original installer recovery and data.\n- Client availability, old client tasks and cross-end compatibility inference do not gate server installation. Fixed `mainValidationNodeIds` authorize only a separate dedicated validation task. `environment-validation.ts client` consumes the same frozen manifests and original server deployment ID, upgrades that one bound device through the public CLI and verifies actual component identities and fresh health.\n- `environment-validation.ts business` executes developer-specified cases or consumes their explicit operation identities, then verifies real retained cross-end Trace at the selected versions after server deployment. Client and business failures are independent results, not server-install failures. Do not set accepted from a package or server result; preserve historical real acceptance facts.\n- Main integration has separate server, client-validation and business-validation jobs; the latter two require their explicit workflow flags/private inputs. Ordinary client rollout remains manual CLI work and is outside this server workflow. New archive-validation receipts do not silently open ordinary selection or grant PROD promotion. Existing accepted-candidate and native acceptance contracts remain authoritative for promotion.\n- Follow the current [main deployment guide](../../../operations/applications/deployment/docs/business-deployment.md#main-的准备与部署) for task directories, first installation, exact-version input, repeat/recovery and validation commands. Report server deployment, dedicated client validation and developer business results separately, including not-run or failed tasks.\n\n### Production deployment\n\nUse the exact immutable candidate admitted to prod. Follow [environment admission and promotion](../../../engineering/release/docs/release-trust.md#环境视图与同单晋级): the protected `Promote release` workflow verifies the candidate's main acceptance and trusted Linux, Windows and server release acceptance before granting prod eligibility. Version suffixes do not grant eligibility; preserve the candidate's original versions, bytes and artifact references without rebuilding or renaming them. Missing admission or acceptance evidence blocks production deployment.\n\nFollow the [prod candidate deployment guide](../../../operations/applications/deployment/docs/business-deployment.md#prod-同单部署) to export and bind the selected candidate through private deployment configuration. For a prod instance already bound to that candidate, use the same Control CLI preview/start/wait lifecycle with exact admitted versions. Completion includes actual version/health checks and the requested production business acceptance. Preserve the production Core confirmation requirement. Full server installation/configuration changes use that guide; a successful main run does not itself authorize promotion or production deployment.\n\n## Run operations\n\n- Prefer `--json` for automation and parse structured output instead of human text.\n- Pass `--context <name>` when relying on an implicit current context would be ambiguous.\n- Treat exit code `3` from `operations run` as a completed best-effort submission with rejected targets; report accepted and rejected targets separately.\n- Use one server-side batch command for multi-client actions. Do not loop over clients to reconstruct batch behavior.\n- Preserve CLI failures. Do not retry mutations with a new request identity or substitute direct API calls unless the user explicitly requests a diagnosed recovery.\n\nUse `<cli> --help` or `<cli> <group> <command> --help` to discover the installed version's supported commands and arguments instead of assuming commands that are not present.\n\n## Upgrade clients and components\n\nUse `clients list` and `releases list` to identify the requested devices and eligible versions. For client previews, select exactly one of `--clients <comma-separated-device-IDs>` or `--group <group-ID>`:\n\n- `deployments preview --scope client --all-latest` updates the selected clients' component combination.\n- `deployments preview --scope client --targets <component@exact-version,...>` selects client components explicitly.\n- Cross-end combinations use `--scope all --targets <component@exact-version,...>`; pure server previews use `--scope server` without selecting clients. Inspect the actual server and client impact, including required dependencies.\n\nKeep deployment as `preview`, explicit `start`, then `wait`, retaining the preview's returned `id`. Inspect blockers, actual component versions, target devices and restart impact before starting. Do not start a preview unless the user requested the state-changing deployment; prior authorization in the session remains valid.\n\n`deployments start --id <preview-ID> --policy independent` is the default: prepared clients switch independently, while real Service dependencies retain their required ordering. If the user chooses separate preparation and switch authorization, start with `--policy manual`, read `deployments status`, then use `deployments switch --id <same-preview-ID>` when the preparation results permit switching.\n\nChanged client components require local user confirmation by default. The client action is “刷新并更新”; it is separate from Control's manual switch authorization. For a requested unattended test upgrade, add `--auto-confirm-core` to the **preview**, binding authorization to that frozen plan. Production rejects this option.\n\nUse `deployments wait --id <same-ID> --timeout <seconds> --json` and interpret both its exit code and structured result:\n\n- Exit code `0` with `outcome: deferred-offline` means the listed offline clients have not completed; do not report all clients upgraded.\n- Exit code `1` means a preview error or a failed, restored, withdrawn or superseded target; inspect `deployments show` for the actual result.\n- Exit code `4` with `timeout: true` means waiting timed out, not that the task was cancelled. Query `deployments status` or `deployments show`, then continue waiting on the original ID when appropriate.\n\nUse `deployments wait --id <same-ID> --until received` to report real per-device delivery separately. `delivery[].receivedAt` is recorded only after an authenticated client reports the exact held plan/preparation or a valid receipt. Server acceptance is not delivery; offline targets remain `pending-offline`. A delivered target can later fail preparation or upgrade: read its execution phase separately. Waiting repeats only reads of the same request; it does not start another task. The default `--until completed` retains actual upgrade completion semantics.\n\nAfter completion, query clients or the server overview to verify actual versions and health, then perform the requested functional checks. Cancellation is an explicit `deployments withdraw` action; stopping local waiting does not cancel the deployment.\n\nFull installation, authentication and deployment examples are maintained in the [README CLI guide](../../../README.md#使用-control-cli-升级客户端) and [CLI deployment guide](../../../operations/applications/deployment/docs/dual-environment.md#使用-control-cli-下发组件).\n"
+    },
+    {
+      "path": ".agents/skills/icode-teams-delivery/SKILL.md",
+      "content": "---\nname: icode-teams-delivery\ndescription: 依据 Teams 工程交付地图辅助开发交付，包括扫描组件变化、准备升版 PR、本地验证、测试出包部署、PR 自检、main 集成和 prod 上线。用于安排或执行交付阶段、衔接已有验证与部署结果；普通代码阅读和编辑不要求走完整发布流程。\n---\n\n# Teams 开发交付辅助\n\n以[工程交付地图](../../../docs/development/delivery-map.md)为流程入口，帮助开发人员和 Agent 按相同工程合同执行。地图维护阶段与完成条件，专业指南维护命令、参数、输入来源和故障处理；本 Skill 负责选择路线、组织执行和核对结果，不复制命令手册或新增门禁。\n\n## 确定本次目标\n\n先读取仓库 [AGENTS.md](../../../AGENTS.md) 和地图，再结合用户请求、当前分支／工作区、已有 PR、发布收据或候选确定：本次要完成到哪个阶段、涉及哪些组件和目标、已有证据还缺什么。向用户简要说明所选路线，不增加逐步审批。\n\n按任务进入相应阶段，不机械从 LOCAL 重走。已有可核验结果按[测试门禁](../../../engineering/docs/testing-gates.md)判断是否可复用；纯文档等改动沿用必要计划，不要求出包部署。修复代码、出包、部署、合入是不同操作，目标阶段完成后不自动推进下一阶段。\n\n既有会话授权继续有效。用户只要求本地开发、生成计划或查看结果时，不据此执行远端发布、升级、晋级或合入；已授权的动作不重复询问。确有目标或权限缺口时，先完成不依赖它的检查与准备，再说明缺失项和具体待执行动作。\n\n## 按阶段组织执行\n\n只读取本次所需的专业指南和 Skill。命令从当前指南取得，执行前把占位值替换为源码、收据、实际环境或私有配置中的值；不从示例地址或 context 名称推断目标。\n\n| 阶段 | 操作入口与协作方式 | 完成判断 |\n| --- | --- | --- |\n| LOCAL | 按[开发实操手册](../../../engineering/docs/development-guide.md#本地启动)准备依赖、PG、源码运行与修改生效；按改动选择相关自测和 Trace 验证 | 本次改动的实际行为与相关自测有结果；未运行的远端或平台验证单独说明 |\n| TEST | 先按[出包指南](../../../operations/applications/deployment/docs/dual-environment.md#出包)确定版本声明、源码与 scope；已发布时核验收据。安装／升级使用 [Control Skill](../icode-teams-control/SKILL.md)及其引用的工程指南，确认实例身份、精确组件版本和目标设备 | 分别核对正式发布收据、原部署任务完成回执、实际安装版本／健康及本次业务行为；仅出包的任务到收据核验为止 |\n| PR | 使用 [architecture-self-check](../architecture-self-check/SKILL.md)，按实际 base 的固定 merge-base 覆盖完整候选，复用 PR 范围必要计划与有效证据，交付测试按 `deferredDeliveryTests` 单列；按授权提交、创建 PR 并处理 CI／审查反馈 | 自检报告区分代码与规则审视、自动检查和待 CI 验证；创建 PR、CI 通过、审查通过与合入分别报告 |\n| MAIN | 按[main 集成指南](../../../operations/applications/deployment/docs/dual-environment.md#main-集成工作流)与 [Control Skill](../icode-teams-control/SKILL.md#main-integration)组织已归档组件清单、实际服务端部署和独立客户端／开发者业务验证 | 固定正式版本清单，核对实际服务端版本、健康和配置；专用客户端、开发者用例分别执行并记录原部署 ID 和结果。未运行保持 not-run；新结果不伪造历史 candidate acceptance 或生产准入。普通客户端推送保留为手工独立任务 |\n| PROD | 按[生产验收与晋级操作](../../../engineering/release/docs/release-trust.md#生产验收与晋级操作)、[prod 同单部署](../../../operations/applications/deployment/docs/business-deployment.md#prod-同单部署)和 [Control Skill](../icode-teams-control/SKILL.md#production-deployment)核对证据、晋级、导出绑定并部署 | 同一候选的 main 与完整公网候选验收证据、晋级记录、实际生产部署和生产业务验收分别核验；晋级成功只授予准入 |\n\nControl Skill 管理 CLI 准备、认证和部署生命周期，本入口不重写它的适配逻辑。通用自检 Skill 只检查和报告，修复仍属于已授权的开发任务。等待 CI 使用用户级 `ci-watch`；自动 PR 核对可信协调器的 `PR validation result`，不把执行汇总或工作流定义验证当作最终准入。\n\n用户指定 TEST 环境时，按地图的 [TEST 环境拓扑与入口](../../../docs/development/delivery-map.md#test--出包选择目标并验证升级)核对实际 Linux 服务端、制品仓和客户端。`release-acceptance.yml` 的 `test_environment=true` 只验收已经部署完成的 Linux TEST 服务和原生 Windows 客户端，服务端发布与部署须先取得各自回执。该工作流默认模式及 `architecture-checks` 的 `release-acceptance` 模式仍是隔离原生回归；不能因为它覆盖出包和安装就替换用户指定的环境。访问或仓库合同受阻时明确报告并处理该缺口，不转到 Windows 自建制品仓／服务端来代替。必要回归与实际 TEST 验收分别保留证据。\n\n## 扫描组件变化与升版 PR\n\n用户要求检查哪些组件需要发版、批量更新版本或生成升版 PR 时，按[扫描与升版指南](../../../operations/applications/deployment/docs/dual-environment.md#扫描组件变化并提交升版-pr)调用现有 [refresh-component-versions.ts](../../../engineering/release/refresh-component-versions.ts)，复用正式出包的构建输入分析，不自行按目录或提交时间猜测组件变化。\n\n选择干净且与最新 `origin/main` 相同的检出；当前开发分支或工作区不符合时使用独立检出并准备依赖，保留用户现有改动。发布仓与认证参数沿用出包指南及已有配置。只要求扫描时使用默认模式；要求修改本地声明时使用 `--write`；已要求完成升版 PR 时使用 `--pr`，沿用 PR 阶段的通用自检与验证声明核验。已有授权不重复询问，扫描请求本身不扩展为推送或创建 PR。\n\n核对报告中的源码、发布目录、组件版本及变化文件、组包输入和交付版本。脚本默认递增 patch；major/minor 与消费者依赖范围仍需按实际兼容性处理。未变化的待发布声明保留，之后的源码修改须对照其首次 main 声明来源，不能仅因版本未发布就跳过。无变化则结束；失败沿原分支与结果定位，不重复升版、覆盖远端分支或绕过检查。\n\n完成后返回扫描结论、版本变化及已创建的 PR 链接；将本地检查、PR CI、合入后自动出包与部署分别说明。准备升版 PR 到此结束，后续交付阶段按用户请求推进。\n\n## 保持身份与证据连续\n\n在阶段衔接时保留与本次动作有关的身份：源码 SHA／PR 基准、发布 run 和 attempt、候选及组合、实际目标、部署 ID、业务操作证据。源码、候选或目标改变后，重新判断受影响证据的有效性，不把旧成功结果贴到新候选上。\n\n环境及凭据从获授权的私有配置或已有 context 取得，实际身份按指南查询。当前环境字段映射见[设计说明](../../../docs/specs/development-delivery-map.md#环境命名与部署模型)；目标命名尚未全部实现，不能仅因用户说 test 就批量改写 purpose／environment。真实地址、凭据和含这些信息的原始输出不写入仓库或公开报告。\n\n主路径中的等待使用原 run／部署 ID。失败、离线延期、超时或证据缺失按指南查询和处理，不自动重发任务、换环境、重建候选或放宽验收来取得成功；具备明确原因和授权后再执行恢复。MAIN 验收后的普通客户端推送由管理员显式执行 CLI，复用服务端冻结批量请求；重跑保持原设备集合和部署 ID，固定专用验收设备名单不包含个人设备。当前候选无 Control 核验回执时普通选版明确关闭，不能手填 accepted 或退回旧候选。TEST 不自动批量推送。MAIN 检查使用包含交付范围的完整计划，不以 PR 门禁绿色替代。基础验收后的 Linux 新装与双用户升级旁路独立于普通推送，查询原旁路 run 并单列实际结果；`initialized` 和 `no-component-change` 不代表已验证升级，旁路也不提供 prod 晋级证明。MAIN 的 `deploy=false` 为独立出包路线，`deploy=true` 固定已归档组件元信息并部署；后续 main 前移不改变清单，重跑保留原 selection artifact。PROD 继续使用已验收的同一候选，不以重新出包或版本后缀取得资格。\n\n## 交代结果与下一步\n\n简要说明本次目标阶段、实际完成的动作、对应身份和可访问的证据位置；将通过、失败、受阻和不适用分开，指出未验证范围。只需建议下一阶段时给出入口和缺少的输入，不把建议当作执行授权。\n\n输出到当前回复或已授权编辑的 PR 描述，日志和原始结果按[文档维护规则](../../../docs/README.md)保存到仓库外或 CI artifact。发现指南与实现不一致时明确指出，修正文档沿用开发任务范围；可复用的操作合同归回专业指南，不在 Skill 累积另一套步骤或执行历史。\n"
+    }
+  ],
+  "selection": {
+    "taskId": "T104",
+    "nodeId": "review",
+    "version": "10.23"
+  }
+}

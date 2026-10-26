@@ -1,0 +1,157 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Teams × iCode × Talent · 讨论方案",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "legend": {
+      "mode": "hidden"
+    }
+  },
+  "lanes": [
+    {
+      "id": "delivery",
+      "label": "交付主线"
+    },
+    {
+      "id": "talent",
+      "label": "Talent"
+    }
+  ],
+  "mainPath": [
+    "prepare",
+    "develop",
+    "verify",
+    "accept"
+  ],
+  "nodes": [
+    {
+      "id": "prepare",
+      "lane": "delivery",
+      "col": 0,
+      "type": "frontend",
+      "label": "需求准备",
+      "sublabel": "成员确认采用",
+      "width": 180
+    },
+    {
+      "id": "develop",
+      "lane": "delivery",
+      "col": 1,
+      "type": "backend",
+      "label": "功能开发",
+      "sublabel": "成员 + iCode",
+      "width": 180
+    },
+    {
+      "id": "verify",
+      "lane": "delivery",
+      "col": 3,
+      "type": "security",
+      "label": "测试验证",
+      "sublabel": "检查 Skill · 质量工具",
+      "width": 180
+    },
+    {
+      "id": "accept",
+      "lane": "delivery",
+      "col": 4,
+      "type": "frontend",
+      "label": "需求验收",
+      "sublabel": "Owner 确认",
+      "width": 180
+    },
+    {
+      "id": "knowledge",
+      "lane": "talent",
+      "col": 0,
+      "type": "database",
+      "label": "需求知识获取",
+      "sublabel": "业务规则与开发范式",
+      "width": 200,
+      "yOffset": 30
+    },
+    {
+      "id": "analysis",
+      "lane": "talent",
+      "col": 2,
+      "type": "backend",
+      "label": "会话与轨迹分析",
+      "sublabel": "接收会话 · 验收后分析",
+      "width": 210,
+      "yOffset": 30
+    },
+    {
+      "id": "optimize",
+      "lane": "talent",
+      "col": 4,
+      "type": "backend",
+      "label": "知识挖掘与能力优化",
+      "sublabel": "形成知识 / Skill / Agent 候选",
+      "tag": "评估确认后发布 · 后续采用",
+      "width": 220,
+      "yOffset": 30
+    }
+  ],
+  "edges": [
+    {
+      "id": "begin",
+      "from": "prepare",
+      "to": "develop",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "id": "test",
+      "from": "develop",
+      "to": "verify",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "id": "acceptance",
+      "from": "verify",
+      "to": "accept",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "id": "knowledge-support",
+      "from": "knowledge",
+      "to": "prepare",
+      "label": "知识建议",
+      "role": "branch",
+      "variant": "dashed"
+    },
+    {
+      "id": "development-session",
+      "from": "develop",
+      "to": "analysis",
+      "label": "会话结束",
+      "role": "async",
+      "variant": "dashed"
+    },
+    {
+      "id": "verification-session",
+      "from": "verify",
+      "to": "analysis",
+      "label": "会话结束",
+      "role": "async",
+      "variant": "dashed"
+    },
+    {
+      "id": "acceptance-feedback",
+      "from": "accept",
+      "to": "optimize",
+      "label": "验收反馈",
+      "role": "async",
+      "variant": "dashed"
+    },
+    {
+      "id": "improve",
+      "from": "analysis",
+      "to": "optimize"
+    }
+  ]
+}

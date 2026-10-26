@@ -1,0 +1,7 @@
+/* Integration-only adjustments. Agent layout and editor styles are copied with the Teams mount. */
+.agent-management-demo { min-width: 0; }
+.agent-demo-source { margin: var(--ui-space-3) 0 0; color: var(--ui-color-muted); font-size: var(--ui-font-size-note); }
+.agent-maintenance-detail { display: grid; gap: var(--ui-space-3); }
+#agent-management input, #agent-management select { color: var(--ui-color-text); background: var(--ui-color-surface); }
+#agent-management [data-config-entry]:focus-visible { outline: 2px solid var(--ui-color-ring); outline-offset: 2px; }
+#agent-management [data-maintenance-facts] { overflow-wrap: anywhere; }

@@ -1,0 +1,425 @@
+[
+  {
+    "source_line": 18651,
+    "schema_version": 1,
+    "event_id": "3504a3efeff2ace199a4879de493ce5a",
+    "sequence": 18651,
+    "runtime_id": "532934f9c43f1782633beae4daf33a56",
+    "coverage_id": "27c0467fdabd1b8242d4ddb4a7315989",
+    "session_id": "6b82c08d-eb3b-4bdc-b373-54fed16a7fcd",
+    "branch_id": "f280f1d9e1efc20eb8cfb5d66ca238ff",
+    "turn_id": "cf1b4e63783a72364d53c50c6b7e3ff4",
+    "actor": {
+      "kind": "agent",
+      "role": "main",
+      "actor_id": "97b9fcc422ed402ab8a25a8d2d0040da"
+    },
+    "event_type": "tool.operation.started",
+    "occurred_at": "2026-10-25T16:54:16.293102Z",
+    "monotonic_ns": 442387476638291,
+    "operation_id": "18765fcd7af557928c13adbf42dd8642",
+    "parent_operation_id": "a13a6ddd2b60f842ee34ad4c2395a88d",
+    "links": [
+      {
+        "relation": "caused_by",
+        "target_operation_id": "f3c28d126672c4cbf441c6d1ac758fa7"
+      }
+    ],
+    "payload": {
+      "tool_name": "zsh",
+      "tool_kind": "shell",
+      "parent_model_operation_id": "a13a6ddd2b60f842ee34ad4c2395a88d",
+      "invocation_order": 136,
+      "batch_index": 33,
+      "argument_fingerprint": "9f9316f19d41f928b40b20ff79c4085d66d1f1c28e6e8cabb2f495b08add867b",
+      "call_item_id": "b39153f8128807c278d32768aa73bc50"
+    }
+  },
+  {
+    "source_line": 18660,
+    "schema_version": 1,
+    "event_id": "e52e38aafd109b68107646e2a5596b8b",
+    "sequence": 18660,
+    "runtime_id": "532934f9c43f1782633beae4daf33a56",
+    "coverage_id": "27c0467fdabd1b8242d4ddb4a7315989",
+    "session_id": "6b82c08d-eb3b-4bdc-b373-54fed16a7fcd",
+    "branch_id": "f280f1d9e1efc20eb8cfb5d66ca238ff",
+    "turn_id": "cf1b4e63783a72364d53c50c6b7e3ff4",
+    "actor": {
+      "kind": "agent",
+      "role": "main",
+      "actor_id": "97b9fcc422ed402ab8a25a8d2d0040da"
+    },
+    "event_type": "tool.payload.observed",
+    "occurred_at": "2026-10-25T16:54:25.131051Z",
+    "monotonic_ns": 442396314546916,
+    "operation_id": "18765fcd7af557928c13adbf42dd8642",
+    "parent_operation_id": "a13a6ddd2b60f842ee34ad4c2395a88d",
+    "payload": {
+      "model_visible_bytes": 998,
+      "local_token_estimate": 227,
+      "tokenizer_fingerprint": "mixed_language_ratio/1",
+      "truncated": false,
+      "content_type": "text",
+      "result_item_id": "cb9c4d3f580b25a45164689f70fd053e",
+      "content_fingerprint": "8105721456dd0b5d902fef9688a67e028090f12e01d068fd5414946243991bd8"
+    },
+    "measurements": {
+      "/payload/local_token_estimate": {
+        "source": "local_tokenizer",
+        "method_version": 1
+      }
+    }
+  },
+  {
+    "source_line": 18661,
+    "schema_version": 1,
+    "event_id": "2734e8bafd84fc91ea3c6f267e5bcf84",
+    "sequence": 18661,
+    "runtime_id": "532934f9c43f1782633beae4daf33a56",
+    "coverage_id": "27c0467fdabd1b8242d4ddb4a7315989",
+    "session_id": "6b82c08d-eb3b-4bdc-b373-54fed16a7fcd",
+    "branch_id": "f280f1d9e1efc20eb8cfb5d66ca238ff",
+    "turn_id": "cf1b4e63783a72364d53c50c6b7e3ff4",
+    "actor": {
+      "kind": "agent",
+      "role": "main",
+      "actor_id": "97b9fcc422ed402ab8a25a8d2d0040da"
+    },
+    "event_type": "tool.operation.finished",
+    "occurred_at": "2026-10-25T16:54:25.147797Z",
+    "monotonic_ns": 442396331293875,
+    "operation_id": "18765fcd7af557928c13adbf42dd8642",
+    "parent_operation_id": "a13a6ddd2b60f842ee34ad4c2395a88d",
+    "payload": {
+      "outcome": "success",
+      "duration_ms": 8760,
+      "result_item_id": "cb9c4d3f580b25a45164689f70fd053e",
+      "result_carrier_item_id": "722b05b0092d75376f8b46409b679647",
+      "exit_code": 0
+    },
+    "measurements": {
+      "/payload/duration_ms": {
+        "source": "monotonic_clock",
+        "method_version": 1
+      }
+    }
+  },
+  {
+    "source_line": 18719,
+    "schema_version": 1,
+    "event_id": "55cf2526b1614a81dbd8390faadbcf6e",
+    "sequence": 18719,
+    "runtime_id": "532934f9c43f1782633beae4daf33a56",
+    "coverage_id": "27c0467fdabd1b8242d4ddb4a7315989",
+    "session_id": "6b82c08d-eb3b-4bdc-b373-54fed16a7fcd",
+    "branch_id": "f280f1d9e1efc20eb8cfb5d66ca238ff",
+    "turn_id": "cf1b4e63783a72364d53c50c6b7e3ff4",
+    "actor": {
+      "kind": "agent",
+      "role": "main",
+      "actor_id": "97b9fcc422ed402ab8a25a8d2d0040da"
+    },
+    "event_type": "tool.operation.started",
+    "occurred_at": "2026-10-25T16:54:50.355569Z",
+    "monotonic_ns": 442421538946750,
+    "operation_id": "8f7a8c6fd4784ad7857943f5e88c6904",
+    "parent_operation_id": "d123dc38226779f772f10e1f22898e7c",
+    "links": [
+      {
+        "relation": "caused_by",
+        "target_operation_id": "3be621a8d426b2af11b153a718574da3"
+      }
+    ],
+    "payload": {
+      "tool_name": "zsh",
+      "tool_kind": "shell",
+      "parent_model_operation_id": "d123dc38226779f772f10e1f22898e7c",
+      "invocation_order": 139,
+      "batch_index": 36,
+      "argument_fingerprint": "af4b56a1ee008e083be85fafa466632d6d72019d5c91617a4a6c9d068c4a97dd",
+      "call_item_id": "ae930be2e6209aa54d75d10074ee7f51"
+    }
+  },
+  {
+    "source_line": 18728,
+    "schema_version": 1,
+    "event_id": "bfee930511a6607c25cbdc89fca446d9",
+    "sequence": 18728,
+    "runtime_id": "532934f9c43f1782633beae4daf33a56",
+    "coverage_id": "27c0467fdabd1b8242d4ddb4a7315989",
+    "session_id": "6b82c08d-eb3b-4bdc-b373-54fed16a7fcd",
+    "branch_id": "f280f1d9e1efc20eb8cfb5d66ca238ff",
+    "turn_id": "cf1b4e63783a72364d53c50c6b7e3ff4",
+    "actor": {
+      "kind": "agent",
+      "role": "main",
+      "actor_id": "97b9fcc422ed402ab8a25a8d2d0040da"
+    },
+    "event_type": "tool.payload.observed",
+    "occurred_at": "2026-10-25T16:54:58.435708Z",
+    "monotonic_ns": 442429619049291,
+    "operation_id": "8f7a8c6fd4784ad7857943f5e88c6904",
+    "parent_operation_id": "d123dc38226779f772f10e1f22898e7c",
+    "payload": {
+      "model_visible_bytes": 351,
+      "local_token_estimate": 74,
+      "tokenizer_fingerprint": "mixed_language_ratio/1",
+      "truncated": false,
+      "content_type": "text",
+      "result_item_id": "d9990ff11feeab8b8bd7e868cedbad2d",
+      "content_fingerprint": "04f98cfaacdc08aa3e03c8c274c1c77e0164b314d82b4dcd7317bb3d4b0a2220"
+    },
+    "measurements": {
+      "/payload/local_token_estimate": {
+        "source": "local_tokenizer",
+        "method_version": 1
+      }
+    }
+  },
+  {
+    "source_line": 18729,
+    "schema_version": 1,
+    "event_id": "4102496e86114a0f6777daeef8b9b644",
+    "sequence": 18729,
+    "runtime_id": "532934f9c43f1782633beae4daf33a56",
+    "coverage_id": "27c0467fdabd1b8242d4ddb4a7315989",
+    "session_id": "6b82c08d-eb3b-4bdc-b373-54fed16a7fcd",
+    "branch_id": "f280f1d9e1efc20eb8cfb5d66ca238ff",
+    "turn_id": "cf1b4e63783a72364d53c50c6b7e3ff4",
+    "actor": {
+      "kind": "agent",
+      "role": "main",
+      "actor_id": "97b9fcc422ed402ab8a25a8d2d0040da"
+    },
+    "event_type": "tool.operation.finished",
+    "occurred_at": "2026-10-25T16:54:58.452198Z",
+    "monotonic_ns": 442429635538833,
+    "operation_id": "8f7a8c6fd4784ad7857943f5e88c6904",
+    "parent_operation_id": "d123dc38226779f772f10e1f22898e7c",
+    "payload": {
+      "outcome": "success",
+      "duration_ms": 8022,
+      "result_item_id": "d9990ff11feeab8b8bd7e868cedbad2d",
+      "result_carrier_item_id": "e04862ad7380e4d7bd2eb135bf707a92",
+      "exit_code": 0
+    },
+    "measurements": {
+      "/payload/duration_ms": {
+        "source": "monotonic_clock",
+        "method_version": 1
+      }
+    }
+  },
+  {
+    "source_line": 18745,
+    "schema_version": 1,
+    "event_id": "aefae0f57a86a71f227b429dcef2d796",
+    "sequence": 18745,
+    "runtime_id": "532934f9c43f1782633beae4daf33a56",
+    "coverage_id": "27c0467fdabd1b8242d4ddb4a7315989",
+    "session_id": "6b82c08d-eb3b-4bdc-b373-54fed16a7fcd",
+    "branch_id": "f280f1d9e1efc20eb8cfb5d66ca238ff",
+    "turn_id": "cf1b4e63783a72364d53c50c6b7e3ff4",
+    "actor": {
+      "kind": "agent",
+      "role": "main",
+      "actor_id": "97b9fcc422ed402ab8a25a8d2d0040da"
+    },
+    "event_type": "tool.operation.started",
+    "occurred_at": "2026-10-25T16:55:05.111221Z",
+    "monotonic_ns": 442436294528166,
+    "operation_id": "15348763c4f1028f6be6ee6e8b59d5fe",
+    "parent_operation_id": "d7d61a5c9720f32e548cb9ab6a4a552b",
+    "links": [
+      {
+        "relation": "caused_by",
+        "target_operation_id": "487d4675bea9ddb8774ff7cb4ee5400a"
+      }
+    ],
+    "payload": {
+      "tool_name": "edit_file",
+      "tool_kind": "filesystem.write",
+      "parent_model_operation_id": "d7d61a5c9720f32e548cb9ab6a4a552b",
+      "invocation_order": 140,
+      "batch_index": 37,
+      "argument_fingerprint": "43740ca04bbd0182c39a4d11e4b98d23f29cb37039779a97838fba400ea3e9ee",
+      "call_item_id": "a30595fa760da1b29e230ebd4419d2ad"
+    }
+  },
+  {
+    "source_line": 18752,
+    "schema_version": 1,
+    "event_id": "220ede8272ef975afe4db5ff0b3dc181",
+    "sequence": 18752,
+    "runtime_id": "532934f9c43f1782633beae4daf33a56",
+    "coverage_id": "27c0467fdabd1b8242d4ddb4a7315989",
+    "session_id": "6b82c08d-eb3b-4bdc-b373-54fed16a7fcd",
+    "branch_id": "f280f1d9e1efc20eb8cfb5d66ca238ff",
+    "turn_id": "cf1b4e63783a72364d53c50c6b7e3ff4",
+    "actor": {
+      "kind": "agent",
+      "role": "main",
+      "actor_id": "97b9fcc422ed402ab8a25a8d2d0040da"
+    },
+    "event_type": "tool.payload.observed",
+    "occurred_at": "2026-10-25T16:55:05.346355Z",
+    "monotonic_ns": 442436529662083,
+    "operation_id": "15348763c4f1028f6be6ee6e8b59d5fe",
+    "parent_operation_id": "d7d61a5c9720f32e548cb9ab6a4a552b",
+    "payload": {
+      "model_visible_bytes": 2171,
+      "local_token_estimate": 526,
+      "tokenizer_fingerprint": "mixed_language_ratio/1",
+      "truncated": false,
+      "content_type": "text",
+      "result_item_id": "2046990099f924a1058bca98da91354a",
+      "content_fingerprint": "adb41eeb734e04a4244379018144db89f8a02ebb4c709be11bc829af11ce6f4a"
+    },
+    "measurements": {
+      "/payload/local_token_estimate": {
+        "source": "local_tokenizer",
+        "method_version": 1
+      }
+    }
+  },
+  {
+    "source_line": 18753,
+    "schema_version": 1,
+    "event_id": "e2fd351af90c67e7cf904a4d2a35dd13",
+    "sequence": 18753,
+    "runtime_id": "532934f9c43f1782633beae4daf33a56",
+    "coverage_id": "27c0467fdabd1b8242d4ddb4a7315989",
+    "session_id": "6b82c08d-eb3b-4bdc-b373-54fed16a7fcd",
+    "branch_id": "f280f1d9e1efc20eb8cfb5d66ca238ff",
+    "turn_id": "cf1b4e63783a72364d53c50c6b7e3ff4",
+    "actor": {
+      "kind": "agent",
+      "role": "main",
+      "actor_id": "97b9fcc422ed402ab8a25a8d2d0040da"
+    },
+    "event_type": "tool.operation.finished",
+    "occurred_at": "2026-10-25T16:55:05.346768Z",
+    "monotonic_ns": 442436530073125,
+    "operation_id": "15348763c4f1028f6be6ee6e8b59d5fe",
+    "parent_operation_id": "d7d61a5c9720f32e548cb9ab6a4a552b",
+    "payload": {
+      "outcome": "success",
+      "duration_ms": 49,
+      "result_item_id": "2046990099f924a1058bca98da91354a",
+      "result_carrier_item_id": "9e3f4c6a9f1ebacc614a303c1732d0fa"
+    },
+    "measurements": {
+      "/payload/duration_ms": {
+        "source": "monotonic_clock",
+        "method_version": 1
+      }
+    }
+  },
+  {
+    "source_line": 18770,
+    "schema_version": 1,
+    "event_id": "03b90f3742b119417c5620d76d04b60b",
+    "sequence": 18770,
+    "runtime_id": "532934f9c43f1782633beae4daf33a56",
+    "coverage_id": "27c0467fdabd1b8242d4ddb4a7315989",
+    "session_id": "6b82c08d-eb3b-4bdc-b373-54fed16a7fcd",
+    "branch_id": "f280f1d9e1efc20eb8cfb5d66ca238ff",
+    "turn_id": "cf1b4e63783a72364d53c50c6b7e3ff4",
+    "actor": {
+      "kind": "agent",
+      "role": "main",
+      "actor_id": "97b9fcc422ed402ab8a25a8d2d0040da"
+    },
+    "event_type": "tool.operation.started",
+    "occurred_at": "2026-10-25T16:55:18.998305Z",
+    "monotonic_ns": 442450181548750,
+    "operation_id": "6981515fb5fefd520a116a9dbe3424c1",
+    "parent_operation_id": "bcd2dd3eae0f53e159d399cfa9667204",
+    "links": [
+      {
+        "relation": "caused_by",
+        "target_operation_id": "02d45af352f2ab858177303bdbe42a57"
+      }
+    ],
+    "payload": {
+      "tool_name": "zsh",
+      "tool_kind": "shell",
+      "parent_model_operation_id": "bcd2dd3eae0f53e159d399cfa9667204",
+      "invocation_order": 142,
+      "batch_index": 38,
+      "argument_fingerprint": "7fd89b3737cbb2a8894bd2e9fd387a8392f7157d82b7b3ac9d6e64e29b4543a0",
+      "call_item_id": "424b6d5ad187c8653f3f2e2db593e14f"
+    }
+  },
+  {
+    "source_line": 18779,
+    "schema_version": 1,
+    "event_id": "ee95c4e0e68f06389fc6b66f2bd63505",
+    "sequence": 18779,
+    "runtime_id": "532934f9c43f1782633beae4daf33a56",
+    "coverage_id": "27c0467fdabd1b8242d4ddb4a7315989",
+    "session_id": "6b82c08d-eb3b-4bdc-b373-54fed16a7fcd",
+    "branch_id": "f280f1d9e1efc20eb8cfb5d66ca238ff",
+    "turn_id": "cf1b4e63783a72364d53c50c6b7e3ff4",
+    "actor": {
+      "kind": "agent",
+      "role": "main",
+      "actor_id": "97b9fcc422ed402ab8a25a8d2d0040da"
+    },
+    "event_type": "tool.payload.observed",
+    "occurred_at": "2026-10-25T16:55:44.369285Z",
+    "monotonic_ns": 442475552413708,
+    "operation_id": "6981515fb5fefd520a116a9dbe3424c1",
+    "parent_operation_id": "bcd2dd3eae0f53e159d399cfa9667204",
+    "payload": {
+      "model_visible_bytes": 514,
+      "local_token_estimate": 113,
+      "tokenizer_fingerprint": "mixed_language_ratio/1",
+      "truncated": false,
+      "content_type": "text",
+      "result_item_id": "50d812088a89c60518a2d50f36023d9d",
+      "content_fingerprint": "88c849e895bd2548fca678a4f41ffae93b536bfee02ed4bd5d910071e893549c"
+    },
+    "measurements": {
+      "/payload/local_token_estimate": {
+        "source": "local_tokenizer",
+        "method_version": 1
+      }
+    }
+  },
+  {
+    "source_line": 18780,
+    "schema_version": 1,
+    "event_id": "4478e834e6d1d8eeaaccb5d397736d2c",
+    "sequence": 18780,
+    "runtime_id": "532934f9c43f1782633beae4daf33a56",
+    "coverage_id": "27c0467fdabd1b8242d4ddb4a7315989",
+    "session_id": "6b82c08d-eb3b-4bdc-b373-54fed16a7fcd",
+    "branch_id": "f280f1d9e1efc20eb8cfb5d66ca238ff",
+    "turn_id": "cf1b4e63783a72364d53c50c6b7e3ff4",
+    "actor": {
+      "kind": "agent",
+      "role": "main",
+      "actor_id": "97b9fcc422ed402ab8a25a8d2d0040da"
+    },
+    "event_type": "tool.operation.finished",
+    "occurred_at": "2026-10-25T16:55:44.387557Z",
+    "monotonic_ns": 442475570686083,
+    "operation_id": "6981515fb5fefd520a116a9dbe3424c1",
+    "parent_operation_id": "bcd2dd3eae0f53e159d399cfa9667204",
+    "payload": {
+      "outcome": "success",
+      "duration_ms": 25304,
+      "result_item_id": "50d812088a89c60518a2d50f36023d9d",
+      "result_carrier_item_id": "888466344f1ccc4a1cb7235c7c3bac87",
+      "exit_code": 0
+    },
+    "measurements": {
+      "/payload/duration_ms": {
+        "source": "monotonic_clock",
+        "method_version": 1
+      }
+    }
+  }
+]

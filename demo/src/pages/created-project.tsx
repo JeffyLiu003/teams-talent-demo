@@ -1,0 +1,82 @@
+import { useState } from 'react';
+import { Alert, Button, Descriptions, Empty, Form, Input, Modal, Space, Tag } from 'antd';
+import { PlusOutlined, SettingOutlined } from '@ant-design/icons';
+import { useDemo } from '../context.js';
+import { createdProjectRoute, type CreatedProject, type CreatedProjectFields } from '../created-projects.js';
+import { FrameworkCard } from '../vendor/teams/components/page-layout.js';
+import { ProjectToolbar, projectPages } from '../components/project-toolbar.js';
+import { ProjectContentTemplate } from '../components/project-content-template.js';
+import { ProjectAssets } from '../components/project-assets.js';
+import { ProjectKnowledge } from '../components/project-knowledge.js';
+import { ProjectWorkLaunch } from '../components/project-work-launch.js';
+import { Mono, Origin } from '../components/common.js';
+
+/** Fields follow RealProjectIndex in Teams project-real.tsx; the demo has one writable team. */
+function ProjectFields({ teamName }: { teamName: string }) {
+  return <>
+    <Form.Item label="所属团队"><Input value={teamName} disabled /></Form.Item>
+    <Form.Item name="name" label="项目名称" rules={[{ required: true, whitespace: true, message: '请填写项目名称' }]}><Input aria-label="项目名称" maxLength={80} /></Form.Item>
+    <Form.Item name="description" label="项目说明"><Input.TextArea aria-label="项目说明" rows={3} maxLength={1500} /></Form.Item>
+    <Form.Item name="remoteUrl" label="代码仓地址" rules={[{ required: true, whitespace: true, message: '请填写代码仓地址' }]}><Input aria-label="代码仓地址" maxLength={500} placeholder="HTTPS、Git SSH 地址或本机仓库路径" /></Form.Item>
+    <Form.Item name="repositoryIdentity" label="代码仓标识（主机/组织/仓库）" rules={[{ required: true, whitespace: true, message: '请填写代码仓标识' }]}><Input aria-label="代码仓标识（主机/组织/仓库）" maxLength={200} placeholder="例如：github.com/example/service" /></Form.Item>
+  </>;
+}
+
+export function CreateProjectButton() {
+  const { state, role, busy, update, navigate } = useDemo();
+  const [open, setOpen] = useState(false), [draftId, setDraftId] = useState(''), [failed, setFailed] = useState(false);
+  const [form] = Form.useForm<CreatedProjectFields>();
+  if (role !== 'owner') return null;
+  return <>
+    <Button type="primary" icon={<PlusOutlined />} aria-label="添加项目" onClick={() => { form.resetFields(); setFailed(false); setDraftId(crypto.randomUUID()); setOpen(true); }}>添加项目</Button>
+    <Modal title="添加项目" open={open} width={620} okText="创建项目" cancelText="取消" confirmLoading={busy} cancelButtonProps={{ disabled: busy }} closable={!busy} maskClosable={!busy} onCancel={() => setOpen(false)} onOk={() => form.submit()}>
+      <p className="muted">在当前团队创建项目，保存项目说明和主代码仓。</p>
+      {failed && <Alert type="error" title="项目未保存，填写内容已保留，请核对错误提示后重试。" />}
+      <Form form={form} layout="vertical" initialValues={{ description: '' }} disabled={busy} onFinish={async values => {
+        setFailed(false);
+        const saved = await update('project.create', { id: draftId, ...values });
+        if (!saved) { setFailed(true); return; }
+        setOpen(false); form.resetFields(); navigate(createdProjectRoute(draftId));
+      }}><ProjectFields teamName={state.workspace.team.name} /></Form>
+      <p className="muted">代码仓保存为项目引用；本次创建不会拉取代码或启动原生工具。</p>
+    </Modal>
+  </>;
+}
+
+export function CreatedProjectCard({ project }: { project: CreatedProject }) {
+  const { state, role, navigate } = useDemo();
+  return <FrameworkCard title={project.name} action={<Tag>新建项目</Tag>}>
+    <p>{project.description || '尚未填写项目说明。'}</p>
+    <Descriptions size="small" column={{ xs: 1, sm: 2 }} items={[{ key: 'team', label: '所属团队', children: state.workspace.team.name }, { key: 'owner', label: '项目 Owner', children: '林悦' }, { key: 'repository', label: '主仓', children: project.repositoryIdentity }, { key: 'scope', label: '项目数据', children: '0 个任务 · 0 个版本' }]} />
+    <Space wrap><Button type="primary" aria-label={'进入项目：' + project.name} onClick={() => navigate(createdProjectRoute(project.id))}>进入项目</Button>{role === 'owner' && <Button aria-label={'编辑项目：' + project.name} onClick={() => navigate(createdProjectRoute(project.id, 'settings'))}>编辑项目</Button>}</Space>
+  </FrameworkCard>;
+}
+
+export function CreatedProjectPage({ project, tab }: { project: CreatedProject; tab: string }) {
+  const { state, role, busy, update, navigate } = useDemo();
+  const [failed, setFailed] = useState(false);
+  const jump = (next: string) => navigate(createdProjectRoute(project.id, next));
+  if (![...projectPages.map(page => page.key), 'settings'].includes(tab)) return <Alert type="error" title="项目页面不存在" action={<Button onClick={() => jump('content')}>进入项目内容</Button>} />;
+  const empty = { management: ['项目任务', '尚未创建任务'], delivery: ['任务交付', '尚无可交付任务'], release: ['发布跟踪', '尚未登记发布版本'] };
+  return <div className="page-stack project-workspace project-detail created-project">
+    <ProjectToolbar activeKey={tab} onChange={jump} actions={<>{role === 'owner' ? <Button type="text" icon={<SettingOutlined />} aria-label="项目设置" onClick={() => jump('settings')}><span className="project-secondary-action-label">项目设置</span></Button> : <Tag>项目成员 · 只读</Tag>}<ProjectWorkLaunch target={{ projectId: project.id, tab }} /></>} />
+    {tab === 'content' ? <ProjectContentTemplate projectId={project.id} name={project.name} description={project.description} origin={<Origin kind="simulated" />}
+      information={[{ key: 'team', label: '所属团队', children: state.workspace.team.name }, { key: 'owner', label: '项目 Owner', children: '林悦' }, { key: 'repository', label: '主仓', span: 2, children: <><strong>{project.repositoryIdentity}</strong><p><Mono>{project.remoteUrl}</Mono></p></> }, { key: 'id', label: '项目标识', span: 2, children: <Mono>{project.id}</Mono> }, { key: 'directory', label: '本机目录', span: 2, children: '尚未绑定本机工作目录' }]}
+      members={<><p>所属团队成员可查看项目，由 Owner 林悦维护项目资料。</p><Button onClick={() => navigate('team')}>查看团队成员</Button></>}
+      assets={<ProjectAssets projectId={project.id} />}
+      knowledge={<ProjectKnowledge projectId={project.id} />}
+      requirements={<><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="尚未登记需求材料" /><p className="muted">可在项目资产中关联来源数据；任务创建与需求准备尚未接入此新项目。</p></>}
+      skills={[]}
+    /> : tab === 'settings' ? <>
+      <Button className="self-start" onClick={() => jump('content')}>返回项目内容</Button>
+      <FrameworkCard title="项目基础信息">
+        {role !== 'owner' && <p className="muted">项目成员可查看基础信息，由 Owner 维护。</p>}
+        {failed && <Alert type="error" title="保存未完成，填写内容已保留，请核对错误提示后重试。" />}
+        <Form key={project.id + project.updatedAt} layout="vertical" initialValues={project} disabled={role !== 'owner' || busy} onFinish={async values => { setFailed(false); if (!await update('project.metadata.update', { id: project.id, ...values })) setFailed(true); }}>
+          <ProjectFields teamName={state.workspace.team.name} />
+          {role === 'owner' && <Button type="primary" htmlType="submit" loading={busy}>保存项目信息</Button>}
+        </Form>
+      </FrameworkCard>
+    </> : <FrameworkCard title={empty[tab as keyof typeof empty][0]}><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={empty[tab as keyof typeof empty][1]} /><p className="muted">{project.name}当前没有此类记录。</p><Button onClick={() => jump('content')}>查看项目内容</Button></FrameworkCard>}
+  </div>;
+}

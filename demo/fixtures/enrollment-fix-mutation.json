@@ -1,0 +1,19 @@
+{
+  "turn": {
+    "turn_id": 5,
+    "detection_truncated": true
+  },
+  "mutation": {
+    "path": "workspace/carddemo-java-1025/services/web-ui/src/main/resources/static/app.js",
+    "operation": "modify",
+    "source": "edit_file",
+    "tool_call_id": "d33b3dd64809",
+    "timestamp": 1792947304.724811,
+    "provenance": "proven",
+    "tool_operation_id": "15348763c4f1028f6be6ee6e8b59d5fe",
+    "before_hash": "bb17652bb9e14ec41fe25b0f19bc1565a79091388fe38604c9fca2fe7302dd07",
+    "after_hash": "91b731eda5f1632c943fae5daf3fb31c476419f303fe30d21f1f0e78aa521304",
+    "t_start": 1792947304.724811,
+    "t_end": 1792947305.2137542
+  }
+}

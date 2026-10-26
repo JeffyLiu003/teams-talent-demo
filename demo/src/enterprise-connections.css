@@ -1,0 +1,29 @@
+/* Card DOM follows business/domain/agent-resources/src/client/ui/index.ts
+   gridCard/resourceMeta. Reuse the framework resource-card tokens, scoped here. */
+.enterprise-connections{gap:var(--ui-space-3)}
+.enterprise-connections .enterprise-mock-note{margin:0;color:var(--ui-color-muted);font-size:var(--ui-font-size-note);line-height:1.6}
+.enterprise-plugin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:var(--ui-space-3);min-width:0}
+.enterprise-plugin-card.resource-card{display:flex;flex-direction:column;gap:var(--ui-space-3);padding:var(--ui-card-padding);min-width:0;border:var(--ui-border-block);border-radius:var(--ui-radius-framework);background:var(--ui-color-surface)}
+.enterprise-plugin-card .resource-heading{gap:var(--ui-space-2);min-width:0}
+.enterprise-plugin-card .resource-icon{display:grid;place-items:center;width:36px;height:36px;flex:none;background:var(--ui-color-primary-soft);color:var(--ui-color-primary);border-radius:var(--ui-radius);font-size:20px}
+.enterprise-plugin-card .resource-heading h3{font-size:var(--ui-font-size-body);line-height:1.5;margin:0 0 var(--ui-space-1);overflow-wrap:anywhere}
+.enterprise-plugin-card .resource-heading p,.enterprise-plugin-scope p{font-size:var(--ui-font-size-note);line-height:1.6;margin:0;color:var(--ui-color-muted);overflow-wrap:anywhere}
+.enterprise-plugin-data{display:flex;gap:var(--ui-space-2);align-items:center;flex-wrap:wrap}
+.enterprise-plugin-card .ui-note{font-size:var(--ui-font-size-caption);color:var(--ui-color-muted)}
+.enterprise-plugin-card .ant-tag{margin-inline-end:0}
+.enterprise-plugin-scope{display:grid;gap:var(--ui-space-1)}
+.enterprise-plugin-card.resource-card footer{margin-top:auto!important;padding-top:var(--ui-space-2);border-top:1px solid var(--ui-color-divider);gap:var(--ui-space-1);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center}
+@media(max-width:760px){.enterprise-plugin-grid{grid-template-columns:minmax(0,1fr)}}
+
+.enterprise-source-body{display:grid;gap:var(--ui-space-3);min-width:0}
+.enterprise-source-body h3,.enterprise-source-body h4,.enterprise-source-body p{margin:0}
+.enterprise-source-body .ui-note,.enterprise-source-entry p,.enterprise-source-entry span{color:var(--ui-color-muted);font-size:var(--ui-font-size-note);line-height:1.6}
+.enterprise-source-entry{display:grid;gap:var(--ui-space-1);min-width:0}
+.enterprise-source-entry .ant-btn-link{justify-content:flex-start;padding:0;height:auto;white-space:normal;text-align:left;overflow-wrap:anywhere}
+.enterprise-source-entry p,.enterprise-source-body .ant-descriptions-item-content{overflow-wrap:anywhere}
+.enterprise-source-detail,.enterprise-source-reference pre{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7;font-size:var(--ui-font-size-note);margin:0}
+.enterprise-source-detail{padding:var(--ui-space-3);background:var(--ui-color-fill);border-radius:var(--ui-radius)}
+.enterprise-source-reference{display:grid;gap:var(--ui-space-2)}
+.enterprise-source-reference pre{max-height:420px;overflow:auto;padding:var(--ui-space-3);border:var(--ui-border-block);border-radius:var(--ui-radius)}
+.enterprise-source-body section h4{margin-bottom:var(--ui-space-2)}
+.enterprise-source-body>*{min-width:0}.enterprise-source-body .ui-note{overflow-wrap:anywhere}
