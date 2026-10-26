@@ -25,7 +25,7 @@ export interface WorkspaceState {
 export const defaultSkills = projectSkillIds;
 export function initialWorkspace(): WorkspaceState {
   return {
-    acquiredResources:[],project: { name: '信用卡营销交付', description: '基于存量 CardDemo 系统交付餐饮返现能力，形成可追溯的项目知识与研发经验。', repository: 'carddemo-java-1025', assets: [
+    acquiredResources:[],project: { name: '信用卡营销交付', description: '针对白金卡客户未来 3 个月的消费，额外增加 0.5% 的消费返现。', repository: 'carddemo-java-1025', assets: [
       { id:'code',title:'CardDemo Java 项目',kind:'repository',location:'workspace/carddemo-java-1025' },
       { id:'design',title:'营销能力设计',kind:'document',location:'docs/design/08-marketing-capability.md' },
       { id:'history',title:'信用卡营销历史需求',kind:'requirement',location:'iCode / 6b82c08d-eb3b-4bdc-b373-54fed16a7fcd' },

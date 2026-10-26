@@ -58,7 +58,7 @@ test('source associations validate the provider record, preserve project isolati
   let state = updateWorkspace(initial, 'project.create', 'owner', project);
   assert.equal(state.workspace.projects?.[0].assets, undefined);
   state = updateWorkspace(state, 'asset.link', 'owner', { projectId: project.id, sourceAssetId: 'requirements:carddemo:DEMO-MKT-001', title: 'untrusted title' }, catalog.list());
-  assert.equal(state.workspace.projects?.[0].assets?.[0].title, '餐饮消费返现');
+  assert.equal(state.workspace.projects?.[0].assets?.[0].title, '信用卡消费返现');
   assert.equal(state.workspace.projects?.[0].assets?.[0].sourceAssetId, 'requirements:carddemo:DEMO-MKT-001');
   assert.deepEqual(businessState(state), businessState(initial));
   assert.equal(state.assigned, false); assert.equal(state.context, null);

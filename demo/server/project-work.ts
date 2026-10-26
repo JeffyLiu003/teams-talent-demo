@@ -28,7 +28,7 @@ export function resolveProjectWork(state: DemoState, data: Presentation, input: 
       if (!Object.hasOwn(nodeNames, node)) throw new DomainError('交付节点不存在', 400);
       target.taskId = 'DEMO-MKT-001'; target.nodeId = node;
     }
-    return { target, projectName: state.workspace.project.name, title: '餐饮消费返现', location: target.nodeId ? nodeNames[target.nodeId] : stageNames[input.tab], source: 'CardDemo 已有本地源码与真实历史材料', repository: '', assets: state.workspace.project.assets, skills: state.context?.selectedSkills ?? state.workspace.selectedSkills };
+    return { target, projectName: state.workspace.project.name, title: '信用卡消费返现', location: target.nodeId ? nodeNames[target.nodeId] : stageNames[input.tab], source: 'CardDemo 已有本地源码与真实历史材料', repository: '', assets: state.workspace.project.assets, skills: state.context?.selectedSkills ?? state.workspace.selectedSkills };
   }
   if (input.projectId === 'teams') {
     const snapshot = data.teamsProject;

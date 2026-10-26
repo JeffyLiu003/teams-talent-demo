@@ -109,10 +109,10 @@ function requirementAssets(data: SourcePluginData): readonly SourcePluginAsset[]
   if (!reconnect) throw new Error('Teams 项目数据缺少 D201 需求依据');
   return [
     asset(data, 'requirements', 'carddemo', {
-      sourceRecordId: 'DEMO-MKT-001', kind: 'requirement', title: '餐饮消费返现', version: '需求 r1',
+      sourceRecordId: 'DEMO-MKT-001', kind: 'requirement', title: '信用卡消费返现', version: '需求 r1',
       requirement: { category: 'requirement', owner: '待分配', taskId: 'DEMO-MKT-001' },
       summary: data.blueprint.scenario.slice,
-      detail: `需求范围：${data.blueprint.scenario.slice}\n\n业务约定：\n1. 活动有效且需要报名时，未报名用户可以报名。\n2. 已报名后餐饮消费满 50 元返 5%，单笔封顶 30 元，每卡最多 5 次。\n3. 同一交易重复评估不重复发奖、入账。\n4. 返现入账失败时，按原 rewardId 重试。\n\n历史需求原文可通过历史证据入口查看。`,
+      detail: `需求范围：${data.blueprint.scenario.slice}\n\n已确认：\n1. 目标客户为白金卡客户。\n2. 消费期间为未来 3 个月。\n3. 消费额外返现比例为 0.5%。\n\n待确认：活动日期、周期起算、消费范围与排除项、是否报名、消费门槛、返现上限、结算入账及退款规则。\n\n关联的餐饮设计与历史需求仅为存量参考，不作为本需求已实现或已验证的证据。`,
       references: [cardDesignReference()],
     }),
     ...data.teamsProject.tasks.map(task => asset(data, 'requirements', 'teams', {
@@ -183,8 +183,7 @@ function designAssets(data: SourcePluginData): readonly SourcePluginAsset[] {
 
 function testAssets(data: SourcePluginData): readonly SourcePluginAsset[] {
   const titles: Record<string, string> = {
-    'AC-01': '餐饮活动报名与未报名消费', 'AC-02': '报名后消费 120 元返现 6 元', 'AC-03': '同一交易重复评估',
-    'AC-04': '返现入账失败后按原标识重试', 'AC-05': '返现门槛、封顶与次数边界',
+    'AC-01': '白金卡客户范围', 'AC-02': '未来 3 个月消费期间', 'AC-03': '消费额外返现 0.5%',
   };
   const definitions = [
     { id: 'TEAMS-TC-001', requirement: 'REQ-T104', title: '新成员获取项目配置前查看范围', given: '用户已加入团队，项目包含资料与配置。', steps: '打开团队项目，选择待应用配置，查看内容和影响范围。', expected: '展示项目资料、配置内容及作用范围；此处仅定义预期，不记录实际应用结果。' },
@@ -196,7 +195,7 @@ function testAssets(data: SourcePluginData): readonly SourcePluginAsset[] {
     ...data.blueprint.acceptance_criteria.filter(criterion => criterion.id in titles).map(criterion => asset(data, 'test-assets', 'carddemo', {
       sourceRecordId: `CARD-TC-${criterion.id.slice(3)}`, kind: 'test-case', title: titles[criterion.id],
       summary: criterion.given, version: '用例 v1',
-      detail: `用例依据：验收标准 ${criterion.id}。\n前置条件 / 输入：${criterion.given}\n操作：按上述条件执行对应的报名、消费、评估或重试动作。\n预期结果：${criterion.expected}\n\n本记录是测试用例定义，不包含测试运行、测试报告或验收结论。`,
+      detail: `用例依据：验收标准 ${criterion.id}。\n前置条件 / 输入：${criterion.given}\n操作：按已确认的需求范围核对；具体执行步骤待业务细则明确后补充。\n预期结果：${criterion.expected}\n\n本记录是测试用例定义，不包含测试运行、测试报告或验收结论。`,
       references: [cardDesignReference()], relatedRequirementIds: [cardRequirement],
     })),
     ...definitions.map(definition => asset(data, 'test-assets', 'teams', {

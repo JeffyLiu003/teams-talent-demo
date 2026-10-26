@@ -41,7 +41,7 @@ export function SessionReporting(){
   const {state,role,update,busy}=useDemo(),w=state.workspace;
   return <div className="page-stack"><FrameworkCard title="交付会话与上报" action={<Origin kind="simulated"/>}><Descriptions column={1} items={[
     {key:'title',label:'历史会话',children:'COBOL 系统迁移 Java 微服务'},
-    {key:'requirement',label:'本次关联',children:'MKT-001 / 餐饮消费返现'},
+    {key:'requirement',label:'本次关联',children:'MKT-001 / 信用卡消费返现'},
     {key:'status',label:'上报状态',children:<Tag color={w.sessionReported?'green':'gold'}>{w.sessionReported?'已关联':'待提交后上报'}</Tag>},
     {key:'at',label:'上报时间',children:w.reportAt?new Date(w.reportAt).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'}):'—'},
   ]}/><Space wrap><Button data-workspace="session.report" type="primary" loading={busy} disabled={role!=='member'||!['submitted','accepted'].includes(state.stage)||w.sessionReported||!w.foundation.uploadEnabled} onClick={()=>void update('session.report',{})}>上报并关联会话</Button><Button href="#/trace">查看会话与基础分析</Button></Space><p className="muted">此操作登记工作区内的需求与会话关系。原始会话不被改写，也不向远端上传。</p></FrameworkCard><FrameworkCard title="原生会话入口" action={<Origin kind="native"/>}><NativeControls compact/></FrameworkCard></div>;

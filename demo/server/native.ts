@@ -149,9 +149,10 @@ export async function writeContext(state: DemoState) {
   const foundation=await foundationSkill();
   const path = join(runtimeDir, 'contexts', state.context.id + '-' + createHash('sha256').update(state.context.createdAt).digest('hex').slice(0, 12) + '-v3.md');
   const content = [
-    '# 餐饮消费返现 · DEMO-MKT-001', '',
-    '这是当前需求的上下文材料。当前项目代码已包含历史实现；阅读与核对即可，不要重新执行部署、发送消息或修改全局配置。', '',
-    '## 验收标准', '报名后，餐饮类别0001，消费满50元返5%，单笔最多30元，每卡最多5次。120元消费应返6元，同交易重复评估不重复入账。账户接口异常保存PENDING，后续按同一rewardId重试。', '',
+    '# 信用卡消费返现 · DEMO-MKT-001', '',
+    '这是当前需求的上下文材料。当前项目代码包含存量营销实现，供理解现有系统；阅读与核对即可，不要重新执行部署、发送消息或修改全局配置。', '',
+    '## 需求描述', '针对白金卡客户未来 3 个月的消费，额外增加 0.5% 的消费返现。', '',
+    '## 已确认范围与待定事项', '已确认：白金卡客户、3 个月、额外返现 0.5%。具体日期、周期起算、消费范围、报名要求、门槛、上限及结算等其他规则待定。存量餐饮活动规则不作为本次需求条件。', '',
     '## 采用依据', JSON.stringify(state.context, null, 2), '',
     '## 本机资料', '项目：' + codeRoot, '需求设计：' + join(codeRoot, 'docs/design/08-marketing-capability.md'), '知识与设计：' + join(codeRoot, 'docs/design'), 'Skill：' + join(workspace, 'skills'), '',
     chosen.some(name=>userSkillExamples.some(skill=>skill.id===name)) ? '## 本次选用 Skill（项目与用户）' : '## 本次项目选用 Skill', ...chosen.map(name => { const example=userSkillExamples.find(skill=>skill.id===name);return example ? '- '+example.name+'（'+name+' · 用户 Skill，未核验本机安装）：'+example.content : '- ' + name + '：' + join(workspace, 'skills', name, 'SKILL.md'); }), '',

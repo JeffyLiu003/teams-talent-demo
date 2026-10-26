@@ -29,11 +29,11 @@ try {
   for (const [filter, count] of Object.entries(await metrics())) { await page.locator('[data-metric="' + filter + '"]').click(); assert.equal(await page.locator(filter === 'open' || filter === 'blocking' ? '.overview-issues .ant-table-row' : '.overview-requirements .ant-table-row').count(), count); }
   await page.screenshot({ path: 'test-results/owner-overview-blocking.png', animations: 'disabled' });
   await page.getByRole('button', { name: '需协调阻塞：未报名时应提供餐饮活动报名入口', exact: true }).click(); await page.getByText('阻塞当前交付', { exact: true }).waitFor();
-  await page.getByRole('button', { name: '关联需求：餐饮消费返现', exact: true }).click(); await page.getByRole('button', { name: '进入交付节点', exact: true }).click();
+  await page.getByRole('button', { name: '关联需求：信用卡消费返现', exact: true }).click(); await page.getByRole('button', { name: '进入交付节点', exact: true }).click();
   await page.getByRole('button', { name: '节点：验证', exact: true }).waitFor(); assert.equal(await page.getByRole('button', { name: '节点：验证', exact: true }).getAttribute('aria-current'), 'step');
   await post('/api/action', { action: 'fix', role: 'member' }); await visit('carddemo'); assert.equal((await metrics()).blocking, 0); assert.equal((await metrics()).open, 0);
   await post('/api/action', { action: 'submit', role: 'member' }); await visit('carddemo'); assert.equal((await metrics()).acceptance, 1);
-  await page.getByRole('button', { name: '待验收成果：餐饮消费返现', exact: true }).click(); await page.getByRole('button', { name: '节点：验收', exact: true }).waitFor(); assert.equal(await page.getByRole('button', { name: '节点：验收', exact: true }).getAttribute('aria-current'), 'step');
+  await page.getByRole('button', { name: '待验收成果：信用卡消费返现', exact: true }).click(); await page.getByRole('button', { name: '节点：验收', exact: true }).waitFor(); assert.equal(await page.getByRole('button', { name: '节点：验收', exact: true }).getAttribute('aria-current'), 'step');
   await visit('teams'); assert.deepEqual(await metrics(), { all: 4, active: 1, acceptance: 1, delivered: 2, open: 0, blocking: 0 });
   assert.equal(await page.locator('.overview-requirements .ant-table-row').count(), 4); await page.getByRole('button', { name: /T108 · 调研外部需求系统接入范围/ }).waitFor();
   await page.getByRole('button', { name: '待验收成果：项目规范与 Skill 可见性', exact: true }).click(); assert.ok(page.url().includes('task=T106')); assert.ok(page.url().includes('node=accept'));

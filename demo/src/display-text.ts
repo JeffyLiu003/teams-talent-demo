@@ -16,3 +16,8 @@ export function displayText(value: string): string {
     .replace(/样例|示例/g, '参考')
     .replace(/ {2,}/g, ' ').trim();
 }
+
+/** Upgrade only the former default project description in the view; saved/custom text stays untouched. */
+export function displayProjectDescription(value: string): string {
+  return value === '基于存量 CardDemo 系统交付餐饮返现能力，形成可追溯的项目知识与研发经验。' ? '针对白金卡客户未来 3 个月的消费，额外增加 0.5% 的消费返现。' : value;
+}

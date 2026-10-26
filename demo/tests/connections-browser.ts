@@ -26,10 +26,10 @@ try{
   assert.equal(await page.locator('[data-platform="requirements"]').getByRole('button',{name:'在项目中使用',exact:true}).isEnabled(),false);
   const checks=[
     ['repository','代码托管平台','CardDemo Java 项目','carddemo-java-1025',6],
-    ['requirements','需求平台','餐饮消费返现','MKT-001',7],
+    ['requirements','需求平台','信用卡消费返现','MKT-001',7],
     ['defects','缺陷平台','未报名时应提供餐饮活动报名入口','CARD-BUG-001',3],
     ['design-library','设计文档 / 知识库','营销能力设计','marketing-capability',7],
-    ['test-assets','测试资产平台','餐饮活动报名与未报名消费','CARD-TC-01',8],
+    ['test-assets','测试资产平台','白金卡客户范围','CARD-TC-01',7],
   ] as const;
   for(const [id,name,title,record,count] of checks){
     await page.getByRole('button',{name:'查看'+name+'数据',exact:true}).click();const drawer=page.locator('.enterprise-source-drawer');await drawer.getByRole('button',{name:title,exact:true}).waitFor();
@@ -51,7 +51,7 @@ try{
     await page.setViewportSize({width,height:1000});await page.evaluate(value=>localStorage.setItem('carddemo-theme',value),mode);await page.reload();await page.getByRole('button',{name:'查看测试资产平台数据',exact:true}).waitFor();
     let measure=await page.evaluate(()=>({width:innerWidth,scrollWidth:document.documentElement.scrollWidth}));assert.ok(measure.scrollWidth<=width);layouts.push({mode,page:'cards',...measure});
     await page.screenshot({path:output+'/'+mode+'-'+width+'-cards.png',fullPage:true,animations:'disabled'});
-    await page.getByRole('button',{name:'查看测试资产平台数据',exact:true}).click();const drawer=page.locator('.enterprise-source-drawer');await drawer.getByRole('button',{name:'餐饮活动报名与未报名消费',exact:true}).click();
+    await page.getByRole('button',{name:'查看测试资产平台数据',exact:true}).click();const drawer=page.locator('.enterprise-source-drawer');await drawer.getByRole('button',{name:'白金卡客户范围',exact:true}).click();
     await drawer.locator('.enterprise-source-detail').waitFor();measure=await page.evaluate(()=>({width:innerWidth,scrollWidth:document.documentElement.scrollWidth}));assert.ok(measure.scrollWidth<=width);layouts.push({mode,page:'detail',...measure});
     await page.screenshot({path:output+'/'+mode+'-'+width+'-detail.png',fullPage:true,animations:'disabled'});await drawer.locator('.ant-drawer-close').click();await drawer.waitFor({state:'hidden'});
   }
