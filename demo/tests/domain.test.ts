@@ -8,7 +8,8 @@ import { Store } from '../server/store.js';
 import { shellQuote } from '../server/native.js';
 import { teamsPages, isOwnerPage } from '../src/navigation.js';
 import { teamUsage, usageSummary } from '../src/operations.js';
-import { resourcePublications } from '../src/resource-sharing.js';
+import { resourcePublications, resourceSubscriptions } from '../src/resource-sharing.js';
+import { readSkillCatalog } from '../server/skill-packages.js';
 import { updateWorkspace } from '../src/workspace.js';
 const flow: [Action, Role][] = [['assign','owner'],['knowledge','owner'],['prepare','member'],['replay','member'],['check-fail','member'],['fix','member'],['submit','member'],['enroll','owner'],['purchase','owner'],['deduplicate','owner'],['uat','owner'],['accept','owner'],['candidate','owner'],['evaluate','owner'],['release','owner'],['adopt','owner']];
 test('two-role delivery and Talent adoption retain frozen historical context and security status', () => {
@@ -154,7 +155,8 @@ test('requirements and defects retain independent connection settings without mi
   assert.equal(current.workspace.connections.find(item=>item.id==='defects')?.description,'独立缺陷平台范围');
 });
 
-test('resource publishing and subscriptions stay separate from unpublished project delivery',()=>{
+test('resource publishing and subscriptions stay separate from unpublished project delivery',async()=>{
+  const {skillCatalog}=await readSkillCatalog();
   let s=initialState();
   assert.throws(()=>updateWorkspace(s,'resource.acquire','member',{name:'dev-frontend-ui'}),/已发布的共享资源/);
   assert.throws(()=>updateWorkspace(s,'resource.publish','member',{id:'dev-frontend-ui'}),/无权/);
@@ -165,20 +167,24 @@ test('resource publishing and subscriptions stay separate from unpublished proje
   assert.throws(()=>transition({...s,workspace:{...s.workspace,selectedSkills:[]}},'prepare','member'),/请选择/);
   s=updateWorkspace(s,'skills.select','member',{skills:['dev-frontend-ui','office-excel']});s=transition(s,'prepare','member');
   const context=structuredClone(s.context);
-  s=updateWorkspace(s,'resource.publish','owner',{id:'dev-frontend-ui'});
+  s=updateWorkspace(s,'resource.publish','owner',{id:'dev-frontend-ui'},[],skillCatalog);
   assert.equal(s.published,false);assert.deepEqual(resourcePublications(s).map(item=>item.id),['dev-frontend-ui']);
-  assert.throws(()=>updateWorkspace(s,'resource.publish','owner',{id:'dev-frontend-ui'}),/已发布/);
+  assert.throws(()=>updateWorkspace(s,'resource.publish','owner',{id:'dev-frontend-ui'},[],skillCatalog),/已发布/);
   assert.throws(()=>updateWorkspace(s,'resource.acquire','member',{name:'dev-code-reviewer'}),/已发布的共享资源/);
   s=updateWorkspace(s,'resource.acquire','member',{name:'dev-frontend-ui'});
   s=updateWorkspace(s,'resource.publish','owner',{id:'code-agent'});
   s=updateWorkspace(s,'resource.acquire','member',{name:'code-agent'});
-  assert.deepEqual(s.workspace.acquiredResources,['dev-frontend-ui','code-agent']);
-  assert.throws(()=>updateWorkspace(s,'resource.acquire','owner',{name:'code-agent'}),/已获取/);
+  assert.deepEqual(s.workspace.acquiredResources,[]);
+  assert.deepEqual(resourceSubscriptions(s,'member').map(item=>item.id),['dev-frontend-ui','code-agent']);
+  assert.deepEqual(resourceSubscriptions(s,'owner'),[]);
+  s=updateWorkspace(s,'resource.acquire','owner',{name:'code-agent'});
+  assert.deepEqual(resourceSubscriptions(s,'owner').map(item=>item.id),['code-agent']);
   assert.deepEqual(s.context,context);assert.equal(s.checks,'none');assert.equal(s.security,'unverified');
   s=transition(s,'replay','member');assert.equal(s.stage,'developing');
 });
 
 test('legacy shared records and old frozen inputs remain usable without rewriting saved state',async()=>{
+  const {skillCatalog}=await readSkillCatalog();
   const dir=await mkdtemp(join(tmpdir(),'teams-demo-legacy-resources-'));
   try{
     const path=join(dir,'state.json'),old=initialState();old.published=true;
@@ -189,8 +195,13 @@ test('legacy shared records and old frozen inputs remain usable without rewritin
     assert.equal(resourcePublications(store.state).length,14);assert.equal(await readFile(path,'utf8'),bytes);
     let s=transition(store.state,'assign','owner');s=transition(s,'knowledge','owner');s=transition(s,'prepare','member');
     assert.equal(s.context?.agentVersion,'r1');assert.deepEqual(s.workspace.acquiredResources,['dev-frontend-ui']);
-    s.adoptedSkill='1.1.0';s=updateWorkspace(s,'resource.publish','owner',{id:'dev-frontend-ui'});
-    assert.equal(resourcePublications(s).length,14);assert.equal(resourcePublications(s).find(item=>item.id==='dev-frontend-ui')?.version,'1.1.0');
+    s.adoptedSkill='1.1.0';s=updateWorkspace(s,'resource.publish','owner',{id:'dev-frontend-ui'},[],skillCatalog);
+    assert.equal(resourcePublications(s).length,14);assert.equal(resourcePublications(s).find(item=>item.id==='dev-frontend-ui')?.version,'1.0.0');
+    assert.throws(()=>updateWorkspace(s,'resource.publish','owner',{id:'dev-frontend-ui',version:'1.1.0'},[],skillCatalog),/没有对应内容包/);
+    assert.deepEqual(resourceSubscriptions(s,'member'),[]);assert.deepEqual(resourceSubscriptions(s,'owner'),[]);
+    s=updateWorkspace(s,'resource.acquire','member',{name:'dev-frontend-ui'});
+    assert.equal(resourceSubscriptions(s,'member')[0].sha256,skillCatalog.find(item=>item.id==='dev-frontend-ui')!.sha256);
+    assert.deepEqual(s.workspace.acquiredResources,['dev-frontend-ui']);
     assert.equal(resourcePublications(s).find(item=>item.id==='dev-code-reviewer')?.version,'1.0.0');
     assert.equal(s.context?.skillVersion,'1.0.0');assert.equal(s.audit[0].detail,'原演示共享记录');
     const bad:any=structuredClone(old);bad.workspace.resourcePublications=null;await writeFile(path,JSON.stringify(bad));

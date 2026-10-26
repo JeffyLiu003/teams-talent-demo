@@ -1,4 +1,4 @@
-import { availableSkillIds, projectSkillIds, resourcePublications, resourceVersion, shareableResourceIds, type ResourcePublication } from './resource-sharing.js';
+import { availableSkillIdsFor, projectSkillIds, resourcePublications, resourcePublicationHistory, resourceSubscriptions, resourceVersion, shareableResourceIds, type ResourcePublication, type ResourceSubscription, type SkillCatalogEntry } from './resource-sharing.js';
 import { externalPlatformDefault } from './external-platforms.js';
 import { DomainError, type DemoState, type Role } from './domain.js';
 import { createdProjectFields, createdProjectId, type CreatedProject } from './created-projects.js';
@@ -12,6 +12,7 @@ export interface WorkspaceState {
   collaboration?: CollaborationState;
   acquiredResources: string[];
   resourcePublications?: ResourcePublication[];
+  resourceSubscriptions?: ResourceSubscription[];
   projects?: CreatedProject[];
   project: { name: string; description: string; repository: string; assets: Asset[] };
   materials: Material[]; selectedSkills: string[];
@@ -41,13 +42,13 @@ export function initialWorkspace(): WorkspaceState {
     ].map(([id,name,kind,description])=>({id,name,kind,description,enabled:true})),
   };
 }
-export const workspaceActions = ['project.create','project.metadata.update','project.update','asset.link','asset.add','material.add','skills.select','resource.publish','resource.acquire','team.update','member.invite','member.approve','member.role','member.remove','progress.sync','session.report','analysis.run','connection.update','foundation.update'] as const;
+export const workspaceActions = ['project.create','project.metadata.update','project.update','asset.link','asset.add','material.add','skills.select','resource.publish','resource.publish-all','resource.acquire','team.update','member.invite','member.approve','member.role','member.remove','progress.sync','session.report','analysis.run','connection.update','foundation.update'] as const;
 export type WorkspaceAction = typeof workspaceActions[number];
-const ownerActions: WorkspaceAction[] = ['project.create','project.metadata.update','resource.publish','project.update','asset.link','asset.add','team.update','member.invite','member.approve','member.role','member.remove','analysis.run','connection.update'];
+const ownerActions: WorkspaceAction[] = ['project.create','project.metadata.update','resource.publish','resource.publish-all','project.update','asset.link','asset.add','team.update','member.invite','member.approve','member.role','member.remove','analysis.run','connection.update'];
 const memberActions: WorkspaceAction[] = ['material.add','skills.select','progress.sync','session.report'];
 function need(ok:unknown,message:string):asserts ok { if(!ok)throw new DomainError(message); }
 function text(p:Record<string,unknown>,key:string,max=1000){ const value=p[key];need(typeof value==='string'&&value.trim().length>0&&value.length<=max,`${key} 不能为空或超出长度`);return value.trim(); }
-export function updateWorkspace(previous:DemoState,kind:WorkspaceAction,role:Role,p:Record<string,unknown>,sourceAssets:readonly SourcePluginAsset[]=[]):DemoState {
+export function updateWorkspace(previous:DemoState,kind:WorkspaceAction,role:Role,p:Record<string,unknown>,sourceAssets:readonly SourcePluginAsset[]=[],catalog:readonly SkillCatalogEntry[]=[]):DemoState {
   need(workspaceActions.includes(kind),'未知工作区操作');
   if(ownerActions.includes(kind)&&role!=='owner'||memberActions.includes(kind)&&role!=='member')throw new DomainError('当前角色无权执行此操作',403);
   const s=structuredClone(previous),w=s.workspace,at=new Date().toISOString(),id='demo-'+(s.revision+1);
@@ -72,9 +73,35 @@ export function updateWorkspace(previous:DemoState,kind:WorkspaceAction,role:Rol
     }
     case 'asset.add': {const assets=writableAssets();need(assets.length<50,'项目资产数量已达上限');assets.push({id,title:text(p,'title',120),kind:text(p,'kind',40),location:text(p,'location',500)});label='关联项目资产';break;}
     case 'material.add': need(!s.context,'上下文已冻结，请在下一次任务中采用新增材料');need(w.materials.length<20,'材料数量已达上限');w.materials.push({id,title:text(p,'title',120),body:text(p,'body',5000)});label='补充需求材料';break;
-    case 'skills.select': need(!s.context,'本次上下文已冻结');need(Array.isArray(p.skills)&&p.skills.length>0&&p.skills.length<=availableSkillIds.length&&p.skills.every(x=>typeof x==='string'&&availableSkillIds.includes(x)),'请选择有效的项目或用户 Skill');w.selectedSkills=[...new Set(p.skills as string[])];label='选择需求业务 Skill';break;
-    case 'resource.publish': {const resourceId=text(p,'id',120);need(shareableResourceIds.includes(resourceId),'该资源不在可共享范围');const version=resourceVersion(s,resourceId);need(!resourcePublications(s).some(item=>item.id===resourceId&&item.version===version),'该资源版本已发布');w.resourcePublications=[...(w.resourcePublications??[]).filter(item=>item.id!==resourceId),{id:resourceId,version,publishedAt:at,scope:'team',publisher:'owner'}];label='发布共享资源';break;}
-    case 'resource.acquire': {const name=text(p,'name',120);need(shareableResourceIds.includes(name)&&resourcePublications(s).some(item=>item.id===name),'请获取已发布的共享资源');need(!w.acquiredResources.includes(name),'该资源已获取');w.acquiredResources.push(name);label='订阅共享资源';break;}
+    case 'skills.select': {const allowed=availableSkillIdsFor(s,role);need(!s.context,'本次上下文已冻结');need(Array.isArray(p.skills)&&p.skills.length>0&&p.skills.length<=allowed.length&&p.skills.every(x=>typeof x==='string'&&allowed.includes(x)),'请选择有效的项目或用户 Skill；外部 Skill 需由当前用户订阅');w.selectedSkills=[...new Set(p.skills as string[])];label='选择需求业务 Skill';break;}
+    case 'resource.publish':
+    case 'resource.publish-all': {
+      const ids=kind==='resource.publish-all'?catalog.map(item=>item.id):[text(p,'id',120)];
+      need(kind!=='resource.publish-all'||ids.length===shareableResourceIds.length-1&&new Set(ids).size===ids.length,'完整 Skill 发布目录尚未就绪');
+      let added=0;
+      for(const resourceId of ids){
+        need(shareableResourceIds.includes(resourceId),'该资源不在可共享范围');
+        const entry=catalog.find(item=>item.id===resourceId);
+        need(resourceId==='code-agent'||entry&&/^[a-f0-9]{64}$/.test(entry.sha256)&&/^[a-f0-9]{64}$/.test(entry.contentSha256),'资源内容包尚未就绪');
+        const version=entry?.version??resourceVersion(s,resourceId);
+        need(p.version===undefined||p.version===version,'请求的资源版本没有对应内容包');
+        const existing=resourcePublicationHistory(s).filter(item=>item.id===resourceId&&item.version===version);
+        need(!existing.some(item=>item.sha256&&item.sha256!==entry?.sha256),'相同版本的内容已变化，请使用新的真实版本');
+        if(existing.some(item=>resourceId==='code-agent'||item.sha256===entry?.sha256)){need(kind==='resource.publish-all','该资源版本已发布');continue;}
+        const publication:ResourcePublication={id:resourceId,version,publishedAt:at,scope:'team',publisher:entry?.publisher??'owner',publisherName:entry?.publisherName??'林悦',source:entry?.source??'project-agent-configuration',...(entry?{sha256:entry.sha256,contentSha256:entry.contentSha256}:{})};
+        w.resourcePublications=[...(w.resourcePublications??[]),publication];added++;
+      }
+      if(!added)return previous;
+      label=kind==='resource.publish-all'?'发布全部 Skill':'发布共享资源';break;
+    }
+    case 'resource.acquire': {
+      const name=text(p,'name',120),existing=resourceSubscriptions(s,role).find(item=>item.id===name);
+      const publication=p.version===undefined?resourcePublications(s).find(item=>item.id===name):[...resourcePublicationHistory(s)].reverse().find(item=>item.id===name&&item.version===p.version);
+      need(publication,'请获取已发布的共享资源');need(name==='code-agent'||publication.sha256&&publication.contentSha256,'历史订阅尚未核实内容包，请先发布对应真实版本');
+      need(p.sha256===undefined||p.sha256===(publication.sha256??''),'请求的资源内容哈希不匹配');
+      if(existing?.source==='subscription'){need(existing.version===publication.version&&existing.sha256===(publication.sha256??''),'当前订阅已固定旧版本；发布新版不会自动替换');return previous;}
+      w.resourceSubscriptions=[...(w.resourceSubscriptions??[]),{id:name,version:publication.version,sha256:publication.sha256??'',contentSha256:publication.contentSha256,actor:role,subscribedAt:at,source:'subscription'}];label='订阅共享资源';break;
+    }
     case 'team.update': w.team.name=text(p,'name',80);label='更新团队信息';break;
     case 'member.invite': {const name=text(p,'name',40);need(!w.team.members.some(m=>m.name===name),'该成员已在团队或邀请列表中');need(w.team.members.length<50,'团队成员数量已达上限');w.team.members.push({id,name,role:'member',status:'invited'});label='创建成员邀请';break;}
     case 'member.approve': {const m=w.team.members.find(m=>m.id===p.id);need(m&&m.status==='invited','邀请记录不存在');m.status='active';label='确认成员加入';break;}

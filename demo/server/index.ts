@@ -1,3 +1,10 @@
+import { resourcePublicationHistory } from '../src/resource-sharing.js';
+import { SkillApplicationService } from './skill-application.js';
+import { nativeSkillEnvironment, readInstalledNativeSkill } from './native-skill-reader.js';
+import { getPublishedSkillPackage, publicationCatalog, loadNativeSkillPackage } from './skill-packages.js';
+import { resolveProjectWork } from './project-work.js';
+import { join } from 'node:path';
+import { terminalPreferences } from './terminal-preferences.js';
 import { createServer } from 'node:http';
 import { mkdir } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
@@ -16,6 +23,15 @@ const token = randomBytes(24).toString('hex');
 const fixtures = await readFixtures();
 const work = new ProjectWorkService(() => store.state, fixtures);
 const sourceCatalog = createSourcePluginCatalog(fixtures);
+const skillApplications = new SkillApplicationService({
+  package: (role,scope) => getPublishedSkillPackage(store.state,role,scope.resourceId,scope.version,scope.sha256),
+  async directory(role,projectId) {
+    const project=resolveProjectWork(store.state,fixtures,{projectId,tab:'content'});
+    const native=await nativeSkillEnvironment();
+    return {name:project.projectName,root:native.skillsDirectory,valid:true,diagnostic:''};
+  },
+  discover: readInstalledNativeSkill,
+},join(runtimeDir,'skill-applications'));
 const server = createServer(async (request, response) => {
   headers(request, response);
   const json = (code: number, value: unknown) => { response.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); response.end(JSON.stringify(value)); };
@@ -39,6 +55,18 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === 'GET' && path === '/api/collaboration/context') { json(200, await collaborationContext(store.state, fixtures, Object.fromEntries(url.searchParams))); return; }
     if (request.method === 'GET' && path === '/api/collaboration/operation') { json(200, collaborationOperation(store.state, url.searchParams.get('operationId') ?? '')); return; }
+    if (request.method === 'GET' && path === '/api/resource-content') {
+      const {role,resourceId,version,sha256}=Object.fromEntries(url.searchParams);
+      if(!['owner','member'].includes(role))throw new DomainError('请选择角色',400);
+      if(!resourcePublicationHistory(store.state).some(record=>record.id===resourceId&&record.version===version&&record.sha256===sha256))throw new DomainError('固定发布版本不存在',404);
+      const pkg=await loadNativeSkillPackage(resourceId,version,sha256),primary=pkg.files.find(file=>file.path==='SKILL.md')!;
+      json(200,{version:pkg.version,sha256:pkg.sha256,contentSha256:primary.sha256,content:primary.bytes.toString('utf8')});return;
+    }
+    if (request.method === 'GET' && path === '/api/skill-application') {
+      const {role,...scope}=Object.fromEntries(url.searchParams);
+      if(role!=='owner'&&role!=='member')throw new DomainError('请选择角色',400);
+      json(200,await skillApplications.plan(role,scope as any));return;
+    }
     if (request.method === 'GET' && path === '/api/tools') { json(200, await toolsStatus()); return; }
     if (request.method === 'POST' && path.startsWith('/api/')) {
       if (!([origin, talentOrigin].includes(request.headers.origin ?? '')) || request.headers['x-demo-token'] !== token || !request.headers['content-type']?.startsWith('application/json')) {
@@ -59,13 +87,19 @@ const server = createServer(async (request, response) => {
         if (body.kind === 'analysis.run') throw new DomainError('轨迹分析由独立 Talent 服务处理', 400);
         if (body.kind === 'connection.update' && body.payload?.id === 'business-knowledge') body.payload.id = 'talent';
         if(!body.payload || typeof body.payload!=='object' || Array.isArray(body.payload))throw new DomainError('工作区请求格式无效',400);
-        json(200,await store.update(body.revision,body.kind as WorkspaceAction,body.role as Role,body.payload,sourceCatalog.list()));return;
+        if(['resource.publish','resource.publish-all'].includes(body.kind)){
+          if(body.role!=='owner')throw new DomainError('仅 Owner 可以发布资源',403);
+          if(body.revision!==store.state.revision)throw new DomainError('状态已变化，请刷新后重试',409);
+        }
+        json(200,await store.update(body.revision,body.kind as WorkspaceAction,body.role as Role,body.payload,sourceCatalog.list(),['resource.publish','resource.publish-all'].includes(body.kind)?await publicationCatalog():[]));return;
       }
       if (path === '/api/reset') {
         if (body.role !== 'owner') throw new DomainError('仅 Owner 可以重置工作区', 403);
         json(200, await store.reset(body.revision)); return;
       }
       if (path === '/api/collaboration') { json(200, await collaborationWrite(store, fixtures, body)); return; }
+      if (path === '/api/native/skill-apply') { if(process.env.DEMO_NATIVE_DISABLED==='1')throw new DomainError('此验证实例未开放原生用户目录写入',403); json(200,await skillApplications.apply(body.role,{projectId:body.projectId,resourceId:body.resourceId,version:body.version,sha256:body.sha256,requestId:body.requestId,planToken:body.planToken}));return; }
+      if (path === '/api/native/terminal') { json(200, await terminalPreferences.select(body.terminal)); return; }
       if (path === '/api/native/work-bind') { json(200, await work.bind(body.role, body.target, body.directory)); return; }
       if (path === '/api/native/work-start') { json(200, await work.start(body.role, { requestId: body.requestId, target: body.target, action: body.action, planToken: body.planToken })); return; }
       if (path === '/api/native/verify') { json(200, await verifySession()); return; }
@@ -78,7 +112,7 @@ const server = createServer(async (request, response) => {
       if (path === '/api/native/launch') {
         if (process.env.DEMO_NATIVE_DISABLED === '1') throw new DomainError('此验证实例未开放本机启动', 403);
         if (!['icode', 'opencode'].includes(body.tool) || typeof body.restore !== 'boolean' || typeof body.requestId !== 'string' || !/^[a-zA-Z0-9-]{8,80}$/.test(body.requestId)) throw new DomainError('启动请求无效', 400);
-        json(200, await launch(body.tool, body.restore, body.requestId)); return;
+        json(200, await launch(body.tool, body.restore, body.requestId, body.terminal)); return;
       }
       throw new DomainError('接口不存在', 404);
     }

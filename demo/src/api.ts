@@ -6,6 +6,7 @@ import type blueprint from '../fixtures/demo-blueprint.json';
 import type inventory from '../fixtures/skill-inventory.json';
 import type teamsProject from '../fixtures/teams-project.json';
 export interface Presentation {
+  skillCatalog: import('./resource-sharing.js').SkillCatalogEntry[];
   talent?: TalentSnapshot;
   localPaths: { collaborationSkill: string; cli: string };
   teamsProject: typeof teamsProject;
@@ -18,6 +19,9 @@ export interface Presentation {
 }
 export interface NativeStatus {
   terminalName?: string;
+  terminals?: Array<{ id: string; name: string }>;
+  selectedTerminal?: string;
+  terminalError?: string;
   icode: { installed: boolean; path: string; version: string | null; workspace: string; sessionId: string; sessionAvailable: boolean; active: { pid: number; application: string | null; tty: string } | null };
   opencode: { installed: boolean; path: string | null; version: string | null; unsupportedReason?: string };
   verification: { status: string; at: string; messageCount: number; note: string } | null;
@@ -52,3 +56,8 @@ export const getBusinessKnowledge = (projectId?: string) => tracedJson<BusinessK
 export const getProjectWork = (role: Role, target: import('./project-work.js').ProjectWorkSelection) => tracedJson<import('./project-work.js').ProjectWorkPlan>('teams', '/api/project-work?' + new URLSearchParams({ role, ...target }).toString());
 export const bindProjectWork = (role: Role, target: import('./project-work.js').ProjectWorkSelection, directory: string) => native<import('./project-work.js').ProjectWorkPlan>(role, 'work-bind', { target, directory });
 export const startProjectWork = (role: Role, request: {requestId: string; target: import('./project-work.js').ProjectWorkSelection; action: import('./project-work.js').ProjectWorkAction; planToken: string}) => native<import('./project-work.js').ProjectWorkReceipt>(role, 'work-start', request);
+
+export const getSkillApplication = (role: Role, scope: import('./skill-application.js').SkillApplicationScope) => tracedJson<import('./skill-application.js').SkillApplicationPlan>('teams', '/api/skill-application?' + new URLSearchParams({ role, ...scope }));
+export const applySkillApplication = (role: Role, input: import('./skill-application.js').SkillApplicationScope & { planToken: string; requestId: string }) => native<import('./skill-application.js').SkillApplicationReceipt>(role, 'skill-apply', { ...input });
+
+export const getResourceContent = (role: Role, scope: {resourceId:string;version:string;sha256:string}) => tracedJson<{version:string;sha256:string;contentSha256:string;content:string}>('teams', '/api/resource-content?' + new URLSearchParams({ role, ...scope }));

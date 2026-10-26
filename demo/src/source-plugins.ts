@@ -30,7 +30,7 @@ export interface SourcePluginAsset {
   readonly references: readonly SourceAssetReference[];
   /** Stable asset IDs in the requirements plugin, within the same source project. */
   readonly relatedRequirementIds: readonly string[];
-  readonly requirement?: { category: 'requirement' | 'research' | 'issue-input'; owner: string; plannedEnd?: string; taskId?: string };
+  readonly requirement?: { category: 'requirement' | 'research' | 'issue-input'; owner: string; plannedEnd?: string; taskId?: string; delivery?: { phase: '准备' | '开发' | '验证' | '待验收' | '已交付'; summary: string } };
   readonly issue?: { owner: string; severity: string; status: string; closed: boolean | null; confirmed: boolean; blocksDelivery: boolean; progress: string };
 }
 
@@ -66,6 +66,43 @@ const cardDesignReference = () => localFile('sources', marketingDesign, '阅读�
 const teamDocumentReference = (path: string, label: string) => localFile('teams-documents', path, label);
 
 type AssetInput = Pick<SourcePluginAsset, 'sourceRecordId' | 'kind' | 'title' | 'summary' | 'detail'> & Partial<Pick<SourcePluginAsset, 'version' | 'updatedAt' | 'references' | 'relatedRequirementIds' | 'requirement' | 'issue'>>;
+const cardAdditionalRequirements: readonly AssetInput[] = [
+  { sourceRecordId: 'MKT-002', kind: 'requirement', title: '返现明细查询', summary: '按交易查看已有返现的金额、处理状态与来源，支持分页和筛选。',
+    requirement: { category: 'requirement', owner: '陈晨', delivery: { phase: '开发', summary: '明细查询与分页开发中，正在处理重复记录问题。' } },
+    detail: '范围：展示已有返现记录，按交易与处理状态查询。\n验收关注：明细与交易可对应，分页无重复和遗漏。\n本需求不调整返现资格、比例或结算规则。' },
+  { sourceRecordId: 'MKT-003', kind: 'requirement', title: '账单返现汇总', summary: '按账单周期展示已有返现记录的汇总，并支持下钻明细。',
+    requirement: { category: 'requirement', owner: '苏晴', delivery: { phase: '验证', summary: '正在核对汇总与明细的一致性，合计差异待修复。' } },
+    detail: '范围：按账单周期聚合已有返现记录。\n验收关注：汇总可下钻，合计与所含明细一致。\n统计使用既有入账记录，不新增入账或退款规则。' },
+  { sourceRecordId: 'MKT-004', kind: 'requirement', title: '返现到账通知', summary: '展示返现到账消息，提供金额、到账时间和关联交易入口。',
+    requirement: { category: 'requirement', owner: '杨帆', delivery: { phase: '待验收', summary: '通知内容已提交确认，关联交易摘要问题待复测。' } },
+    detail: '范围：基于已有到账记录展示通知与详情。\n验收关注：消息与到账记录对应，关联交易可定位。\n通知不产生返现入账，也不改变活动权益。' },
+  { sourceRecordId: 'MKT-005', kind: 'requirement', title: '历史权益查询', summary: '查询已结束权益的适用期间与原始条款，保留权益版本。',
+    requirement: { category: 'requirement', owner: '赵宁', delivery: { phase: '已交付', summary: '来源记录已交付；日期排序问题已关闭，筛选交互问题待处理。' } },
+    detail: '范围：查看历史权益及其当时有效的条款版本。\n验收关注：历史期间与版本对应，不以当前规则覆盖旧条款。\n历史权益不作为 MKT-001 新需求的业务约束。' },
+];
+const cardAdditionalIssues: readonly AssetInput[] = [
+  { sourceRecordId: 'CARD-BUG-003', kind: 'defect', title: '返现明细翻页出现重复记录', summary: '翻页后部分交易重复出现，影响明细查询交付。',
+    issue: { owner: '陈晨', severity: '高', status: '处理中', closed: false, confirmed: true, blocksDelivery: true, progress: '正在调整分页排序与游标，修复后核对跨页去重。' },
+    detail: '问题：分页边界记录重复。\n期望：同一查询范围内每条记录只出现一次。\n影响：阻塞返现明细查询交付。', relatedRequirementIds: [sourceAssetId('requirements', 'carddemo', 'MKT-002')] },
+  { sourceRecordId: 'CARD-BUG-004', kind: 'defect', title: '账单返现汇总与明细合计不一致', summary: '汇总金额与下钻明细合计存在差异。',
+    issue: { owner: '苏晴', severity: '高', status: '待修复', closed: false, confirmed: true, blocksDelivery: true, progress: '已定位统计范围不一致，等待统一汇总与明细过滤条件。' },
+    detail: '问题：同一账单周期的汇总与明细使用不同过滤范围。\n期望：汇总等于当前范围内的明细合计。\n影响：阻塞账单返现汇总交付。', relatedRequirementIds: [sourceAssetId('requirements', 'carddemo', 'MKT-003')] },
+  { sourceRecordId: 'CARD-BUG-005', kind: 'defect', title: '返现到账通知缺少关联交易摘要', summary: '通知金额与时间可见，关联交易摘要未完整展示。',
+    issue: { owner: '杨帆', severity: '中', status: '待复测', closed: false, confirmed: true, blocksDelivery: false, progress: '摘要展示已调整，等待复测后确认关闭。' },
+    detail: '问题：通知详情缺少关联交易摘要。\n期望：用户可辨认到账消息对应的交易。\n当前状态：待复测，尚未关闭。', relatedRequirementIds: [sourceAssetId('requirements', 'carddemo', 'MKT-004')] },
+  { sourceRecordId: 'CARD-BUG-006', kind: 'defect', title: '历史权益查询切换条件后保留旧筛选', summary: '切换权益类型时仍保留上一次的筛选条件。',
+    issue: { owner: '赵宁', severity: '低', status: '待处理', closed: false, confirmed: true, blocksDelivery: false, progress: '已记录交互问题，等待安排调整。' },
+    detail: '问题：切换查询类型后旧条件仍然生效。\n期望：展示当前有效条件，支持清除筛选。\n范围：已交付历史权益查询的后续问题。', relatedRequirementIds: [sourceAssetId('requirements', 'carddemo', 'MKT-005')] },
+  { sourceRecordId: 'CARD-BUG-007', kind: 'defect', title: '历史权益日期排序错误', summary: '历史权益按显示字符串排序，未使用实际日期顺序。',
+    issue: { owner: '赵宁', severity: '低', status: '已关闭', closed: true, confirmed: true, blocksDelivery: false, progress: '来源记录已确认修复并关闭。' },
+    detail: '问题：跨月权益记录顺序错误。\n处理：按权益日期排序。\n当前状态：来源记录已关闭。', relatedRequirementIds: [sourceAssetId('requirements', 'carddemo', 'MKT-005')] },
+];
+/** Explicit built-in project links; another project must associate each source separately. */
+export const cardProjectOverviewSourceIds = [
+  cardRequirement, sourceAssetId('defects', 'carddemo', 'CARD-BUG-001'), sourceAssetId('defects', 'carddemo', 'CARD-BUG-002'),
+  ...cardAdditionalRequirements.map(item => sourceAssetId('requirements', 'carddemo', item.sourceRecordId)),
+  ...cardAdditionalIssues.map(item => sourceAssetId('defects', 'carddemo', item.sourceRecordId)),
+] as const;
 function asset(data: SourcePluginData, pluginId: SourcePluginId, projectId: SourceProjectId, value: AssetInput): SourcePluginAsset {
   return Object.freeze({
     ...value,
@@ -115,6 +152,10 @@ function requirementAssets(data: SourcePluginData): readonly SourcePluginAsset[]
       detail: `需求范围：${data.blueprint.scenario.slice}\n\n已确认：\n1. 目标客户为白金卡客户。\n2. 消费期间为未来 3 个月。\n3. 消费额外返现比例为 0.5%。\n\n待确认：活动日期、周期起算、消费范围与排除项、是否报名、消费门槛、返现上限、结算入账及退款规则。\n\n关联的餐饮设计与历史需求仅为存量参考，不作为本需求已实现或已验证的证据。`,
       references: [cardDesignReference()],
     }),
+    ...cardAdditionalRequirements.map(item => asset(data, 'requirements', 'carddemo', {
+      ...item, version: '需求 r1',
+      detail: `需求来源：需求平台\n负责人：${item.requirement!.owner}\n交付状态：${item.requirement!.delivery!.phase}\n进展：${item.requirement!.delivery!.summary}\n\n${item.detail}\n\n进展来自需求平台记录，尚未关联 iCode 执行会话或验收证据。`,
+    })),
     ...data.teamsProject.tasks.map(task => asset(data, 'requirements', 'teams', {
       sourceRecordId: `REQ-${task.id}`, kind: 'requirement', title: task.title,
       requirement: { category: task.type === '需求' ? 'requirement' : 'research', owner: '成员 ' + task.owner, plannedEnd: task.due, taskId: task.id },
@@ -149,6 +190,10 @@ function defectAssets(data: SourcePluginData): readonly SourcePluginAsset[] {
       detail: '问题描述：同一活动、同一交易收到重复评估请求。\n期望行为：首次按规则计算奖励；后续请求识别已评估，沿用原奖励标识，避免重复入账。\n复现状态：尚未复现，需结合关联需求与测试用例核验。',
       references: [cardDesignReference(), localFile('sources', marketingIntegration, '阅读已有营销集成决策')], relatedRequirementIds: [cardRequirement],
     }),
+    ...cardAdditionalIssues.map(item => asset(data, 'defects', 'carddemo', {
+      ...item, version: '问题 r1',
+      detail: `问题来源：缺陷平台\n负责人：${item.issue!.owner}\n处理状态：${item.issue!.status}\n进展：${item.issue!.progress}\n\n${item.detail}\n\n处理状态来自缺陷平台记录，尚未关联 iCode 执行证据。`,
+    })),
     asset(data, 'defects', 'teams', {
       sourceRecordId: 'TEAMS-BUG-001', kind: 'defect', title: reconnect.title, version: 'Teams 问题快照',
       issue: { owner: '成员 C', severity: '未标注', status: '待补复现 · 关闭状态未记录', closed: null, confirmed: true, blocksDelivery: false, progress: 'D201 → R20 讨论中，需补充正常重启和异常退出的复现步骤。' },

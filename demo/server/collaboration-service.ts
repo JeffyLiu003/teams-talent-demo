@@ -1,3 +1,5 @@
+import { selectedSkillBindings } from '../src/resource-sharing.js';
+import { loadNativeSkillPackage, loadSourceSkillPackage } from './skill-packages.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -43,11 +45,20 @@ export async function collaborationContext(state: DemoState, data: Presentation,
   const catalog = createSourcePluginCatalog(data);
   const raw = teams ? catalog.list({ sourceProjectId: 'teams' }).filter(a => a.kind === 'repository' || a.kind === 'document') : assets.flatMap(asset => legacyAssetSourceIds(asset).flatMap(id => { const found = catalog.get(id); return found ? [found] : []; }));
   const references = [...new Map(raw.map(a => [a.id, a])).values()].map(asset => ({ id: asset.id, title: asset.title, kind: asset.kind, version: asset.version ?? 'imported-snapshot', origin: asset.origin, references: asset.references.map(ref => ({ ...ref, content: catalog.readReference(ref) ?? null, loadedByAgent: false })) }));
+  const bindings = frozen?.skillBindings ?? (!frozen ? selectedSkillBindings(state, 'member') : []);
   const skills = await Promise.all(selectedSkills.map(async id => {
     const user = userSkillExamples.find(s => s.id === id), project = data.skills.find(s => s.name === id);
-    return { id, scope: user ? 'user' : 'project', version: user ? id === 'teams-collaboration' ? 'demo-cli-v1' : 'example-v1' : id === 'dev-frontend-ui' ? frozen?.skillVersion ?? state.adoptedSkill : project?.version ?? 'imported-snapshot', path: id === 'teams-collaboration' ? collaborationSkillPath : project?.path ?? null,
-      content: id === 'teams-collaboration' ? await readFile(collaborationSkillPath, 'utf8') : user?.content ?? data.skillContents[id] ?? null,
-      availability: id === 'teams-collaboration' ? 'demo-local-cli' : user ? 'example-only' : 'imported-local-file', loadedByAgent: false };
+    if (user) return {id,scope:'user',version:id==='teams-collaboration'?'demo-cli-v1':'example-v1',path:id==='teams-collaboration'?collaborationSkillPath:null,content:id==='teams-collaboration'?await readFile(collaborationSkillPath,'utf8'):user.content,availability:id==='teams-collaboration'?'demo-local-cli':'example-only',loadedByAgent:false};
+    const binding = bindings.find(item=>item.id===id), expectedVersion = binding?.version ?? (frozen && id==='dev-frontend-ui' ? frozen.skillVersion : project?.version);
+    try {
+      const pkg=binding?.sha256 ? await loadNativeSkillPackage(id,binding.version,binding.sha256) : await loadSourceSkillPackage(id);
+      if(expectedVersion && pkg.version!==expectedVersion) throw new Error('冻结版本与实际文件版本不一致');
+      const primary=pkg.files.find(file=>file.path==='SKILL.md')!;
+      if(binding?.contentSha256 && primary.sha256!==binding.contentSha256)throw new Error('冻结正文摘要与内容包不一致');
+      return {id,scope:binding?.source??'project',version:pkg.version,sha256:pkg.sha256,contentSha256:primary.sha256,path:binding?.sha256?null:project?.path??null,content:primary.bytes.toString('utf8'),files:pkg.files.map(({path,sha256,executable})=>({path,sha256,executable})),availability:binding?.sha256?'fixed-subscription-package':'imported-local-file',loadedByAgent:false};
+    } catch(error) {
+      return {id,scope:binding?.source??'project',version:expectedVersion??'unknown',sha256:binding?.sha256??null,contentSha256:binding?.contentSha256??null,path:null,content:null,availability:frozen?'frozen-version-unavailable':'source-version-unavailable',error:(error as Error).message,loadedByAgent:false};
+    }
   }));
   let knowledge: { status: string; origin: string; selectedVersion: string | null; assets: unknown[]; error?: string };
   try {

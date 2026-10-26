@@ -1,10 +1,10 @@
 import type { Presentation } from './api.js';
 import type { DemoState } from './domain.js';
 import type { CollaborationEvent } from './collaboration.js';
-import { createSourcePluginCatalog, type SourcePluginAsset } from './source-plugins.js';
+import { cardProjectOverviewSourceIds, createSourcePluginCatalog, type SourcePluginAsset } from './source-plugins.js';
 
 export type DeliveryPhase = '待开展' | '准备' | '开发' | '验证' | '待验收' | '已交付';
-export type OverviewFilter = 'all' | 'active' | 'acceptance' | 'delivered' | 'open' | 'blocking';
+export type OverviewFilter = 'all' | 'pending' | 'active' | 'acceptance' | 'delivered' | 'issues' | 'open' | 'closed' | 'unconfirmed' | 'blocking';
 export interface QualityConclusion { label: string; result: string; passed: boolean }
 export interface OverviewRequirement {
   id: string; source: SourcePluginAsset; owner: string; phase: DeliveryPhase; due?: string; overdue: boolean;
@@ -28,7 +28,7 @@ export function projectOverview(state: DemoState, data: Presentation, projectId:
   const associated = projectId === 'carddemo' ? state.workspace.project.assets : state.workspace.projects?.find(project => project.id === projectId)?.assets ?? [];
   // These are explicit demo project links, separate from provider availability.
   const included = new Set(associated.flatMap(asset => asset.sourceAssetId ? [asset.sourceAssetId] : []));
-  if (projectId === 'carddemo') ['requirements:carddemo:DEMO-MKT-001', 'defects:carddemo:CARD-BUG-001', 'defects:carddemo:CARD-BUG-002'].forEach(id => included.add(id));
+  if (projectId === 'carddemo') cardProjectOverviewSourceIds.forEach(id => included.add(id));
   if (projectId === 'teams') [...data.teamsProject.tasks.map(task => `requirements:teams:REQ-${task.id}`), 'requirements:teams:REQ-WINDOWS-RECONNECT', 'defects:teams:TEAMS-BUG-001'].forEach(id => included.add(id));
   const sources = [...included].map(id => catalog.get(id)).filter((asset): asset is SourcePluginAsset => !!asset);
   const allWork: OverviewRequirement[] = sources.filter(source => source.kind === 'requirement').map(source => {
@@ -42,6 +42,11 @@ export function projectOverview(state: DemoState, data: Presentation, projectId:
         { label: '测试', result: state.checks === 'passed' ? state.stage === 'returned' ? '历史 9/9 · 待复验' : '历史复测 9/9' : state.checks === 'failed' ? '历史检查 7/8 · 失败' : '未检查', passed: state.checks === 'passed' && state.stage !== 'returned' },
         { label: '安全', result: '待验证', passed: false },
       ];
+    } else if (source.sourceProjectId === projectId && source.requirement?.delivery) {
+      item.owner = source.requirement.owner; item.phase = source.requirement.delivery.phase; item.due = source.requirement.plannedEnd;
+      item.pendingConfirmation = false; item.scope = '需求平台交付记录 · 尚未关联执行与验收证据';
+      item.quality = unknownQuality();
+      item.quality[0].result = item.phase === '已交付' ? '来源已交付 · 验收证据待关联' : item.phase === '待验收' ? '等待 Owner 验收' : '未验收';
     } else if (projectId === 'teams') {
       const task = data.teamsProject.tasks.find(task => source.id === `requirements:teams:REQ-${task.id}`);
       if (task) {
@@ -61,22 +66,23 @@ export function projectOverview(state: DemoState, data: Presentation, projectId:
   const latestReport = (taskId?: string) => (state.workspace.collaboration?.events ?? []).filter(event => event.projectId === projectId && event.taskId === taskId).reduce<CollaborationEvent | undefined>((latest, event) => !latest || event.revision > latest.revision ? event : latest, undefined);
   for (const item of allWork) if (item.taskId) item.activity = latestReport(item.taskId);
   const issues: OverviewIssue[] = sources.filter(source => source.kind === 'defect').map(source => {
-    const issue = source.issue;
+    // A linked foreign issue is a source reference, not this project's treatment record.
+    const issue = source.sourceProjectId === projectId ? source.issue : undefined;
     const item: OverviewIssue = { id: source.id, source, owner: issue?.owner ?? '未分配', severity: issue?.severity ?? '未标注', status: issue?.status ?? '待确认', progress: issue?.progress ?? '暂无处理记录', closed: issue?.closed ?? null, confirmed: issue?.confirmed ?? false, blocksDelivery: false, relatedIds: [...source.relatedRequirementIds] };
     let blocking = issue?.blocksDelivery ?? false;
     if (projectId === 'carddemo' && source.id === 'defects:carddemo:CARD-BUG-001' && state.checks !== 'none') {
       item.closed = state.checks === 'passed'; item.status = item.closed ? '已修复关闭' : '待修复'; blocking = !item.closed;
       item.progress = item.closed ? '历史修复 E4 与复测 E5 已采用' : '历史检查 E3：7/8，等待修复与复测';
     }
-    item.blocksDelivery = item.closed === false && blocking && requirements.some(requirement => item.relatedIds.includes(requirement.id) && requirement.taskId && requirement.phase !== '已交付');
+    item.blocksDelivery = item.closed === false && blocking && requirements.some(requirement => item.relatedIds.includes(requirement.id) && requirement.phase !== '已交付' && (requirement.taskId || requirement.source.sourceProjectId === projectId && requirement.source.requirement?.delivery));
     return item;
   });
   for (const requirement of requirements) requirement.issues = issues.filter(issue => issue.closed !== true && issue.confirmed && issue.relatedIds.includes(requirement.id));
-  const result: ProjectOverview = { requirements, research, issues, counts: { all: requirements.length, active: 0, acceptance: 0, delivered: 0, open: 0, blocking: 0 }, scope: projectId === 'teams' ? `已纳入交付的 ${requirements.length} 项需求与 ${research.length} 项调研分别统计；待确认讨论尚未转成任务。进度与计划来自已导入记录。` : projectId === 'carddemo' ? '本项目主需求及已关联来源；交付阶段随 Teams 任务状态更新。' : '仅统计本项目已关联的需求与问题；来源关联不代表已进入交付。', asOf };
-  for (const filter of ['active', 'acceptance', 'delivered'] as const) result.counts[filter] = filterRequirements(result, filter).length;
-  for (const filter of ['open', 'blocking'] as const) result.counts[filter] = filterIssues(result, filter).length;
+  const result: ProjectOverview = { requirements, research, issues, counts: { all: 0, pending: 0, active: 0, acceptance: 0, delivered: 0, issues: 0, open: 0, closed: 0, unconfirmed: 0, blocking: 0 }, scope: projectId === 'teams' ? `已纳入交付的 ${requirements.length} 项需求与 ${research.length} 项调研分别统计；待确认讨论尚未转成任务。进度与计划来自已导入记录。` : projectId === 'carddemo' ? '需求与问题分别来自需求平台和缺陷平台；主需求进度随 Teams 任务状态更新，其余进度按来源记录呈现。' : '仅统计本项目已关联的需求与问题；来源关联不代表已进入交付。', asOf };
+  for (const filter of ['all', 'pending', 'active', 'acceptance', 'delivered'] as const) result.counts[filter] = filterRequirements(result, filter).length;
+  for (const filter of ['issues', 'open', 'closed', 'unconfirmed', 'blocking'] as const) result.counts[filter] = filterIssues(result, filter).length;
   result.projectActivity = latestReport();
   return result;
 }
-export function filterRequirements(data: ProjectOverview, filter: OverviewFilter) { return data.requirements.filter(item => filter === 'active' ? ['准备', '开发', '验证'].includes(item.phase) : filter === 'acceptance' ? item.phase === '待验收' : filter === 'delivered' ? item.phase === '已交付' : true); }
-export function filterIssues(data: ProjectOverview, filter: OverviewFilter) { return data.issues.filter(item => filter === 'blocking' ? item.blocksDelivery : filter === 'open' ? item.closed === false : true); }
+export function filterRequirements(data: ProjectOverview, filter: OverviewFilter) { return data.requirements.filter(item => filter === 'pending' ? item.phase === '待开展' : filter === 'active' ? ['准备', '开发', '验证'].includes(item.phase) : filter === 'acceptance' ? item.phase === '待验收' : filter === 'delivered' ? item.phase === '已交付' : true); }
+export function filterIssues(data: ProjectOverview, filter: OverviewFilter) { return data.issues.filter(item => filter === 'blocking' ? item.blocksDelivery : filter === 'open' ? item.closed === false : filter === 'closed' ? item.closed === true : filter === 'unconfirmed' ? item.closed === null : true); }

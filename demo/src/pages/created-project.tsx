@@ -48,7 +48,7 @@ export function CreatedProjectCard({ project }: { project: CreatedProject }) {
   return <FrameworkCard title={project.name} action={<Tag>新建项目</Tag>}>
     <p>{project.description || '尚未填写项目说明。'}</p>
     <Descriptions size="small" column={{ xs: 1, sm: 2 }} items={[{ key: 'team', label: '所属团队', children: state.workspace.team.name }, { key: 'owner', label: '项目 Owner', children: '林悦' }, { key: 'repository', label: '主仓', children: project.repositoryIdentity }, { key: 'scope', label: '项目数据', children: '0 个任务 · 0 个版本' }]} />
-    <Space wrap><Button type="primary" aria-label={'进入项目：' + project.name} onClick={() => navigate(createdProjectRoute(project.id))}>进入项目</Button>{role === 'owner' && <Button aria-label={'编辑项目：' + project.name} onClick={() => navigate(createdProjectRoute(project.id, 'settings'))}>编辑项目</Button>}</Space>
+    <Space wrap><Button type="primary" data-project-primary={project.id} aria-label={(role === 'owner' ? '进入任务管理：' : '进入任务交付：') + project.name} onClick={() => navigate(createdProjectRoute(project.id, role === 'owner' ? 'management' : 'delivery'))}>{role === 'owner' ? '进入任务管理' : '进入任务交付'}</Button><Button onClick={() => navigate(createdProjectRoute(project.id))}>项目资料</Button>{role === 'owner' && <Button aria-label={'编辑项目：' + project.name} onClick={() => navigate(createdProjectRoute(project.id, 'settings'))}>编辑项目</Button>}</Space>
   </FrameworkCard>;
 }
 
@@ -57,7 +57,7 @@ export function CreatedProjectPage({ project, tab }: { project: CreatedProject; 
   const [failed, setFailed] = useState(false);
   const jump = (next: string) => navigate(createdProjectRoute(project.id, next));
   if (![...projectPages.map(page => page.key), 'settings'].includes(tab)) return <Alert type="error" title="项目页面不存在" action={<Button onClick={() => jump('content')}>进入项目内容</Button>} />;
-  const empty = { management: ['项目任务', '尚未创建任务'], delivery: ['任务交付', '尚无可交付任务'], release: ['发布跟踪', '尚未登记发布版本'] };
+  const empty = { management: ['项目任务', '尚未创建任务'], delivery: ['任务交付', '尚无可交付任务'] };
   return <div className="page-stack project-workspace project-detail created-project">
     <ProjectToolbar activeKey={tab} onChange={jump} actions={<>{role === 'owner' ? <Button type="text" icon={<SettingOutlined />} aria-label="项目设置" onClick={() => jump('settings')}><span className="project-secondary-action-label">项目设置</span></Button> : <Tag>项目成员 · 只读</Tag>}<ProjectWorkLaunch target={{ projectId: project.id, tab }} /></>} />
     {tab === 'content' ? <ProjectContentTemplate projectId={project.id} name={project.name} description={project.description} origin={<Origin kind="simulated" />}

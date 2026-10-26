@@ -1,4 +1,4 @@
-import { availableSkillIds } from './resource-sharing.js';
+import { availableSkillIdsFor, selectedSkillBindings, type SkillBinding } from './resource-sharing.js';
 import { initialWorkspace, type WorkspaceState, type Asset, type Material } from './workspace.js';
 export type Role = 'owner' | 'member';
 export type Stage = 'draft' | 'assigned' | 'developing' | 'failed' | 'fixed' | 'submitted' | 'returned' | 'accepted';
@@ -8,7 +8,7 @@ export interface DemoState {
   talentGeneration?: string;
   schemaVersion: 2; workspace: WorkspaceState;
   revision: number; published: boolean; assigned: boolean; knowledge: boolean; stage: Stage;
-  context: null | { id: string; skillVersion: string; agentVersion: string; knowledgeVersion: string; createdAt: string; selectedSkills: string[]; materials: Material[]; assets: Asset[] };
+  context: null | { id: string; skillVersion: string; agentVersion: string; knowledgeVersion: string; createdAt: string; selectedSkills: string[]; skillBindings?: SkillBinding[]; materials: Material[]; assets: Asset[] };
   checks: 'none' | 'failed' | 'passed'; security: 'unverified'; enrolled: boolean;
   transactions: { id: string; amount: number; reward: number }[]; balance: number;
   duplicateChecked: boolean; uat: boolean; returnReason: string;
@@ -32,7 +32,7 @@ export function transition(previous: DemoState, action: Action, role: Role, payl
   switch (action) {
     case 'assign': requireCondition(!s.assigned, '需求只能分配一次'); s.assigned = true; s.stage = 'assigned'; detail = 'DEMO-MKT-001 → 陈晨 · 项目成员'; break;
     case 'knowledge': requireCondition(s.workspace.project.assets.length && !s.knowledge, '请先关联项目资产；知识已生成时请使用现有版本'); requireCondition(s.workspace.connections.find(c=>c.id==='talent')?.enabled,'请先启用 Talent 接入'); s.knowledge = true; detail = 'Teams 项目资产 → Talent knowledge-v1 · 项目知识整合'; break;
-    case 'prepare': requireCondition(s.assigned && s.knowledge && !s.context, '请先分配需求并完成知识构建；上下文不可重复冻结'); requireCondition(s.workspace.selectedSkills.length > 0 && s.workspace.selectedSkills.every(id => availableSkillIds.includes(id)), '请选择有效的项目或用户 Skill'); s.context = { id: 'CTX-MKT-001', skillVersion: s.adoptedSkill, agentVersion: s.adoptedAgent, knowledgeVersion: 'knowledge-v1', createdAt: new Date().toISOString(),selectedSkills:[...s.workspace.selectedSkills],materials:structuredClone(s.workspace.materials),assets:structuredClone(s.workspace.project.assets) }; detail = '冻结需求、验收标准、知识与能力版本'; break;
+    case 'prepare': requireCondition(s.assigned && s.knowledge && !s.context, '请先分配需求并完成知识构建；上下文不可重复冻结'); requireCondition(s.workspace.selectedSkills.length > 0 && s.workspace.selectedSkills.every(id => availableSkillIdsFor(s,role).includes(id)), '请选择有效的项目或用户 Skill'); s.context = { id: 'CTX-MKT-001', skillVersion: s.adoptedSkill, agentVersion: s.adoptedAgent, knowledgeVersion: 'knowledge-v1', createdAt: new Date().toISOString(),selectedSkills:[...s.workspace.selectedSkills],skillBindings:selectedSkillBindings(s,role),materials:structuredClone(s.workspace.materials),assets:structuredClone(s.workspace.project.assets) }; detail = '冻结需求、验收标准、知识与能力版本'; break;
     case 'replay': requireCondition(s.context && s.stage === 'assigned', '请先冻结上下文'); s.stage = 'developing'; detail = '关联已有开发会话与工作记录'; break;
     case 'check-fail': requireCondition(s.stage === 'developing', '请先开始开发'); s.checks = 'failed'; s.stage = 'failed'; detail = '历史证据 E3 · 7/8 · 未显示报名按钮 · EXIT:1'; break;
     case 'fix': requireCondition(s.stage === 'failed' || s.stage === 'returned', '当前没有待修复事项'); s.checks = 'passed'; s.stage = 'fixed'; s.uat = false; detail = '历史修复 E4 → 复测 E5 · 9/9 · 安全仍待验证'; break;

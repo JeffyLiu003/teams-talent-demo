@@ -1,3 +1,4 @@
+import { terminalPreferences } from './terminal-preferences.js';
 import { createTerminalLauncher, findExecutable, formatShellCommand, posixQuote } from './terminal-launcher.js';
 import { userSkillExamples } from '../src/project-skill-examples.js';
 import { execFile, spawn } from 'node:child_process';
@@ -56,8 +57,7 @@ export async function toolsStatus() {
   const sessionPath = join(homedir(), '.chrys/sessions/6b82c08deb3b/session.json');
   let sessionAvailable = false;
   try { await access(sessionPath); sessionAvailable = true; } catch (e) { if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e; }
-  const terminalName = process.platform === 'win32' ? process.env.WT_SESSION && process.env.DEMO_WINDOWS_TERMINAL !== 'none' && await findExecutable(process.env.DEMO_WINDOWS_TERMINAL ?? 'wt.exe') ? 'Windows Terminal' : 'PowerShell' : process.platform === 'darwin' ? 'Terminal' : '手工终端（自动启动未支持）';
-  return { terminalName, icode: { installed: iCodeInstalled, path: binary, version, workspace, sessionId, sessionAvailable, active: await activeSession() }, opencode: { installed: !!opencode && !unsupportedReason, path: opencode, version: openVersion, unsupportedReason }, verification };
+  return { ...await terminalPreferences.context(), icode: { installed: iCodeInstalled, path: binary, version, workspace, sessionId, sessionAvailable, active: await activeSession() }, opencode: { installed: !!opencode && !unsupportedReason, path: opencode, version: openVersion, unsupportedReason }, verification };
 }
 async function verify(): Promise<Record<string, unknown>> {
   if (!await installed(binary)) throw new Error('配套 iCode 0.31.0 不存在');
@@ -168,8 +168,8 @@ export async function writeContext(state: DemoState) {
   if (previous === undefined) await atomicText(path, content);
   return { path, sha256: createHash('sha256').update(content).digest('hex'), content, prompt: '请读取并核对这份项目上下文，先不要修改代码：' + path };
 }
-export function launch(tool: 'icode' | 'opencode', restore: boolean, requestId: string) {
-  const identity = JSON.stringify({ tool, restore }), previous = launched.get(requestId);
+export function launch(tool: 'icode' | 'opencode', restore: boolean, requestId: string, expectedTerminal?: string) {
+  const identity = JSON.stringify({ tool, restore, expectedTerminal }), previous = launched.get(requestId);
   if (previous) { if (previous.identity !== identity) return Promise.reject(new Error('原启动请求标识已用于另一动作')); return previous.result; }
   if (launchBusy) return Promise.reject(new Error('启动请求正在执行'));
   launchBusy = true;
@@ -184,7 +184,8 @@ export function launch(tool: 'icode' | 'opencode', restore: boolean, requestId: 
       if (active) throw new Error('该历史会话正在 ' + (active.application ?? '另一实例') + ' 中运行，请在原窗口继续；未启动重复实例');
     }
     const args = tool === 'icode' ? ['-C', workspace, ...(restore ? ['--session', sessionId] : [])] : [workspace];
-    const launchedTerminal = await terminalLauncher.launch({ executable: entry, directory: workspace, args });
+    const terminal = await terminalPreferences.selected(expectedTerminal);
+    const launchedTerminal = await terminalLauncher.launch({ executable: entry, directory: workspace, args, terminal: terminal.id });
     const receipt = { requestId, tool, restore, at: new Date().toISOString(), ...launchedTerminal, sessionId: restore ? sessionId : null };
     await atomicJson(join(runtimeDir, 'last-launch.json'), receipt); return receipt;
   })().finally(() => { launchBusy = false; });
@@ -206,11 +207,13 @@ export async function nativeWorkDefaults() {
   const selector = role.model === 'active' ? models.active : role.model;
   const matches = models.models.filter((model: any) => model.id === selector || model.name === selector);
   if (matches.length !== 1) throw new Error('iCode 默认角色的模型配置无效');
-  return { agent: role.id, agentLabel: role.displayName, model: matches[0].id, modelLabel: matches[0].name };
+  const preference = await terminalPreferences.context();
+  return { agent: role.id, agentLabel: role.displayName, model: matches[0].id, modelLabel: matches[0].name, terminal: { id: preference.selectedTerminal, name: preference.terminalName, error: preference.terminalError } };
 }
-export async function startNativeWork(input: { directory: string; agent: string; model: string; sessionId?: string; instruction: string }) {
+export async function startNativeWork(input: { directory: string; agent: string; model: string; sessionId?: string; instruction: string; terminal: string }) {
   const args = ['-C', input.directory, '--agent', input.agent, '--model', input.model, ...(input.sessionId ? ['--session', input.sessionId] : [])];
-  return terminalLauncher.launch({ executable: binary, directory: input.directory, args, instruction: input.instruction });
+  const terminal = await terminalPreferences.selected(input.terminal);
+  return terminalLauncher.launch({ executable: binary, directory: input.directory, args, instruction: input.instruction, terminal: terminal.id });
 }
 
 /** Read-only terminal discovery. A title match is not an assertion that context was adopted. */

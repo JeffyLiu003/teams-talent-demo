@@ -12,9 +12,9 @@ import { ProjectWorkService, resolveProjectWork, type WorkTransport } from '../s
 import { sessionId, workspace } from '../server/config.js';
 const fixtures = await readFixtures();
 function transport() {
-  const calls: any[] = []; let active = false, fail = false;
-  const value: WorkTransport = { defaults: async () => ({agent:'role',agentLabel:'Code',model:'model',modelLabel:'Model'}), history: async () => ({available:true,directory:workspace,title:'history',configuration:{agent:'original-role',agentLabel:'Original',model:'original-model',modelLabel:'Original model'},active:active?{pid:123,application:'Ghostty',tty:'ttys123',terminal:{id:'surface',title:'history',directory:workspace}}:null}), start: async input => { calls.push(input); if(fail)throw new Error('transport uncertain'); return { terminal: 'PowerShell' }; }, focus:async input=>{calls.push(input);return {status:'terminal-focused',note:'focused known terminal'};} };
-  return {value,calls,setActive:()=>active=true,setFail:()=>fail=true};
+  const calls: any[] = []; let active = false, fail = false, terminal = 'ghostty';
+  const value: WorkTransport = { defaults: async () => ({agent:'role',agentLabel:'Code',model:'model',modelLabel:'Model',terminal:{id:terminal,name:terminal==='ghostty'?'Ghostty':'Terminal',error:undefined}}), history: async () => ({available:true,directory:workspace,title:'history',configuration:{agent:'original-role',agentLabel:'Original',model:'original-model',modelLabel:'Original model'},active:active?{pid:123,application:'Ghostty',tty:'ttys123',terminal:{id:'surface',title:'history',directory:workspace}}:null}), start: async input => { calls.push(input); if(fail)throw new Error('transport uncertain'); return { terminal: 'PowerShell' }; }, focus:async input=>{calls.push(input);return {status:'terminal-focused',note:'focused known terminal'};} };
+  return {value,calls,setTerminal:(value:string)=>terminal=value,setActive:()=>active=true,setFail:()=>fail=true};
 }
 test('work resolves precise Card/Teams/new-project scope and does not substitute Card history', async () => {
   const dir=await mkdtemp(join(tmpdir(),'work-scope-')), t=transport();let state=initialState();
@@ -36,7 +36,7 @@ test('one confirmation pins scope/config, repeated request does not launch again
   try {
     const service=new ProjectWorkService(()=>state,fixtures,dir,t.value), before=JSON.stringify(state), plan=await service.plan('member',{projectId:'carddemo',tab:'delivery',nodeId:'develop'});
     const body={requestId:randomUUID(),target:plan.target,action:'new' as const,planToken:plan.planToken};
-    const [one,two]=await Promise.all([service.start('member',body),service.start('member',body)]);assert.deepEqual(one,two);assert.equal(t.calls.length,1);assert.equal(one.sessionId,null);assert.equal(one.terminal,'PowerShell');assert.match(one.note,/PowerShell/);assert.equal(t.calls[0].agent,'role');assert.equal(t.calls[0].sessionId,undefined);
+    const [one,two]=await Promise.all([service.start('member',body),service.start('member',body)]);assert.deepEqual(one,two);assert.equal(t.calls.length,1);assert.equal(one.sessionId,null);assert.equal(one.terminal,'PowerShell');assert.match(one.note,/PowerShell/);assert.equal(t.calls[0].terminal,'ghostty');assert.equal(t.calls[0].agent,'role');assert.equal(t.calls[0].sessionId,undefined);
     const context=await readFile(one.contextPath,'utf8');assert.match(context,/DEMO-MKT-001/);assert.match(context,/develop/);assert.match(context,/teams-demo-collaboration/);assert.match(context,/context.*get/);assert.match(context,/--input-file/);assert.deepEqual(JSON.parse(await readFile(join(dir,'work-contexts',body.requestId+'.scope.json'),'utf8')),plan.target);assert.equal(JSON.stringify(state),before);
     await assert.rejects(service.start('member',{...body,action:'resume'}),/另一项/);
     state={...state,revision:state.revision+1};await assert.rejects(service.start('member',{...body,requestId:randomUUID()}),/依据已变化/);
@@ -69,5 +69,16 @@ test('directory binding is role/project scoped, verifies Git origin, and rejects
 
 test('resume retains historical directory, session and role/model instead of current defaults',async()=>{
   const dir=await mkdtemp(join(tmpdir(),'work-resume-')),t=transport(),state=initialState();
-  try {const service=new ProjectWorkService(()=>state,fixtures,dir,t.value),plan=await service.plan('member',{projectId:'carddemo',tab:'delivery',nodeId:'prepare'});await service.start('member',{requestId:randomUUID(),target:plan.target,action:'resume',planToken:plan.planToken});assert.equal(t.calls[0].directory,workspace);assert.equal(t.calls[0].sessionId,sessionId);assert.equal(t.calls[0].agent,'original-role');assert.equal(t.calls[0].model,'original-model');}finally{await rm(dir,{recursive:true,force:true});}
+  try {const service=new ProjectWorkService(()=>state,fixtures,dir,t.value),plan=await service.plan('member',{projectId:'carddemo',tab:'delivery',nodeId:'prepare'});await service.start('member',{requestId:randomUUID(),target:plan.target,action:'resume',planToken:plan.planToken});assert.equal(t.calls[0].terminal,'ghostty');assert.equal(t.calls[0].directory,workspace);assert.equal(t.calls[0].sessionId,sessionId);assert.equal(t.calls[0].agent,'original-role');assert.equal(t.calls[0].model,'original-model');}finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('changing saved terminal invalidates the confirmation while active focus remains on its original terminal', async () => {
+  const dir=await mkdtemp(join(tmpdir(),'work-terminal-')), t=transport(), state=initialState();
+  try {
+    const service=new ProjectWorkService(()=>state,fixtures,dir,t.value), plan=await service.plan('owner',{projectId:'carddemo',tab:'delivery'});
+    assert.equal(plan.instance.terminal?.name,'Ghostty');t.setTerminal('terminal');
+    await assert.rejects(service.start('owner',{requestId:randomUUID(),target:plan.target,action:'new',planToken:plan.planToken}),/依据已变化/);assert.equal(t.calls.length,0);
+    t.setActive();const current=await service.plan('owner',plan.target);assert.equal(current.instance.terminal?.name,'Terminal');assert.equal(current.history?.active?.application,'Ghostty');
+    await service.start('owner',{requestId:randomUUID(),target:current.target,action:'focus',planToken:current.planToken});assert.equal(t.calls.length,1);assert.equal(t.calls[0].active.application,'Ghostty');
+  } finally { await rm(dir,{recursive:true,force:true}); }
 });

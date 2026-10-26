@@ -64,12 +64,15 @@ try {
   assert.equal(await page.locator('[data-action="knowledge"]').isDisabled(), true); await closePanels();
   await page.screenshot({ path: 'test-results/project-create-content.png' });
   await page.reload(); await page.locator('.breadcrumb strong').getByText(draft.name, { exact: true }).waitFor();
-  const empty = [['任务管理', '尚未创建任务'], ['任务交付', '尚无可交付任务'], ['发布跟踪', '尚未登记发布版本']];
+  const empty = [['任务管理', '尚未创建任务'], ['任务交付', '尚无可交付任务']];
   for (const [tab, text] of empty) { await page.getByRole('tab', { name: tab, exact: true }).click(); await page.getByText(text, { exact: true }).waitFor(); }
+  assert.deepEqual(await page.locator('.project-toolbar [role=tab]').allTextContents(), ['项目内容', '任务管理', '任务交付']);
+  await visit('projects?project=' + projectId + '&tab=release'); await page.getByText('项目页面不存在', { exact: true }).waitFor();
+  await visit('projects?project=' + projectId + '&tab=content');
   await page.getByRole('button', { name: '项目设置', exact: true }).click();
   await page.getByRole('textbox', { name: '项目名称', exact: true }).fill('客户门户新版'); await save('project.metadata.update', '保存项目信息');
   await page.locator('.breadcrumb strong').getByText('客户门户新版', { exact: true }).waitFor();
-  await visit('projects?tab=list'); await page.getByRole('button', { name: '进入项目：客户门户新版', exact: true }).waitFor();
+  await visit('projects?tab=list'); await page.locator('[data-project-primary="' + projectId + '"]').waitFor(); assert.equal(await page.locator('[data-project-primary="' + projectId + '"]').innerText(), '进入任务管理');
   await page.locator('.framework-sidebar').getByRole('link', { name: '客户门户新版', exact: true }).click();
   await page.locator('.breadcrumb strong').getByText('客户门户新版', { exact: true }).waitFor();
   await page.getByRole('button', { name: '切换到深色模式' }).click();
@@ -78,7 +81,7 @@ try {
   await visit('projects?project=carddemo&tab=content'); await page.locator('.breadcrumb strong').getByText(initial.workspace.project.name, { exact: true }).waitFor(); await openPanel('项目资料'); await page.getByRole('button', { name: '关联项目资产' }).waitFor();
   await visit('projects?project=teams&tab=content'); await page.locator('.breadcrumb strong').getByText('iCode Teams', { exact: true }).waitFor(); await openPanel('项目资料'); await page.getByRole('button', { name: '查看 AGENTS.md', exact: true }).waitFor();
   const member = await browser.newPage({ viewport: { width: 1440, height: 1000 } }); await member.addInitScript(() => localStorage.setItem('carddemo-role', 'member'));
-  await member.goto(origin + '/teams#/projects?tab=list'); await member.getByRole('button', { name: '使用指引' }).waitFor(); assert.equal(await member.getByRole('button', { name: '添加项目', exact: true }).count(), 0);
+  await member.goto(origin + '/teams#/projects?tab=list'); await member.getByRole('button', { name: '使用指引' }).waitFor(); assert.equal(await member.getByRole('button', { name: '添加项目', exact: true }).count(), 0); assert.equal(await member.locator('[data-project-primary="' + projectId + '"]').innerText(), '进入任务交付');
   await member.goto(origin + '/teams#/projects?project=' + projectId + '&tab=settings'); await member.getByText('项目成员可查看基础信息，由 Owner 维护。', { exact: true }).waitFor(); assert.equal(await member.getByRole('textbox', { name: '项目名称', exact: true }).isDisabled(), true);
   assert.equal((await request('member', 'project.metadata.update', { ...draft, id: projectId, name: '越权更新' })).status, 403);
   await closePanels(); await page.getByRole('button', { name: '切换到浅色模式' }).click();
@@ -87,7 +90,7 @@ try {
   for (const [roleName, target] of [['owner', page], ['member', member]] as const) for (const id of ['carddemo', 'teams', projectId]) {
     await target.goto(origin + '/teams#/projects?project=' + id + '&tab=content');
     if (roleName === 'owner') {
-      await target.locator('.project-owner-overview').waitFor(); assert.equal(await target.locator('[data-metric]').count(), 6);
+      await target.locator('.project-owner-overview').waitFor(); assert.equal(await target.locator('[data-metric]').count(), 10);
       await openPanel('知识成果', target); if (id !== 'carddemo') await target.getByText('尚未生成项目知识', { exact: true }).waitFor(); await closePanels(target);
       await openPanel('项目资料', target);
     } else { await target.locator('.project-content-template').waitFor(); assert.deepEqual(await target.locator('.project-content-template h2').allTextContents(), sharedTitles); if (id !== 'carddemo') await target.getByText('尚未生成项目知识', { exact: true }).waitFor(); }
@@ -101,7 +104,7 @@ try {
   await visit('projects?project=' + projectId + '&tab=content');
   await openPanel('项目资料'); await page.getByRole('button', { name: '关联项目资产', exact: true }).click();
   await page.getByRole('combobox', { name: '筛选资产来源', exact: true }).click(); await page.locator('.ant-select-item-option-content').getByText('需求平台', { exact: true }).click();
-  await page.getByRole('combobox', { name: '选择来源资产', exact: true }).click(); await page.locator('.ant-select-item-option-content').getByText('信用卡消费返现 · 需求平台 · 信用卡营销交付', { exact: true }).click();
+  const sourcePicker = page.getByRole('combobox', { name: '选择来源资产', exact: true }); await sourcePicker.click(); await sourcePicker.fill('信用卡消费返现'); await page.locator('.ant-select-item-option-content').getByText('信用卡消费返现 · 需求平台 · 信用卡营销交付', { exact: true }).waitFor(); await sourcePicker.press('Enter');
   await save('asset.link', '关联所选资产');
   await page.getByRole('button', { name: '查看来源：信用卡消费返现', exact: true }).click();
   assert.ok((await page.locator('.drawer-console').innerText()).includes('来源插件')); await closeText();

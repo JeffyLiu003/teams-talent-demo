@@ -23,6 +23,9 @@ try{
   const headers={'content-type':'application/json','x-demo-token':bootstrap.token,origin};
   let denied=await fetch(origin+'/api/action',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({role:'owner',action:'assign',revision:0})});assert.equal(denied.status,403);
   denied=await fetch(origin+'/api/workspace',{method:'POST',headers,body:JSON.stringify({role:'member',kind:'resource.publish',payload:{id:'dev-frontend-ui'},revision:0})});assert.equal(denied.status,403);
+  denied=await fetch(origin+'/api/workspace',{method:'POST',headers,body:JSON.stringify({role:'owner',kind:'resource.publish-all',payload:{},revision:-1})});assert.equal(denied.status,409);
+  await assert.rejects(readFile(join(dir,'skill-packages',bootstrap.data.skillCatalog[0].sha256+'.json')),error=>(error as NodeJS.ErrnoException).code==='ENOENT');
+  denied=await fetch(origin+'/api/native/skill-apply',{method:'POST',headers,body:JSON.stringify({role:'member'})});assert.equal(denied.status,403);assert.match(await denied.text(),/未开放原生用户目录写入/);
   browser=await chromium.launch({channel:'chrome',headless:true});
   const page=await browser.newPage({viewport:{width:1440,height:1000}});currentPage=page;page.setDefaultTimeout(8000);
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
@@ -66,13 +69,16 @@ try{
   await page.getByRole('button',{name:'T104 · 加入团队后获取项目配置',exact:true}).click();
   await page.getByRole('button',{name:'Teams 节点：测试准备'}).click();
   await page.screenshot({path:output+'/imported-teams-delivery.png'});
-  await page.getByRole('button',{name:'查看所属版本'}).click();
-  await page.getByRole('combobox',{name:'选择 Teams 发布版本'}).click();await page.locator('.ant-select-item-option-content').getByText('10.10 · 安装与启动优化',{exact:true}).click();
-  await page.getByText('已回退至 10.03',{exact:true}).waitFor();await page.screenshot({path:output+'/imported-teams-release.png'});
+  assert.equal(await page.getByRole('button',{name:'查看所属版本',exact:true}).count(),0);
+  assert.deepEqual(await page.locator('.project-toolbar [role=tab]').allTextContents(),['项目内容','任务管理','任务交付']);
+  const importedBootstrap=await(await fetch(origin+'/api/bootstrap')).json() as any;
+  assert.ok(importedBootstrap.data.teamsProject.releases.some((release:any)=>JSON.stringify(release).includes('10.10')),'historical release snapshots remain in source data');
+  await visit('/teams#/projects?project=teams&tab=release');await page.getByText('iCode Teams 项目页面不存在',{exact:true}).waitFor();
+  await visit('/teams#/projects?project=teams&tab=content');
   await page.getByRole('button',{name:'iCode 作业记录'}).click();await page.getByRole('button',{name:'查看关联事项',exact:true}).first().click();
   await page.getByRole('heading',{name:'R20 · Windows 重启后的连接恢复',exact:true}).waitFor();
   await visit('/teams#/projects?project=missing&tab=content');await page.getByText('项目不存在',{exact:true}).waitFor();
-  await visit('/teams#/projects?tab=list');await page.getByRole('button',{name:'进入 iCode Teams'}).waitFor();await page.getByRole('button',{name:'进入项目',exact:true}).waitFor();
+  await visit('/teams#/projects?tab=list');await page.locator('[data-project-primary="teams"]').waitFor();await page.locator('[data-project-primary="carddemo"]').waitFor();assert.equal(await page.locator('[data-project-primary="carddemo"]').innerText(),'进入任务管理');
   assert.deepEqual(await state(),beforeImported,'browsing imported project must not mutate the CardDemo workflow');
   await visit('/teams#/home?tab=tokens');await page.locator('.ops-trend').waitFor();await page.screenshot({path:output+'/teams-token-usage.png',fullPage:true});
   await visit('/teams#/team');await page.getByRole('button',{name:'邀请成员'}).click();await page.getByRole('textbox',{name:'邀请成员姓名'}).fill('周宁');
@@ -103,7 +109,7 @@ try{
   await visit('/talent#/knowledge');await page.screenshot({path:output+'/talent-knowledge.png',fullPage:true});
   await visit('/teams#/resources');await page.locator('.resource-card').first().waitFor();
   assert.equal(await page.getByText('项目能力待发布',{exact:true}).count(),0);
-  assert.equal(await page.locator('.resource-card').filter({hasText:'Code Agent'}).getByRole('button',{name:'在项目中选用',exact:true}).isEnabled(),true);
+  assert.equal(await page.locator('.resource-card').filter({hasText:'Code Agent'}).getByRole('button',{name:'在需求中选用',exact:true}).isEnabled(),true);
   assert.equal((await state()).published,false);assert.equal((await state()).workspace.resourcePublications,undefined);
   await visit('/teams#/projects?tab=management');await click('assign');
   await role('member');await visit('/teams#/projects?tab=delivery&node=prepare');
@@ -126,7 +132,7 @@ try{
   assert.equal(await page.locator('.resource-library-entry').count(),2);await page.screenshot({path:output+'/teams-individual-publications.png',fullPage:true});
   await role('member');await visit('/teams#/resources');
   for(const id of ['dev-frontend-ui','code-agent']){await page.getByRole('textbox',{name:'搜索资源'}).fill(id==='code-agent'?'Code Agent':id);await save('resource.acquire',page.locator('button[data-resource="'+id+'"]'));}
-  await visit('/teams#/subscriptions');assert.equal(await page.locator('.resource-library-entry').count(),2);assert.deepEqual((await state()).workspace.acquiredResources,['dev-frontend-ui','code-agent']);
+  await visit('/teams#/subscriptions');assert.equal(await page.locator('.resource-library-entry').count(),2);assert.deepEqual((await state()).workspace.resourceSubscriptions.filter((item:any)=>item.actor==='member').map((item:any)=>item.id),['dev-frontend-ui','code-agent']);assert.deepEqual((await state()).workspace.acquiredResources,[]);
   assert.deepEqual((await state()).context,unpublishedPrepared.context);assert.equal((await state()).published,false);
   await visit('/teams#/projects?tab=delivery&node=prepare');
   await page.getByRole('button',{name:'iCode 作业'}).click();await page.getByRole('dialog').getByText('当前工作',{exact:true}).waitFor();await page.waitForTimeout(350);await page.screenshot({path:output+'/teams-icode-entry.png',fullPage:true});await page.getByRole('dialog').locator('.ant-modal-close').click();

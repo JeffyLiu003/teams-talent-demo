@@ -93,7 +93,7 @@ npm run dev
 
 启动器使用 UTF-16LE EncodedCommand，目录留在 PowerShell 安全字面量中；原生参数通过 ProcessStartInfo 传递，避免 PowerShell 5.1 丢失空串或内嵌双引号。新控制台不重定向工具标准句柄。回执只代表系统受理或创建终端，不代表工具已读取上下文、模型已执行或任务已完成。Windows 已运行历史会话暂不能可靠定位窗口，页面禁用再次进入，提示在原终端继续；不会重复恢复、绕锁或关闭原会话。
 
-macOS 仍使用 Terminal 打开新会话，已运行历史会话只有能核对 Ghostty 终端时才直接进入。macOS 可能要求允许控制终端或确认下载程序来源，按系统提示核对后授权，不关闭系统安全机制。`DEMO_NATIVE_DISABLED=1` 可显式禁用自动原生启动。
+macOS 可在 Agent 管理选择已安装的 Terminal 或 Ghostty，选择会保存为当前本机用户的启动偏好；项目、需求和 Agent 管理共用该配置。工作确认弹窗展示实际终端，确认期间配置变化需要重新确认。所选终端不可用时明确报错，不改用其他终端。已运行历史会话仍进入原终端，只有能核对 Ghostty 终端时才直接进入，不迁移或重复启动。macOS 可能要求允许控制终端或确认下载程序来源，按系统提示核对后授权，不关闭系统安全机制。`DEMO_NATIVE_DISABLED=1` 可显式禁用自动原生启动。
 
 本次开发宿主为 macOS，已验证生产启动模块的注入测试、页面/API 合同与 macOS 路由回归；尚未人工验证 Windows 可见窗口、键盘交互及 Windows Terminal 标签页。仓库提供 `node --import tsx tests/windows-terminal-runtime.ts` 与 Windows CI，使用无模型本地探针核对 PowerShell 5.1 / 7 的精确 cwd/argv 和三个控制台句柄；这与人工桌面验收分开记录，不以文件回执冒充交互成功。
 
@@ -128,3 +128,9 @@ node scripts/teams-demo.mjs --endpoint http://127.0.0.1:45970 context get --proj
 Windows PowerShell 可直接运行上面的分字段命令。作业入口提供带 `&` 的绝对路径命令，并用 `--input-file` 读取已导出的 scope JSON；不要把 JSON 内联到 PowerShell 5.1 的原生程序参数中。
 
 完整合同见 `skills/teams-demo-collaboration/SKILL.md`；启动材料会提供当前解压位置的绝对路径。读取不等于采用；进度写入需 scope、run/session、采用回执及稳定操作 ID。iCode 0.31.0 没有首轮提示参数，需在会话中显式阅读工作入口，不宣称自动加载。
+
+### 订阅后应用到 iCode
+
+在资源市场订阅固定版本后，可通过「应用到 iCode」核对并确认本机用户目录（通常为 `~/.chrys/skills`）。该目录跨项目可见，页面角色共用当前操作系统用户，但订阅记录按角色隔离。安装不会覆盖不同内容，也不改变任务冻结上下文；回执区分文件安装与原生发现、读取核验，不表示已有会话已重载。
+
+核验默认定位已安装 iCode 对应的 Python。仅当无法唯一定位时，配置 `DEMO_ICODE_PYTHON` 为该原生运行时 Python 的绝对路径，并确保版本与 `DEMO_ICODE_BINARY` 一致。

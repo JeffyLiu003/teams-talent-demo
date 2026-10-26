@@ -6,7 +6,6 @@ export const projectPages = [
   { key: 'content', label: '项目内容' },
   { key: 'management', label: '任务管理' },
   { key: 'delivery', label: '任务交付' },
-  { key: 'release', label: '发布跟踪' },
 ];
 
 export function ProjectToolbar({ activeKey, onChange, actions }: { activeKey: string; onChange(value: string): void; actions: ReactNode }) {

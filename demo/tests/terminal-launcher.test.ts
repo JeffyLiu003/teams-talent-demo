@@ -10,7 +10,7 @@ const decode = (encoded: string) => Buffer.from(encoded, 'base64').toString('utf
 function setup(env: NodeJS.ProcessEnv = {}, platform: NodeJS.Platform = 'win32') {
   const calls: { file: string; args: string[]; options: unknown }[] = [], resolved: string[] = [];
   let failure: Error | undefined, stdout = '4321\n';
-  const runtime: TerminalRuntime = { platform, env, resolveExecutable: async name => { resolved.push(name); if (name === input.executable || name === '/tools/icode') return name; if (name === 'pwsh.exe') return null; if (name === 'powershell.exe') return shell; if (name === 'wt.exe') return 'C:\\Windows\\wt.exe'; return null; }, execute: async (file,args,options) => { calls.push({file,args,options}); if (failure) throw failure; return { stdout }; } };
+  const runtime: TerminalRuntime = { platform, env, macTerminals: async () => [{id:'terminal',name:'Terminal',path:'/System/Applications/Utilities/Terminal.app'},{id:'ghostty',name:'Ghostty',path:'/Applications/Ghostty.app'}], resolveExecutable: async name => { resolved.push(name); if (name === input.executable || name === '/tools/icode') return name; if (name === 'pwsh.exe') return null; if (name === 'powershell.exe') return shell; if (name === 'wt.exe') return 'C:\\Windows\\wt.exe'; return null; }, execute: async (file,args,options) => { calls.push({file,args,options}); if (failure) throw failure; return { stdout }; } };
   return { runtime, calls, resolved, launcher: createTerminalLauncher(runtime), fail: () => { failure = new Error('process launch denied'); }, reply: (value: string) => { stdout = value; } };
 }
 test('Windows independent launch creates one new console with encoded data and returns its PID', async () => {
@@ -75,7 +75,7 @@ test('executable resolution pins relative PATH entries before changing project c
 });
 test('macOS still uses one Terminal AppleScript with shell-quoted cwd, instruction, and argv', async () => {
   const t=setup({},'darwin'); const receipt=await t.launcher.launch({executable:'/tools/icode',directory:"/tmp/project O'Brien &;",args:['--agent','a b','--model',"x'y"],instruction:'read $context;'});
-  assert.equal(receipt.terminal,'Terminal');assert.equal(t.calls.length,1);assert.equal(t.calls[0].file,'/usr/bin/osascript');assert.match(t.calls[0].args[1],/tell application "Terminal"/);
+  assert.equal(receipt.terminal,'Terminal');assert.equal(t.calls.length,1);assert.equal(t.calls[0].file,'/usr/bin/osascript');assert.match(t.calls[0].args[1],/tell application "\/System\/Applications\/Utilities\/Terminal.app"/);
   assert.ok(receipt.command.includes("O'\\''Brien"));assert.ok(receipt.command.includes("'--model' 'x'\\''y'"));
   t.fail();await assert.rejects(t.launcher.launch({executable:'/tools/icode',directory:'/tmp',args:[]}),/process launch denied/);assert.equal(t.calls.length,2);
 });
@@ -83,4 +83,28 @@ test('argument quoting retains empty values, internal quotes, and trailing backs
   assert.equal(windowsArgument(''),'""');assert.equal(windowsArgument('a"b'),'"a\\"b"');assert.equal(windowsArgument('a\\'),'"a\\\\"');assert.equal(windowsArgument('a\\"b'),'"a\\\\\\"b"');
   const t=setup({DEMO_WINDOWS_TERMINAL:'none'}); const receipt=await t.launcher.launch({...input,keepOpen:false});assert.match(receipt.command,/^exit \$toolExit$/m);assert.doesNotMatch(decode(t.calls[0].args[3]),/-NoExit/);
   const cli=formatShellCommand(['C:\\node.exe','C:\\CLI O\'Brien\\teams-demo.mjs','--input-file','C:\\scope 空格.json'],'win32');assert.match(cli,/^& 'C:\\node.exe'/);assert.match(cli,/O''Brien/);assert.match(cli,/'--input-file'/);
+});
+
+test('Ghostty creates its own configured surface; unavailable or denied selection never falls back', async () => {
+  const t=setup({},'darwin'), receipt=await t.launcher.launch({executable:'/tools/icode',directory:"/tmp/中文 O'Brien",args:['','"quoted"','$x;&'],terminal:'ghostty'});
+  assert.equal(receipt.terminal,'Ghostty');assert.equal(t.calls.length,1);assert.match(t.calls[0].args[1],/Ghostty.app/);assert.match(t.calls[0].args[1],/new window with configuration cfg/);assert.doesNotMatch(t.calls[0].args[1],/input text|do script/);
+  assert.equal(t.calls[0].args[3],"/tmp/中文 O'Brien");assert.ok(t.calls[0].args[2].startsWith('/bin/sh -c '));
+  t.fail();await assert.rejects(t.launcher.launch({executable:'/tools/icode',directory:'/tmp',args:[],terminal:'ghostty'}),/process launch denied/);assert.equal(t.calls.length,2);
+  t.runtime.macTerminals=async()=>[{id:'terminal',name:'Terminal',path:'/System/Applications/Utilities/Terminal.app'}];
+  await assert.rejects(createTerminalLauncher(t.runtime).launch({executable:'/tools/icode',directory:'/tmp',args:[],terminal:'ghostty'}),/所选终端不可用.*未改用其他终端/);assert.equal(t.calls.length,2);
+});
+
+test('local terminal preference persists independently, rejects invalid/missing choices and changed confirmations', async () => {
+  const {TerminalPreferences}=await import('../server/terminal-preferences.js');
+  const {mkdtemp,readFile,writeFile,rm}=await import('node:fs/promises');const {tmpdir}=await import('node:os');const {join}=await import('node:path');
+  const directory=await mkdtemp(join(tmpdir(),'terminal-preference-'));let options=[{id:'terminal',name:'Terminal'},{id:'ghostty',name:'Ghostty'}];
+  try {
+    const preferences=new TerminalPreferences(directory,'darwin',async()=>options);
+    assert.equal((await preferences.context()).selectedTerminal,'terminal');await preferences.select('ghostty');
+    assert.equal((await new TerminalPreferences(directory,'darwin',async()=>options).context()).selectedTerminal,'ghostty');assert.deepEqual(await preferences.selected('ghostty'),{id:'ghostty',name:'Ghostty'});
+    await assert.rejects(preferences.selected('terminal'),/配置已变化/);await assert.rejects(preferences.select('other'),/不可用/);
+    assert.deepEqual(JSON.parse(await readFile(join(directory,'terminal-preference.json'),'utf8')),{terminal:'ghostty'});
+    options=[options[0]];await assert.rejects(preferences.selected(),/所选终端不可用/);
+    await writeFile(join(directory,'terminal-preference.json'),'invalid');await assert.rejects(preferences.selected(),/读取失败/);await preferences.select('terminal');assert.equal((await preferences.selected()).id,'terminal');
+  } finally {await rm(directory,{recursive:true,force:true});}
 });

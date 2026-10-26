@@ -28,7 +28,7 @@ export interface ProjectWorkPlan {
   location: string;
   source: string;
   planToken: string;
-  instance: { installed: boolean; name: string; agent?: string; agentLabel?: string; model?: string; modelLabel?: string };
+  instance: { terminal?: { id: string; name: string; error?: string }; installed: boolean; name: string; agent?: string; agentLabel?: string; model?: string; modelLabel?: string };
   directory: { root: string | null; valid: boolean; kind: 'imported-snapshot' | 'git-binding'; diagnostic: string };
   history?: { sessionId: string; directory: string; title: string; available: boolean; diagnostic?: string; configuration?: {agent: string; agentLabel: string; model: string; modelLabel: string}; active: { pid: number; application: string | null; tty: string; terminal?: { id: string; title: string; directory: string }; diagnostic?: string } | null };
   context: { frozen: boolean; summary: string; versions: string; selectedSkills: string[]; assets: Array<{ title: string; location: string }> };

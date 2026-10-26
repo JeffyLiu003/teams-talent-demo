@@ -72,7 +72,7 @@
       "sha256": "21bfc884621ef17ba5cdd4e8b0dfb9896a1e9b631ec431b576a91a42ddffe5e2",
       "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
       "sourceSha256": "21bfc884621ef17ba5cdd4e8b0dfb9896a1e9b631ec431b576a91a42ddffe5e2",
-      "targetSha256": "3749b7eb2e8ab2d965d3f95130544d05843930a0c42189a243ea2056adcd100e",
+      "targetSha256": "625588c3fc9548f0983cfcf387075c4571a005aa9a29a898858e9e76bb9b9f9c",
       "mode": "react-presentation-port",
       "adaptation": "Ports resourceMeta, gridCard, listRow, card/renderLocal DOM hierarchy to React; demo commands are supplied by pages/resources.tsx."
     },

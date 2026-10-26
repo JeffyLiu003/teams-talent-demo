@@ -7,14 +7,26 @@ import { promisify } from 'node:util';
 import { access, stat } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { delimiter, isAbsolute, join, resolve, win32 } from 'node:path';
+import { homedir } from 'node:os';
 const exec = promisify(execFile);
-export interface TerminalInput { executable: string; directory: string; args: string[]; instruction?: string; keepOpen?: boolean }
+export interface TerminalInput { executable: string; directory: string; args: string[]; instruction?: string; keepOpen?: boolean; terminal?: string }
+export interface TerminalOption { id: string; name: string; path?: string }
+export async function macTerminals(directories = ['/System/Applications/Utilities', '/Applications', join(homedir(), 'Applications')]): Promise<TerminalOption[]> {
+  const found: TerminalOption[] = [];
+  for (const [id, name] of [['terminal', 'Terminal'], ['ghostty', 'Ghostty']]) for (const directory of directories) {
+    const path = join(directory, name + '.app');
+    try { if ((await stat(path)).isDirectory()) { found.push({ id, name, path }); break; } }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+  }
+  return found;
+}
 export interface TerminalRuntime {
   platform: NodeJS.Platform; env: NodeJS.ProcessEnv;
+  macTerminals(): Promise<TerminalOption[]>;
   resolveExecutable(name: string): Promise<string | null>;
   execute(file: string, args: string[], options: { cwd: string; env: NodeJS.ProcessEnv }): Promise<{ stdout: string } | void>;
 }
-export interface TerminalReceipt { status: 'terminal-requested'; terminal: 'Windows Terminal' | 'PowerShell' | 'Terminal'; pid?: number; command: string; note: string }
+export interface TerminalReceipt { status: 'terminal-requested'; terminal: 'Windows Terminal' | 'PowerShell' | 'Terminal' | 'Ghostty'; pid?: number; terminalId?: string; command: string; note: string }
 export const posixQuote = (value: string) => "'" + value.replaceAll("'", "'\\''") + "'";
 export const powershellQuote = (value: string) => "'" + value.replaceAll("'", "''") + "'";
 export function formatShellCommand(args: string[], platform: NodeJS.Platform = process.platform) {
@@ -47,7 +59,7 @@ export async function findExecutable(name: string, platform: NodeJS.Platform = p
 }
 export function createTerminalLauncher(overrides: Partial<TerminalRuntime> = {}) {
   const platform = overrides.platform ?? process.platform, env = overrides.env ?? process.env;
-  const runtime: TerminalRuntime = { platform, env, resolveExecutable: name => findExecutable(name, platform, env), execute: async (file, args, options) => { const result = await exec(file, args, { ...options, timeout: 15000, maxBuffer: 65536, windowsHide: true }); return { stdout: result.stdout }; }, ...overrides };
+  const runtime: TerminalRuntime = { platform, env, macTerminals, resolveExecutable: name => findExecutable(name, platform, env), execute: async (file, args, options) => { const result = await exec(file, args, { ...options, timeout: 15000, maxBuffer: 65536, windowsHide: true }); return { stdout: result.stdout }; }, ...overrides };
   async function configured(key: string, names: string[]) {
     const explicit = runtime.env[key];
     if (explicit) {
@@ -57,7 +69,11 @@ export function createTerminalLauncher(overrides: Partial<TerminalRuntime> = {})
     for (const name of names) { const found = await runtime.resolveExecutable(name); if (found) return found; }
     return null;
   }
-  return { async launch(input: TerminalInput): Promise<TerminalReceipt> {
+  return { async terminals(): Promise<TerminalOption[]> {
+    if (runtime.platform === 'darwin') return runtime.macTerminals();
+    if (runtime.platform === 'win32') return [{ id: 'system', name: runtime.env.WT_SESSION && runtime.env.DEMO_WINDOWS_TERMINAL !== 'none' && await configured('DEMO_WINDOWS_TERMINAL', ['wt.exe']) ? 'Windows Terminal' : 'PowerShell' }];
+    return [];
+  }, async launch(input: TerminalInput): Promise<TerminalReceipt> {
     if (runtime.env.DEMO_NATIVE_DISABLED === '1') throw new Error('此验证实例未开放真实原生启动');
     if (!['darwin', 'win32'].includes(runtime.platform)) throw new Error('自动终端启动仅支持 Windows 与 macOS；请在当前系统手工启动工具');
     for (const value of [input.executable, input.directory, ...input.args, input.instruction ?? '']) if (typeof value !== 'string' || value.includes('\0')) throw new Error('终端参数包含无效字符');
@@ -65,11 +81,18 @@ export function createTerminalLauncher(overrides: Partial<TerminalRuntime> = {})
     const executable = await runtime.resolveExecutable(input.executable); if (!executable) throw new Error('工具程序不存在：' + input.executable);
     if (runtime.platform === 'win32' && !/\.exe$/i.test(executable)) throw new Error('Windows 自动启动需要原生 .exe；不执行 .cmd/.bat 的二次 shell 解析。OpenCode 请设置 DEMO_OPENCODE_BINARY 为 opencode.exe 绝对路径，iCode 使用 DEMO_ICODE_BINARY。');
     if (runtime.platform === 'darwin') {
+      const selected = (await runtime.macTerminals()).find(item => item.id === (input.terminal ?? 'terminal'));
+      if (!selected?.path) throw new Error('所选终端不可用：' + (input.terminal ?? 'terminal') + '；请安装或在 Agent 管理中重新选择，未改用其他终端');
       const command = 'cd ' + posixQuote(input.directory) + ' && ' + (input.instruction ? 'printf ' + posixQuote('%s\n') + ' ' + posixQuote(input.instruction) + ' && ' : '') + formatShellCommand([executable, ...input.args], 'darwin');
-      const script = 'on run argv\ntell application "Terminal"\nactivate\ndo script (item 1 of argv)\nend tell\nend run';
-      await runtime.execute('/usr/bin/osascript', ['-e', script, command], { cwd: input.directory, env: runtime.env });
-      return { status: 'terminal-requested', terminal: 'Terminal', command, note: '系统已受理 Terminal 启动请求；不代表模型执行或上下文已读取。' };
+      const application = '"' + selected.path.replaceAll('\\', '\\\\').replaceAll('"', '\\"') + '"';
+      // Create a new surface; never send a command to an existing user session.
+      const script = selected.id === 'ghostty'
+        ? 'on run argv\ntell application ' + application + '\nset cfg to new surface configuration\nset initial working directory of cfg to item 2 of argv\nset command of cfg to item 1 of argv\nset wait after command of cfg to ' + (input.keepOpen === false ? 'false' : 'true') + '\nset agentWindow to new window with configuration cfg\nactivate window agentWindow\nreturn id of (focused terminal of selected tab of agentWindow)\nend tell\nend run'
+        : 'on run argv\ntell application ' + application + '\nactivate\nset agentTab to do script (item 1 of argv)\nreturn tty of agentTab\nend tell\nend run';
+      const reply = await runtime.execute('/usr/bin/osascript', ['-e', script, selected.id === 'ghostty' ? '/bin/sh -c ' + posixQuote(command) : command, input.directory], { cwd: input.directory, env: runtime.env });
+      return { status: 'terminal-requested', terminal: selected.name as 'Terminal' | 'Ghostty', ...(reply?.stdout.trim() ? { terminalId: reply.stdout.trim() } : {}), command, note: '系统已受理 ' + selected.name + ' 启动请求；不代表模型执行或上下文已读取。' };
     }
+    if (input.terminal && input.terminal !== 'system') throw new Error('所选终端不适用于 Windows，未启动其他终端');
     const shell = await configured('DEMO_POWERSHELL_BINARY', ['pwsh.exe', 'powershell.exe', ...(runtime.env.SystemRoot ? [win32.join(runtime.env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe')] : [])]);
     if (!shell) throw new Error('未找到 PowerShell；请安装 PowerShell 7 或设置 DEMO_POWERSHELL_BINARY 为 powershell.exe / pwsh.exe 绝对路径');
     const command = powershellPayload({ ...input, executable }), encoded = Buffer.from(command, 'utf16le').toString('base64');

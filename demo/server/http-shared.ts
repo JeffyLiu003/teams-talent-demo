@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DomainError } from '../src/domain.js';
+import { readSkillCatalog } from './skill-packages.js';
 import { root, workspace, origin, talentOrigin } from './config.js';
 
 export function headers(request: IncomingMessage, response: ServerResponse) {
@@ -33,5 +34,6 @@ export async function staticFile(path: string, app: 'teams' | 'talent', response
 export async function readFixtures() {
   const [presentation, baseline, teamsProject] = await Promise.all(['fixtures/presentation.json', 'teams-baseline.json', 'fixtures/teams-project.json'].map(path => readFile(join(root, path), 'utf8').then(JSON.parse)));
   const skills = presentation.skills.map((skill: { name: string }) => ({ ...skill, path: join(workspace, 'skills', skill.name, 'SKILL.md') }));
-  return { ...presentation, skills, baseline, teamsProject, localPaths: { collaborationSkill: join(root, 'skills/teams-demo-collaboration/SKILL.md'), cli: join(root, 'scripts/teams-demo.mjs') } };
+  const catalog = await readSkillCatalog();
+  return { ...presentation, ...catalog, skills, baseline, teamsProject, localPaths: { collaborationSkill: join(root, 'skills/teams-demo-collaboration/SKILL.md'), cli: join(root, 'scripts/teams-demo.mjs') } };
 }

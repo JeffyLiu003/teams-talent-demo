@@ -26,14 +26,20 @@ try{
   assert.equal(await page.locator('[data-platform="requirements"]').getByRole('button',{name:'在项目中使用',exact:true}).isEnabled(),false);
   const checks=[
     ['repository','代码托管平台','CardDemo Java 项目','carddemo-java-1025',6],
-    ['requirements','需求平台','信用卡消费返现','MKT-001',7],
-    ['defects','缺陷平台','未报名时应提供餐饮活动报名入口','CARD-BUG-001',3],
+    ['requirements','需求平台','信用卡消费返现','MKT-001',11],
+    ['defects','缺陷平台','未报名时应提供餐饮活动报名入口','CARD-BUG-001',8],
     ['design-library','设计文档 / 知识库','营销能力设计','marketing-capability',7],
     ['test-assets','测试资产平台','白金卡客户范围','CARD-TC-01',7],
   ] as const;
   for(const [id,name,title,record,count] of checks){
     await page.getByRole('button',{name:'查看'+name+'数据',exact:true}).click();const drawer=page.locator('.enterprise-source-drawer');await drawer.getByRole('button',{name:title,exact:true}).waitFor();
-    assert.equal(await drawer.locator('.ant-table-row').count(),count);await drawer.getByText('信用卡营销交付',{exact:true}).first().waitFor();await drawer.getByText('iCode Teams',{exact:true}).first().waitFor();
+    const recordIds:string[]=[];
+    while(true){recordIds.push(...await drawer.locator('.ant-table-row').evaluateAll(rows=>rows.map(row=>row.getAttribute('data-row-key')!)));const next=drawer.locator('.ant-pagination-next:not(.ant-pagination-disabled)');if(!await next.count())break;await next.click();}
+    assert.equal(recordIds.length,count);assert.equal(new Set(recordIds).size,count);
+    if(id==='requirements')assert.deepEqual(recordIds.map(value=>value.split(':').at(-1)),['DEMO-MKT-001','MKT-002','MKT-003','MKT-004','MKT-005','REQ-T104','REQ-T105','REQ-T106','REQ-T107','REQ-T108','REQ-WINDOWS-RECONNECT']);
+    if(id==='defects')assert.deepEqual(recordIds.map(value=>value.split(':').at(-1)),['CARD-BUG-001','CARD-BUG-002','CARD-BUG-003','CARD-BUG-004','CARD-BUG-005','CARD-BUG-006','CARD-BUG-007','TEAMS-BUG-001']);
+    const firstPage=drawer.locator('.ant-pagination-item-1');if(await firstPage.count())await firstPage.click();
+    await drawer.getByText('信用卡营销交付',{exact:true}).first().waitFor();await drawer.getByText('iCode Teams',{exact:true}).first().waitFor();
     await drawer.getByRole('button',{name:title,exact:true}).click();await drawer.getByRole('heading',{name:title,exact:true}).waitFor();await drawer.getByText(record,{exact:true}).waitFor();
     assert.ok((await drawer.locator('.enterprise-source-detail').innerText()).includes('来源记录'));
     if(id==='design-library'){await drawer.getByRole('button',{name:'阅读营销能力设计',exact:true}).click();await drawer.locator('.enterprise-source-reference pre').waitFor();assert.ok((await drawer.locator('.enterprise-source-reference pre').innerText()).includes('营销'));}

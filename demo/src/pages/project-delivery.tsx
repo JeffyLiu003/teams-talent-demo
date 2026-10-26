@@ -10,6 +10,9 @@ import { userSkillExamples } from '../project-skill-examples.js';
 import { stageLabels } from '../domain.js';
 import { RequirementMaterials } from './project-content.js';
 import { ProjectAcceptance } from './project-acceptance.js';
+import { availableSkillIdsFor, projectSkillIds, resourceSubscriptions } from '../resource-sharing.js';
+import { SkillApplication } from '../components/skill-application.js';
+import { getResourceContent } from '../api.js';
 
 export type DeliveryNode = 'prepare' | 'develop' | 'verify' | 'accept';
 export const nodeLabels: Record<DeliveryNode, string> = { prepare: '需求准备', develop: '开发', verify: '验证', accept: '验收' };
@@ -39,10 +42,28 @@ export function ProjectDelivery({ node }: { node: DeliveryNode }) {
 function PrepareNode() {
   const { state, data, role, update, busy, showText, navigate } = useDemo();
   const frozen = !!state.context;
+  const [skillReadError, setSkillReadError] = useState('');
+  const available = new Set(availableSkillIdsFor(state, role));
+  const subscriptions = new Map(resourceSubscriptions(state, role).map(item => [item.id, item]));
+  const subscribedSkills = data.skills.filter(skill => !projectSkillIds.includes(skill.name) && available.has(skill.name));
+  const readSelectedSkill = async (name: string) => {
+    setSkillReadError('');
+    try {
+      const binding = frozen ? state.context?.skillBindings?.find(item => item.id === name) : subscriptions.get(name);
+      if (binding?.sha256) {
+        const result = await getResourceContent(role, { resourceId: name, version: binding.version, sha256: binding.sha256 });
+        showText(name + ' · ' + result.version, result.content);
+      } else {
+        const content = data.skillContents[name] ?? userSkillExamples.find(skill => skill.id === name)?.content;
+        if (!content) throw new Error('此 Skill 正文暂不可用，请重新读取资源数据。');
+        showText(name + (frozen && data.skillContents[name] ? ' · 项目来源正文（冻结记录未保存内容包哈希）' : ''), content);
+      }
+    } catch (cause) { setSkillReadError((cause as Error).message); }
+  };
   return <>
     <FrameworkCard title="输入与采用依据" action={<Origin kind="simulated" />}><Descriptions size="small" column={1} items={[{ key: 'requirement', label: '需求', children: 'MKT-001 · 修订 1' }, { key: 'description', label: '需求描述', children: '针对白金卡客户未来 3 个月的消费，额外增加 0.5% 的消费返现。' }, { key: 'pending', label: '待确认细则', children: '活动日期、周期起算、消费范围、是否报名、消费门槛、返现上限及结算方式均待确认。' }, { key: 'knowledge', label: '项目知识', children: state.knowledge ? <Tag color="green">knowledge-v1 已就绪</Tag> : <Tag color="gold">等待 Owner 发起整合</Tag> }, { key: 'agent', label: 'Agent', children: 'Code Agent ' + (state.context?.agentVersion ?? state.adoptedAgent) }, { key: 'scope', label: '业务范围', children: '仅白金卡客户 · 未来 3 个月 · 额外 0.5% 消费返现' }]} /><Space wrap><Button href={talentLink('knowledge')}>查看项目知识</Button><Button onClick={() => navigate('projects?tab=content')}>查看项目资产</Button></Space></FrameworkCard>
     <FrameworkCard title="需求补充材料"><RequirementMaterials /></FrameworkCard>
-    <FrameworkCard title="本次采用的 Skill" action={<Tag>{state.workspace.selectedSkills.length} 项{frozen ? '已冻结' : '已选'}</Tag>}><p>按本需求选择项目 Skill 或用户 Skill，查看内容后与上下文一起采用。</p><Select aria-label="选择业务 Skill" mode="multiple" className="project-skill-select" value={state.workspace.selectedSkills} disabled={role !== 'member' || frozen || busy} options={[{ label: '项目 Skill', options: data.skills.filter(skill => data.blueprint.skill_groups.some(group => group.skills.includes(skill.name))).map(skill => ({ label: skill.name, value: skill.name })) }, { label: '用户 Skill', options: userSkillExamples.map(skill => ({ label: skill.name, value: skill.id })) }]} onChange={skills => void update('skills.select', { skills })} placeholder="选择本需求需要的业务 Skill" optionFilterProp="label" /><div className="skill-pills">{state.workspace.selectedSkills.map(name => <button key={name} onClick={() => showText(name, data.skillContents[name] ?? userSkillExamples.find(skill => skill.id === name)?.content ?? data.skills.find(skill => skill.name === name)?.description ?? name)}>{name}</button>)}</div><p className="muted">项目和用户已有 Skill 可直接选用；用户 Skill 的实际发现与加载由当前工具会话确认。</p><Button size="small" onClick={()=>navigate('projects?tab=content')}>查看项目与用户 Skill</Button></FrameworkCard>
+    <FrameworkCard title="本次采用的 Skill" action={<Tag>{state.workspace.selectedSkills.length} 项{frozen ? '已冻结' : '已选'}</Tag>}><p>按本需求选择项目 Skill 或用户 Skill，查看内容后与上下文一起采用。</p><Select aria-label="选择业务 Skill" mode="multiple" className="project-skill-select" value={state.workspace.selectedSkills} disabled={role !== 'member' || frozen || busy} options={[{ label: '项目 Skill', options: data.skills.filter(skill => projectSkillIds.includes(skill.name)).map(skill => ({ label: skill.name, value: skill.name })) }, { label: '我的订阅', options: subscribedSkills.map(skill => ({ label: skill.name + ' · ' + subscriptions.get(skill.name)!.version, value: skill.name })) }, { label: '用户 Skill', options: userSkillExamples.map(skill => ({ label: skill.name, value: skill.id })) }]} onChange={skills => void update('skills.select', { skills })} placeholder="选择本需求需要的业务 Skill" optionFilterProp="label" /><div className="skill-pills">{state.workspace.selectedSkills.map(name => <Space wrap key={name}><button onClick={() => void readSelectedSkill(name)}>{name}</button>{!!subscriptions.get(name)?.sha256 && <SkillApplication projectId="carddemo" resourceId={name} version={subscriptions.get(name)!.version} sha256={subscriptions.get(name)!.sha256} />}</Space>)}</div>{skillReadError && <Alert type="error" title="Skill 正文读取失败" description={skillReadError} />}<p className="muted">原有项目与用户 Skill 可直接选用；其余市场 Skill 只列出当前用户已订阅的版本。订阅与本机应用不改变本次冻结记录，加载状态以应用核验及工具会话为准。</p><Space wrap><Button size="small" onClick={()=>navigate('projects?tab=content')}>查看项目与用户 Skill</Button><Button size="small" onClick={()=>navigate('resources')}>前往资源市场订阅</Button></Space></FrameworkCard>
     <FrameworkCard title="确认采用并进入开发" action={<Tag color={frozen ? 'green' : 'default'}>{frozen ? '已冻结' : '待采用'}</Tag>}><StatusLine complete={state.assigned}>需求已分配给陈晨</StatusLine><StatusLine complete={state.workspace.selectedSkills.length > 0}>已选择可用 Skill · Code Agent 已就绪</StatusLine><StatusLine complete={state.knowledge}>项目知识已就绪</StatusLine><StatusLine complete={frozen}>需求材料与业务 Skill 已冻结</StatusLine>{state.context && <p><Mono>{state.context.id}</Mono> · Skill {state.context.skillVersion} / Agent {state.context.agentVersion}</p>}<Space wrap><ActionButton action="prepare" role="member" disabled={!state.knowledge || !state.assigned || !state.workspace.selectedSkills.length || frozen}>{frozen ? '上下文已冻结' : '采用能力并冻结上下文'}</ActionButton><Button disabled={!frozen} onClick={() => navigate('projects?tab=delivery&node=develop')}>进入开发节点</Button></Space><p className="muted">顶部「iCode 作业」用于启动或继续原生会话，并导出上下文供 iCode 显式读取。</p></FrameworkCard>
   </>;
 }

@@ -1,10 +1,10 @@
 import { displayText } from '../display-text.js';
 import { useState } from 'react';
-import { Alert, Button, Descriptions, Drawer, Empty, Input, Select, Space, Table, Tabs, Tag } from 'antd';
+import { Alert, Button, Descriptions, Drawer, Input, Select, Space, Table, Tabs, Tag } from 'antd';
 import { ArrowRightOutlined, CodeOutlined, FileTextOutlined, FolderOpenOutlined } from '@ant-design/icons';
 import { useDemo } from '../context.js';
 import { FrameworkCard } from '../vendor/teams/components/page-layout.js';
-import { MiniStat, Mono } from '../components/common.js';
+import { Mono } from '../components/common.js';
 import { ProjectToolbar, projectPages as tabs } from '../components/project-toolbar.js';
 import { ProjectContentTemplate } from '../components/project-content-template.js';
 import { ProjectAssets } from '../components/project-assets.js';
@@ -21,8 +21,8 @@ const teamRoute = (tab:string, extra:Record<string,string>={}) => 'projects?'+ne
 const memberName = (id:string) => id==='U'?'待分配':'成员 '+id;
 
 export function TeamsProjectCard() {
-  const {data,navigate}=useDemo(),s=data.teamsProject,p=s.project;
-  return <FrameworkCard title={p.name} action={sourceTag}><p>{displayText(p.description)}</p><Descriptions size="small" column={2} items={[{key:'team',label:'所属团队',children:'Teams 开发团队'},{key:'owner',label:'项目 Owner',children:memberName(p.owner)},{key:'repo',label:'主仓',children:p.repos[0].name},{key:'scope',label:'项目数据',children:s.tasks.length+' 个任务 · '+s.releases.length+' 个版本'}]} /><Space wrap><Button type="primary" onClick={()=>navigate(teamRoute('content'))}>进入 iCode Teams</Button><Button onClick={()=>navigate(teamRoute('management'))}>任务管理</Button><Button onClick={()=>navigate(teamRoute('release'))}>发布跟踪</Button></Space></FrameworkCard>;
+  const {data,role,navigate}=useDemo(),s=data.teamsProject,p=s.project;
+  return <FrameworkCard title={p.name} action={sourceTag}><p>{displayText(p.description)}</p><Descriptions size="small" column={2} items={[{key:'team',label:'所属团队',children:'Teams 开发团队'},{key:'owner',label:'项目 Owner',children:memberName(p.owner)},{key:'repo',label:'主仓',children:p.repos[0].name},{key:'scope',label:'项目数据',children:s.tasks.length+' 个任务 · '+s.releases.length+' 个版本'}]} /><Space wrap><Button type="primary" data-project-primary="teams" aria-label={(role==='owner'?'进入任务管理：':'进入任务交付：')+p.name} onClick={()=>navigate(teamRoute(role==='owner'?'management':'delivery'))}>{role==='owner'?'进入任务管理':'进入任务交付'}</Button><Button onClick={()=>navigate(teamRoute('content'))}>项目资料</Button>{role==='owner'&&<Button onClick={()=>navigate(teamRoute('delivery'))}>交付与验收</Button>}</Space></FrameworkCard>;
 }
 
 export function TeamsProject({params}:{params:URLSearchParams}) {
@@ -51,8 +51,8 @@ export function TeamsProject({params}:{params:URLSearchParams}) {
       requirements={<><div className="talent-rule-grid">{p.sources.map(source=><div key={source.name}><h3>{source.name}</h3><p>{displayText(source.description)}</p><Tag>{source.status}</Tag></div>)}</div><p className="muted">{displayText(p.runtime)}</p><Button onClick={()=>jump('management')}>进入任务管理 <ArrowRightOutlined/></Button></>}
       skills={p.skills.map(skill=>{const path='.agents/skills/'+skill.name+'/SKILL.md';return {...skill,version:'源码快照 '+s.sourceCommit.slice(0,7),source:'原 Teams 仓库快照',path,content:s.documents.find(doc=>doc.path===path)?.content};})}
       skillFooter={<div className="project-skill-context"><p>本项目保留原任务流程，任务输入与节点记录可在交付页面查看。</p><Button onClick={()=>jump('delivery',{task:s.selection.taskId,node:s.tasks.find(task=>task.id===s.selection.taskId)!.nodes[0].id})}>查看任务准备与输入</Button></div>}
-    />:tab==='management'?<ImportedManagement snapshot={s} params={params} jump={jump}/>:tab==='delivery'?<ImportedDelivery snapshot={s} params={params} jump={jump}/>:<ImportedRelease snapshot={s} params={params} jump={jump}/>}
-    <Drawer title="iCode Teams · 项目作业记录" open={sessions} onClose={()=>setSessions(false)} width={650}><div className="page-stack"><Alert type="info" title="项目作业上下文" description="以下内容来自 Teams 预置会话快照，关联需求讨论、交付节点和版本观察。"/>{s.sessions.map(session=><FrameworkCard key={session.key} title={displayText(session.title)} action={<Tag>{displayText(session.status)}</Tag>}><p>{displayText(session.location)} · {memberName(session.owner)}</p><h3>{displayText(session.resultTitle)}</h3><p>{displayText(session.resultText)}</p><Button onClick={()=>{setSessions(false);const target=session.target;jump(target.page,{...(target.item?{discussion:target.item}:{}),...(target.task?{task:target.task}:{}),...(target.node?{node:target.node}:{}),...(target.version?{release:target.version}:{})});}}>查看关联事项</Button><Button type="link" onClick={()=>showText(session.short+' · 作业上下文',JSON.stringify(session,null,2))}>查看完整上下文</Button></FrameworkCard>)}</div></Drawer>
+    />:tab==='management'?<ImportedManagement snapshot={s} params={params} jump={jump}/>:tab==='delivery'?<ImportedDelivery snapshot={s} params={params} jump={jump}/>:null}
+    <Drawer title="iCode Teams · 项目作业记录" open={sessions} onClose={()=>setSessions(false)} width={650}><div className="page-stack"><Alert type="info" title="项目作业上下文" description="以下内容来自 Teams 预置会话快照，关联需求讨论、交付节点和版本观察。"/>{s.sessions.map(session=><FrameworkCard key={session.key} title={displayText(session.title)} action={<Tag>{displayText(session.status)}</Tag>}><p>{displayText(session.location)} · {memberName(session.owner)}</p><h3>{displayText(session.resultTitle)}</h3><p>{displayText(session.resultText)}</p>{session.target.page!=='release'&&<Button onClick={()=>{setSessions(false);const target=session.target;jump(target.page,{...(target.item?{discussion:target.item}:{}),...(target.task?{task:target.task}:{}),...(target.node?{node:target.node}:{}),...(target.version?{release:target.version}:{})});}}>查看关联事项</Button>}<Button type="link" onClick={()=>showText(session.short+' · 作业上下文',JSON.stringify(session,null,2))}>查看完整上下文</Button></FrameworkCard>)}</div></Drawer>
   </div>;
 }
 
@@ -82,20 +82,7 @@ function ImportedDelivery({snapshot:s,params,jump}:{snapshot:Snapshot;params:URL
       <div className="imported-flow-scroll"><div className="imported-flow">{primary.map((n,i)=><div className="imported-flow-step" key={n.id}>{nodeButton(n)}{i<primary.length-1&&<ArrowRightOutlined/>}</div>)}</div>{parallel&&<div className="imported-parallel"><span>需求澄清后并行</span><ArrowRightOutlined/>{nodeButton(parallel)}<ArrowRightOutlined/><span>与开发实现汇合，进入测试验证</span></div>}</div>
       {parallel&&<p className="muted">设计评审可退回方案设计；测试准备与设计、实现并行。流程关系沿用原项目。</p>}
       <FrameworkCard title={selected.name} action={<Tag>{selected.status}</Tag>}><Descriptions size="small" column={1} items={[{key:'owner',label:'节点责任人',children:selected.owner},{key:'brief',label:'当前进展',children:displayText(selected.brief)},{key:'output',label:'已有成果',children:displayText(selected.output)} ]}/><Button onClick={()=>showText(task.id+' / '+selected.name+' · 原节点数据',JSON.stringify(selected,null,2))}>查看节点记录</Button></FrameworkCard>
-      <CollaborationProgress projectId="teams" taskId={task.id} /><FrameworkCard title="任务目标与交付标准"><p>{displayText(task.goal)}</p><p><strong>范围：</strong>{displayText(task.scope)}</p><ul>{task.criteria.map(c=><li key={c}>{c}</li>)}</ul><p className="muted">来源：{displayText(task.origin)}</p><Button onClick={()=>jump('release',{release:task.version})}>查看所属版本</Button></FrameworkCard>
+      <CollaborationProgress projectId="teams" taskId={task.id} /><FrameworkCard title="任务目标与交付标准"><p>{displayText(task.goal)}</p><p><strong>范围：</strong>{displayText(task.scope)}</p><ul>{task.criteria.map(c=><li key={c}>{c}</li>)}</ul><p className="muted">来源：{displayText(task.origin)}</p></FrameworkCard>
     </main>
-  </div>;
-}
-
-function ImportedRelease({snapshot:s,params,jump}:{snapshot:Snapshot;params:URLSearchParams;jump:(tab:string,extra?:Record<string,string>)=>void}) {
-  const {showText}=useDemo();
-  const version=s.releases.find(r=>r.name===(params.get('release')??s.selection.version));
-  if(!version)return <Empty description="该任务尚未纳入已导入的发布版本"><Button onClick={()=>jump('release')}>查看版本列表</Button></Empty>;
-  const scoped=s.tasks.filter(t=>t.version===version.name);
-  return <div className="page-stack"><Space wrap><span>发布版本</span><Select aria-label="选择 Teams 发布版本" className="imported-version-select" value={version.name} onChange={release=>jump('release',{release})} options={s.releases.map(r=>({value:r.name,label:r.name+' · '+r.title}))}/><Tag>{version.status}</Tag>{sourceTag}</Space>
-    <FrameworkCard title={version.name+' · '+version.title}><p>{displayText(version.summary)}</p><Descriptions size="small" column={2} items={[{key:'owner',label:'Owner',children:memberName(version.owner)},{key:'date',label:'发布时间',children:version.date},{key:'window',label:'观察窗口',children:version.window},{key:'result',label:'版本结果',children:version.releaseResult??'尚未发布'} ]}/></FrameworkCard>
-    <div className="metrics-row"><MiniStat label="目标客户端" value={version.target} note="版本记录"/><MiniStat label="已升级" value={version.upgraded} note="原观察窗口"/><MiniStat label="待升级 / 离线" value={version.pending+' / '+version.offline} note="状态分别统计"/><MiniStat label="升级失败" value={version.failed} note="可查看版本原始记录"/></div>
-    <FrameworkCard title="当前任务清单中的关联需求">{scoped.length?<Table rowKey="id" size="small" pagination={false} dataSource={scoped} columns={[{title:'任务',render:(_,t)=><Button type="link" onClick={()=>jump('delivery',{task:t.id})}>{t.id} · {t.title}</Button>},{title:'负责人',dataIndex:'owner',render:memberName},{title:'状态',dataIndex:'status',render:value=><Tag>{value}</Tag>} ]}/>:<p className="muted">历史版本保留在下方特性观察中，本次任务清单未包含对应历史任务。</p>}</FrameworkCard>
-    <FrameworkCard title="版本特性与观察记录"><Table rowKey="id" size="middle" pagination={false} scroll={{x:760}} dataSource={version.features} columns={[{title:'特性 / 关联任务',render:(_,f)=><><strong>{f.name}</strong><p className="muted">{f.task} · {memberName(f.owner)} · {f.kind}</p></>},{title:'使用样本',render:(_,f)=>f.observed+' 次 / '+f.devices+' 台'},{title:'完成 / 失败 / 待处理',render:(_,f)=>f.completed+' / '+f.failed+' / '+f.pending},{title:'观察结论',render:(_,f)=>f.conclusion||'待核对'},{title:'详情',render:(_,f)=><Button size="small" onClick={()=>showText(version.name+' · '+f.name,JSON.stringify(f,null,2))}>查看特性</Button>} ]}/><p className="muted">发布统计与特性记录保留原版本快照。特性中的历史任务编号可能不在当前 5 条任务清单中。</p><Button onClick={()=>showText(version.name+' · 原始版本记录',JSON.stringify(version,null,2))}>查看完整版本数据</Button></FrameworkCard>
   </div>;
 }
