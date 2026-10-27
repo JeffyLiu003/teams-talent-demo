@@ -1,6 +1,8 @@
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadLocalConfiguration } from './local-config.ts';
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+export const localConfiguration = loadLocalConfiguration(root);
 export const materialRoot = resolve(process.env.DEMO_MATERIAL_ROOT ?? join(root, '..'));
 export const workspace = join(materialRoot, 'workspace');
 export const codeRoot = join(workspace, 'carddemo-java-1025');

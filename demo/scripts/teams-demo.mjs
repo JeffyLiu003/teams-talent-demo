@@ -2,9 +2,8 @@
 // Demo adaptation of Teams collaboration CLI. All writes stay on the explicit local demo endpoint.
 import { readFile, mkdir, open, rename } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { runtimeDir, origin as configuredOrigin } from '../server/config.ts';
 import { createHash, randomUUID } from 'node:crypto';
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const help = `Teams CLI · 本机接入
 context get | inputs adopt | progress add | result submit | session report | operation get
 --endpoint http://127.0.0.1:45970 (或 DEMO_ORIGIN)
@@ -24,7 +23,7 @@ try {
   const tokens = process.argv.slice(2), options = {}, positional = [];
   const allowed = new Set(['endpoint','input','input-file','project','task','node','tab','operation-id','output','receipt-dir','role']);
   for (let i = 0; i < tokens.length; i++) { const token = tokens[i]; if (token === '--help' || token === '-h') { console.log(help); process.exit(0); } if (!token.startsWith('--')) { positional.push(token); continue; } const name = token.slice(2); if (!allowed.has(name) || Object.hasOwn(options,name) || tokens[i+1] === undefined || tokens[i+1].startsWith('--')) throw new Error('未知、重复或缺少值的参数：' + token); options[name] = tokens[++i]; }
-  const command = positional.join(' '), base = options.endpoint ?? process.env.DEMO_ORIGIN ?? 'http://127.0.0.1:45970';
+  const command = positional.join(' '), base = options.endpoint ?? process.env.DEMO_ORIGIN ?? configuredOrigin;
   const parsed = new URL(base); if (parsed.hostname !== '127.0.0.1' || parsed.protocol !== 'http:' || parsed.pathname !== '/' || parsed.search || parsed.hash || parsed.username || parsed.password) throw new Error('Teams CLI 仅允许明确的本机 HTTP origin');
   const origin = parsed.origin;
   async function request(path, body, token) { const response = await fetch(origin + path, { redirect: 'error', signal: AbortSignal.timeout(15000), ...(body ? { method: 'POST', headers: { 'content-type':'application/json', origin, 'x-demo-token':token }, body:JSON.stringify(body) } : {}) }); const value = await response.json(); if (!response.ok) throw new Error(`HTTP ${response.status}: ${value.error ?? '请求失败'}`); return value; }
@@ -48,7 +47,7 @@ try {
     const payload = { role: options.role ?? 'member', kind, input, operationId: options['operation-id'] };
     const envelope = JSON.stringify({ endpoint:origin, payload },null,2) + '\n';
     const name = createHash('sha256').update(origin + ':' + payload.operationId).digest('hex');
-    requestPath = join(resolve(options['receipt-dir'] ?? process.env.DEMO_CLI_RECEIPTS ?? join(root,'.runtime/cli-receipts')),name + '.request.json');
+    requestPath = join(resolve(options['receipt-dir'] ?? process.env.DEMO_CLI_RECEIPTS ?? join(runtimeDir,'cli-receipts')),name + '.request.json');
     await mkdir(dirname(requestPath),{recursive:true});
     try { const f = await open(requestPath,'wx',0o600); try { await f.writeFile(envelope); await f.sync(); } finally { await f.close(); } }
     catch (error) { if (error.code !== 'EEXIST') throw error; if (await readFile(requestPath,'utf8') !== envelope) throw new Error('本地已有相同操作 ID 的不同请求；拒绝覆盖。'); }

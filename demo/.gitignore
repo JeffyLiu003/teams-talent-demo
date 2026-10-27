@@ -4,3 +4,5 @@ dist/
 .talent-runtime/
 test-results/
 .DS_Store
+
+.local/

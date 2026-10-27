@@ -44,3 +44,7 @@ npm run test:http
 ```
 
 完整入口与场景说明见 [项目说明](demo/README.md) 和 [页面地图](demo/docs/page-map.md)。
+
+## 单一开发与运行目录
+
+直接在本 Git 仓库的 `demo` 中开发、构建和运行，不维护另一份需要复制同步的应用目录。本机外部工具路径与独立持久状态目录通过被忽略的 `demo/.local/config.json` 保存，所有 npm 启停入口共用，显式环境变量优先。配置规则见[快速启动说明](demo/docs/quick-start.md#本机持久配置)。本机原始材料和既有会话文件可保留在归档中，不进入本配置或公开 fixture。
