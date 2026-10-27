@@ -40,11 +40,19 @@ git merge origin/main
 | `teams/src/source-plugins.ts`、`external-platforms.ts`、`pages/organization.tsx` | 删除 `business-knowledge` 来源和 Talent 接入页签；ADR-009/ADR-007 改指真实 ADR |
 | `teams/server/collaboration-service.ts` | 项目知识改为从共享目录读取 |
 | `teams/package.json`、`package-lock.json` | 新增依赖 `marked`，删除 `*:talent` 脚本。lock 冲突时取 main 的版本，再执行 `npm install` |
+| `teams/server/talent-intake.ts` | 删除 `TalentTaskIntakeService` 与需求登记；改为 `sharedTaskInputs()`、`exportTaskSessions()` |
+| `teams/server/task-automation.ts` | 验收后的会话写入共享目录，不再 POST 到 Talent |
+| `teams/src/talent-contract.ts` | 只保留任务输入与会话共享的类型；知识条目改为 `TaskKnowledgeAsset`，删除 `TalentTaskInputRegistration` |
+| `start-demo.cmd` | 改为在仓库根目录启动两边，trace 依赖路径改为 `teams\...` |
 
 **如果你改过下列已删除的文件**，会出现 `modify/delete` 冲突：
 
 - `server/talent.ts`、`talent-store.ts`、`talent-integration.ts`、`talent-knowledge.ts`
 - `src/pages/talent.tsx`、`talent.css`、`talent-contract.ts`、`talent-artifacts.ts`
+
+`talent-contract.ts` 例外：它仍在 `teams/src/` 下，冲突时以 main 的版本为准，再移植你的改动。
+
+**如果你新增或改过 trace 相关文件**（`demo/trace-monitor/`、`demo/trace-server/`），它们已移到 `teams/trace-monitor/`、`teams/trace-server/`，按第 1 步的 `CONFLICT (file location)` 处理。
 
 Talents 的功能已移到 `talents/` 项目，技术栈不同，需要在那边重新实现，或者和 Talents 的维护人确认后再放弃这部分改动。
 
@@ -56,6 +64,7 @@ Talents 的功能已移到 `talents/` 项目，技术栈不同，需要在那边
    - 旧的 `demo/.talent-runtime/` 已不再使用。
 2. 在 `teams/` 下执行 `npm ci`；如果要同时运行 Talents，在仓库根目录执行 `npm run setup`。
 3. 代码、文档、fixture 中写死的 `demo/...` 路径改为 `teams/...`。
+4. 已有的 trace 数据 `demo/trace-server/trace_data/` 挪到 `teams/trace-server/trace_data/`。trace-monitor 依赖由 `npm run setup` 和启动脚本安装；Python 依赖见 README。
 
 ## 三、接口变化对照
 
@@ -71,7 +80,10 @@ Talents 的功能已移到 `talents/` 项目，技术栈不同，需要在那边
 | `business-knowledge` 来源插件、`talent` 企业连接、`SourceAssetKind` 的 `'knowledge'` | 删除。Talents 产物只在「项目知识」中展示。旧状态文件里残留的 `talent` 连接不影响运行 |
 | `npm run start:teams` / `launch:teams` / `stop:teams` | 仍可用，等同于 `npm start` / `launch` / `stop`。`*:talent` 和 `test:talent:services` 已删除，同时启动两边改用仓库根目录的 `npm run dev` |
 | 本机配置项 `DEMO_TALENT_STATE_DIR` | 仍被接受，但不再使用。新增 `DEMO_SHARED_DIR`（共享目录，默认 `shared/data`）和 `DEMO_SHARED_SEED_DIR`（默认 `shared/seed`） |
-| 测试中启动 `server/talent.ts`，或点击知识整合按钮 | 不再启动 Talent。参考 `teams/tests/workflow-http.ts` 的 `publishFromTalents()`：向临时共享目录写入 `knowledge.json`，同时把 `DEMO_SHARED_SEED_DIR` 指向空目录，避免读到仓库里的初始数据 |
+| Talent 的 `GET /api/task-inputs`（独立需求的知识与 Skill） | 删除。Teams 用 `sharedTaskInputs(state, projectId, taskId)` 自行组装：本需求内容（`origin: 'teams-task'`）+ Talents 已发布的项目知识（`origin: 'talents-shared'`，未发布时为空）+ 已登记 Skill 正文。`knowledge.status` 恒为 `ready`；Skill 的 `availability` 由 `talent-registered-asset` 改为 `teams-registered-package` |
+| Talent 的 `POST /api/task-inputs/register`（Owner 登记需求） | 删除，不再需要登记：任务输入总会包含本需求内容 |
+| Talent 的 `POST /api/task-sessions`（验收后上报会话） | 删除。`exportTaskSessions()` 写入 `shared/data/teams/task-sessions/<幂等键哈希>.json`，回执 `id` 以 `SHARED-` 开头；重复上报返回同一回执。上报成功后这些会话也会出现在 `snapshot.json` 的 `sessions` 中。Talents 读取它们尚未实现 |
+| 测试中启动 `server/talent.ts`，或点击知识整合按钮 | 不再启动 Talent。参考 `teams/tests/workflow-http.ts` 的 `publishFromTalents()`：向临时共享目录写入 `knowledge.json`，同时把 `DEMO_SHARED_SEED_DIR` 指向空目录，避免读到仓库里的初始数据。要模拟会话上报失败，在 `<共享目录>/teams/task-sessions` 位置放一个普通文件（见 `tests/delivery-requirements-http.ts`） |
 
 ## 四、数据变化
 

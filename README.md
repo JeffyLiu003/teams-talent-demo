@@ -16,12 +16,20 @@
 ```sh
 git clone https://github.com/zhuyuloveai/teams-talent-demo.git
 cd teams-talent-demo
-npm run setup      # 两个项目各自 npm ci
+npm run setup      # 两个项目及 Teams 内嵌的 trace-monitor 各自 npm ci
 npm run dev        # 构建并同时启动两边，Ctrl+C 一起停止
 ```
 
 - 后台启停：`npm start` / `npm stop`（macOS 也可双击 `启动演示.command` / `停止演示.command`，Windows 用 `start-demo.cmd`）。
 - 单独启动：`cd teams && npm run dev`，或 `cd talents && npm run dev`。另一边没启动时，读取 `shared/seed/` 中提交的初始数据。
+
+「开发会话轨迹」页面另需 Python 3.10+：Teams 启动时会拉起 `teams/trace-server`（默认端口 8012）。首次运行前安装依赖：
+
+```sh
+python3 -m pip install -r teams/trace-server/requirements.txt
+```
+
+Python 不是 `python3`（Windows 为 `python`）时，用 `DEMO_TRACE_PYTHON` 指定。缺少 Python 或依赖时只有该页面不可用，其余功能不受影响。
 
 服务仅监听本机。Teams 的配置见 [快速启动](teams/docs/quick-start.md)，Talents 见 [talents/README.md](talents/README.md)。
 
@@ -30,6 +38,8 @@ npm run dev        # 构建并同时启动两边，Ctrl+C 一起停止
 ```
 Teams ── shared/data/teams/snapshot.json ──▶ Talents
          成员与角色、项目、代码仓、设计文档、成员共享的会话
+Teams ── shared/data/teams/task-sessions/ ──▶ Talents（读取尚未实现）
+         独立需求验收后自动归集的任务会话
 
 Talents ── shared/data/talents/knowledge.json + files/ ──▶ Teams
            已发布的知识产物（业务知识、开发范式、轨迹诊断、索引）
@@ -39,13 +49,14 @@ Talents ── shared/data/talents/knowledge.json + files/ ──▶ Teams
 - 成员、项目、代码仓和设计文档以 Teams 为准，在 Talents 中只读；Talents 只登记本地文档来源。
 - Talents 管理员端对应 Teams Owner（挖掘、审阅、发布），开发者端对应 Teams 成员（应用知识）。
 - Talents 为项目发布过知识后，Teams 交付流程中的「项目知识」即视为已就绪；Teams「项目知识」页展示已发布产物并可预览原文。
+- 独立需求的输入由 Teams 组装：需求与 Skill 来自 Teams，加上 Talents 已发布的项目知识（未发布时为空）。
 - 轨迹诊断与 Skill 改进（能力演进）在 Talents 中完成，Teams 只负责共享交付会话。
 
 ## 演示主线
 
 1. Teams：Owner 查看项目知识（Talents 已发布 v1）。
 2. Talents 管理员端：文档集新增白金卡规则 → 审阅业务知识 v2 草稿 → 让 iCode 修正 BR-CASH-02 的期间边界 → 发布。
-3. Teams：项目知识显示 v2；成员准备上下文、开发、检查失败 → 修复 → 提交，Owner 验收，成员上报交付会话。
+3. Teams：项目知识显示 v2；成员准备上下文、开发、检查失败 → 修复 → 提交，Owner 验收后，Teams 自动归集交付会话并共享给 Talents。
 4. Talents：用交付会话做轨迹诊断 → 审阅并发布 Skill 改进。
 5. Talents 开发者端：应用诊断和更新后的业务知识。
 
