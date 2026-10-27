@@ -151,7 +151,9 @@
   function pickSessions(initial, done) {
     var selected = new Set(initial);
     var st = { q: '', member: 'all', ai: null, busy: false };
-    var examples = ['对话轮次超过 50 的会话', '最近 7 天营销相关的会话', '王强共享的会话'];
+    // Example requests follow the Teams data: a member who shared sessions, other than the person viewing.
+    var sharer = A.state.team.members.filter(function (m) { return m.id !== A.state.team.admin && A.teamSessions().some(function (s) { return s.owner === m.id; }); })[1];
+    var examples = ['对话轮次超过 50 的会话', '最近 7 天返现相关的会话'].concat(sharer ? [sharer.name + '共享的会话'] : []);
     var d = A.dialog({
       className: 'large', title: '选择会话',
       body: '<div class="form-body session-picker">' +
@@ -183,7 +185,7 @@
         rows.innerHTML = list.map(function (s) {
           var on = selected.has(s.id);
           return '<tr class="row-click' + (on ? ' selected' : '') + '" data-id="' + s.id + '"><td><input type="checkbox"' + (on ? ' checked' : '') + ' aria-label="选择"></td>' +
-            '<td class="title-cell">' + esc(s.title) + '</td><td class="nowrap">' + esc(A.member(s.owner).name) + '</td><td class="nowrap">' + esc(A.when(s.updated)) + '</td>' +
+            '<td class="title-cell">' + esc(s.title) + '</td><td class="nowrap">' + esc(A.memberName(s.owner, s.ownerName)) + '</td><td class="nowrap">' + esc(A.when(s.updated)) + '</td>' +
             '<td class="num">' + s.turns + '</td><td class="num">' + s.messages + '</td><td class="num">' + A.tokens(s.tokens) + '</td></tr>';
         }).join('') || '<tr><td colspan="7" style="text-align:center;padding:28px" class="ui-note">没有匹配的会话</td></tr>';
         var all = host.querySelector('[data-all]');
@@ -302,7 +304,12 @@
       var repos = A.state.sources.filter(function (s) { return s.type === 'repo'; });
       var pool = cap.input === 'docs' ? A.state.sources.filter(function (s) { return s.type === 'docs'; }) : repos;
       if (cap.input === 'repo+pr') pool = repos.filter(function (s) { return s.prs; });
-      if (!f.source || !pool.some(function (s) { return s.id === f.source; })) f.source = pool[0] && pool[0].id;
+      if (!f.source || !pool.some(function (s) { return s.id === f.source; })) {
+        // Prefer a source of the project the user came for.
+        var focus = A.focusProject && A.project(A.focusProject);
+        var pick = pool.filter(function (s) { return focus && focus.sourceIds.indexOf(s.id) >= 0; })[0] || pool[0];
+        f.source = pick && pick.id;
+      }
       var html = '<select data-src>' + pool.map(function (s) { return '<option value="' + s.id + '"' + (s.id === f.source ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('') + '</select>';
       if (cap.input === 'repo+pr') html += summaryRow(f.prs.length ? '已选 ' + f.prs.length + ' 个 PR：' + f.prs.map(function (n) { return '#' + n; }).join('、') : '还没有选择 PR', f.prs.length ? '重新选择' : '选择 PR…', !f.prs.length);
       if (cap.input === 'repo+snippet') html += '<input data-scenario placeholder="场景，例如：账户余额更新"><textarea rows="2" data-snippets placeholder="代码片段文件，每行一个路径"></textarea>';

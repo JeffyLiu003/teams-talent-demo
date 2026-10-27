@@ -43,8 +43,8 @@
     var d = A.dialog({
       title: '添加目录',
       body: '<div class="form-body"><label class="field"><span class="label">类型</span><select data-type><option value="repo">代码仓</option><option value="docs">文档目录</option></select></label>' +
-        '<label class="field"><span class="label">目录</span><input data-path value="~/code/card-core-legacy"></label>' +
-        '<label class="field"><span class="label">名称</span><input data-name value="card-core-legacy"></label></div>',
+        '<label class="field"><span class="label">目录</span><input data-path value="~/code/carddemo-web"></label>' +
+        '<label class="field"><span class="label">名称</span><input data-name value="carddemo-web"></label></div>',
       foot: '<button data-cancel>取消</button><button class="primary" data-ok>添加</button>'
     });
     d.el.querySelector('[data-path]').addEventListener('input', function () { d.el.querySelector('[data-name]').value = this.value.split('/').pop(); });

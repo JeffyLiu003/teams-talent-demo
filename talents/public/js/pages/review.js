@@ -49,24 +49,23 @@
   // ---------- Workbench ----------
   var wb = null; // { id, file, tab: 'content'|'diff', base: 'published'|'original', side: 'chat'|'edit', chat: [] }
   var CHAT_SCRIPTS = [
-    { file: /业务规则目录/, match: /BR-POST-03|超限|102|本期借/,
-      prompt: 'BR-POST-03 的公式少了“本期借”，请对照 CBTRN02C 修正',
+    { file: /业务规则目录/, match: /BR-CASH-02|期间|边界|包含|不含/,
+      prompt: 'BR-CASH-02 的期间边界不对，请对照 cashback-contract.md 改成开始含、结束不含',
       edit: function (text) {
         return text.split('\n').map(function (l) {
-          if (l.indexOf('BR-POST-03') < 0 || l.indexOf('|') !== 0) return l;
-          l = l.replace(/本期贷\s*\+\s*本笔/, '本期贷 − 本期借 + 本笔');
-          return l.indexOf('证据') >= 0 ? l : l.replace(/(OVERLIMIT TRANSACTION`)/, '$1（证据：`CBTRN02C.cbl:403-413`）');
+          if (l.indexOf('| BR-CASH-02 |') !== 0) return l;
+          return l.replace(/2026-11-01 00:00:00 \+08:00 至 2027-02-01 00:00:00 \+08:00（两端均包含）/, '2026-11-01 00:00:00 +08:00（含）至 2027-02-01 00:00:00 +08:00（不含）');
         }).join('\n');
       },
-      summary: '修正 BR-POST-03 的超限公式',
-      reply: '已对照 CBTRN02C.cbl:403-413 修正 BR-POST-03：超限公式补上“− 本期借”，与存量程序一致。其他规则没有改动。' },
-    { file: /改进建议/, match: /基线|第 ?3 ?条|绝对|确认/,
-      prompt: '第 3 条规则太绝对，改成“修改比对基线前须说明证据并经人确认”',
+      summary: '修正 BR-CASH-02 的期间边界',
+      reply: '已对照 cashback-contract.md 修正 BR-CASH-02：消费期间改为 2026-11-01 00:00（含）至 2027-02-01 00:00（不含），与 Campaign.isActiveAt() 的 [startAt, endAt) 判定一致。其他规则没有改动。' },
+    { file: /改进建议/, match: /判定链|第 ?3 ?条|绝对|确认/,
+      prompt: '第 3 条规则太绝对，改成“沿用参考实现的判定链前，须逐条对照新需求并经人确认”',
       edit: function (text) {
-        return text.replace(/^3\.\s+\*\*[^*]+\*\*/m, '3. **修改比对基线前，须说明证据并经人确认。**');
+        return text.replace(/^3\.\s+\*\*[^*]+\*\*/m, '3. **沿用参考实现的判定链前，须逐条对照新需求并经人确认。**');
       },
       summary: '放宽第 3 条经验规则',
-      reply: '已改写第 3 条规则：允许修改比对基线，但要求先说明存量代码证据并经人确认。' }
+      reply: '已改写第 3 条规则：允许沿用参考实现的资格判定链，但要求先逐条对照新需求，并经人确认。' }
   ];
   function scriptsFor(file) { return CHAT_SCRIPTS.filter(function (s) { return s.file.test(file); }); }
   function isMd(key) { return /\.md$/.test(key); }
@@ -224,17 +223,24 @@
     }
   }
 
+  // Update note for re-extracted business knowledge: what changed in the documents since the published version.
+  function docNote(a) {
+    var c = A.changesSince(A.source(a.sources[0]), a.published && a.published.basis);
+    return c && c.count ? '根据文档变化更新：' + c.text : '更新业务知识';
+  }
   function publish(a) {
     var index = K.isIndex(a);
     var delivery = a.published ? a.published.delivery : index ? 'cloud' : 'local';
     var notes = a.draft.revisions.map(function (r) { return r.summary || '修订「' + K.fileLabel(r.file) + '」'; }).filter(function (n, i, arr) { return arr.indexOf(n) === i; });
     var defNote = a.published ? (a.folder === 'miner' && a.specs.length > (a.published.specs || []).length
       ? '新增范式「' + a.specs.filter(function (n) { return a.published.specs.indexOf(n) < 0; }).join('」「') + '」'
-      : a.cap === 'doc-extract' ? '新增营销活动规则' + (notes.length ? '；' + notes.join('；') : '') : '更新内容') : '首次发布';
+      : a.cap === 'doc-extract' ? docNote(a) + (notes.length ? '；' + notes.join('；') : '') : '更新内容') : '首次发布';
+    // Publish to the project it was published to before, else the project the user came for, else the source's project.
+    var target = a.published ? a.published.project : (A.focusProject || ((A.artifactProjects(a)[0] || A.state.projects[0] || {}).id));
     var d = A.dialog({
       title: '发布到团队空间', eyebrow: esc(a.name),
       body: '<div class="form-body">' +
-        '<label class="field"><span class="label">发布到</span><select data-project>' + A.state.projects.map(function (p) { return '<option value="' + p.id + '">' + esc(p.name) + '</option>'; }).join('') + '</select>' +
+        '<label class="field"><span class="label">发布到</span><select data-project>' + A.state.projects.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === target ? ' selected' : '') + '>' + esc(p.name) + '</option>'; }).join('') + '</select>' +
         '<span class="caption">该项目的成员可以在开发者端看到并应用。</span></label>' +
         '<div class="field"><span class="label">交付方式</span><div class="option-list">' +
         '<label class="option"><input type="radio" name="delivery" value="local"' + (delivery === 'local' ? ' checked' : '') + (index ? ' disabled' : '') + '><span><b>同步到本地</b><span class="caption">' + (index ? '索引需要在线查询，不能同步到本地' : '适合小而常用的知识，开发者本机保存一份') + '</span></span></label>' +

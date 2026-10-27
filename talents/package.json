@@ -1,0 +1,19 @@
+{
+  "name": "talents-carddemo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "node tools/bundle-content.mjs",
+    "start": "node --import tsx server/index.ts",
+    "dev": "npm run build && npm start",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "seed:shared": "node --import tsx tools/seed-shared.ts"
+  },
+  "devDependencies": {
+    "@types/node": "24.3.0",
+    "tsx": "4.20.5",
+    "typescript": "5.9.2"
+  }
+}

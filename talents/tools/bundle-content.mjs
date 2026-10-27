@@ -1,12 +1,12 @@
-// Bundles content/ into js/content.js so the page can read artifact text when opened via file://.
-// Usage: node tools/bundle-content.mjs
+// Bundles content/ into public/js/content.js so the page can preview artifact text without extra requests.
+// Usage: npm run build (node tools/bundle-content.mjs)
 import { readdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
 import { join, relative, sep, extname, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const contentDir = join(root, 'content');
-const outFile = join(root, 'js', 'content.js');
+const outFile = join(root, 'public', 'js', 'content.js');
 const TEXT_EXTENSIONS = new Set(['.md', '.txt', '.py', '.yaml', '.yml', '.json', '.html']);
 const MAX_BYTES = 1.5 * 1024 * 1024;
 

@@ -27,13 +27,16 @@
       '<div class="actions"><button class="link" data-action="dev-preview" data-id="' + a.id + '">预览</button>' + main +
       (ap ? '<button class="icon-button" data-action="dev-menu" data-id="' + a.id + '" aria-label="更多">⋯</button>' : '') + '</div></div></article>';
   }
-  function render() {
-    if (!view.project) view.project = joined()[0].id;
+  function render(params) {
+    // ?project= (e.g. from a Teams link) picks the project; otherwise keep the last one shown.
+    if (params.project && A.project(params.project)) view.project = params.project;
+    if (!A.project(view.project)) view.project = (A.focusProject && A.project(A.focusProject) ? A.focusProject : (joined()[0] || {}).id) || null;
+    if (!view.project) return '<header class="page-heading"><div><h1>项目知识</h1></div></header><div class="empty"><b>还没有加入项目</b><span>在 iCode Teams 中加入项目后，这里会显示团队发布的知识。</span></div>';
     var list = visible(view.project);
     var pending = list.filter(function (a) { return state(a) === 'none'; }).length;
     var updates = list.filter(function (a) { return state(a) === 'update'; }).length;
     var tabs = '<div class="tabs" role="group" aria-label="项目">' + joined().map(function (p) {
-      return '<button aria-pressed="' + (p.id === view.project) + '" data-action="dev-project" data-id="' + p.id + '">' + esc(p.name) + '</button>';
+      return '<button aria-pressed="' + (p.id === view.project) + '" data-action="dev-project" data-id="' + esc(p.id) + '">' + esc(p.name) + '</button>';
     }).join('') + '</div>';
     var sections = A.state.categories.map(function (cat) {
       var items = list.filter(function (a) { return A.cap(a.cap).cat === cat.id; });
@@ -49,7 +52,7 @@
   function apply(a) {
     A.state.dev.applied[a.id] = { version: a.published.version, scope: K.defaultScope(a), at: A.now() };
   }
-  A.actions['dev-project'] = function (el) { view.project = el.dataset.id; A.refresh(); };
+  A.actions['dev-project'] = function (el) { A.go('#/knowledge?project=' + encodeURIComponent(el.dataset.id)); };
   A.actions['dev-apply'] = function (el) {
     var a = A.artifact(el.dataset.id);
     el.classList.add('busy'); el.disabled = true;

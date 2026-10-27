@@ -1,22 +1,44 @@
 // Shared helpers for the demo: state, formatting, layers (drawer / dialog / toast), the simulated
 // task runner and the mock "ask iCode" session filter. Pages live in js/pages/*.js.
 window.App = (function () {
-  var STORAGE_KEY = 'talents.demo.state';
-  var App = { pages: {}, actions: {}, state: null, route: { page: 'sources', params: {} } };
+  var App = { pages: {}, actions: {}, state: null, revision: 0, teams: null, route: { page: 'sources', params: {} } };
 
   // ---------- State ----------
-  function clone(v) { return JSON.parse(JSON.stringify(v)); }
-  App.load = function () {
-    var saved = null;
-    try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) { saved = null; }
-    App.state = saved && saved.version === window.SEED.version ? saved : clone(window.SEED);
-  };
+  // The Talents service (server/index.ts) holds the state. Bootstrap returns Talents' own state merged with
+  // the team, members, projects, code repositories, design documents and sessions read from Teams;
+  // saving sends the whole state back and the service keeps only the Talents-owned part.
+  function api(method, path, body) {
+    return fetch(path, { method: method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (data) {
+          if (!r.ok) { var e = new Error(data.error || '请求失败'); e.status = r.status; throw e; }
+          return data;
+        });
+      });
+  }
+  function adopt(data) { App.state = data.state; App.revision = data.revision; App.teams = data.teams; }
+  App.load = function () { return api('GET', '/api/bootstrap').then(adopt); };
+  // Saves are queued: one request at a time, and changes made while a save is in flight go in the next one.
+  var saving = null, dirty = false;
   App.save = function () {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(App.state)); } catch (e) { /* demo still works without storage */ }
+    dirty = true;
+    if (!saving) saving = flush();
+    return saving;
   };
+  function flush() {
+    dirty = false;
+    return api('PUT', '/api/state', { revision: App.revision, state: App.state }).then(function (r) {
+      App.revision = r.revision;
+      saving = null;
+      if (dirty) return App.save();
+    }, function (e) {
+      saving = null;
+      if (e.status === 409) { App.toast('数据已在另一页面更新，正在刷新'); setTimeout(function () { location.reload(); }, 1200); return; }
+      App.toast('保存失败：' + e.message);
+    });
+  }
   App.reset = function () {
-    App.state = clone(window.SEED);
-    App.save();
+    return (saving || Promise.resolve()).then(function () { return api('POST', '/api/reset', {}); }).then(adopt);
   };
   App.uid = function (prefix) { return prefix + '-' + Math.random().toString(36).slice(2, 8); };
 
@@ -35,17 +57,31 @@ window.App = (function () {
     var p = App.project(projectId);
     return p ? p.sourceIds.map(App.source).filter(function (s) { return s && s.type === 'repo'; }) : [];
   };
-  // Sessions belong to the project whose code repository contains their working directory.
-  App.sessionProject = function (session) {
-    var found = null;
-    App.state.projects.forEach(function (p) {
-      p.sourceIds.forEach(function (sid) {
-        var s = App.source(sid);
-        if (s && session.cwd.indexOf(s.path) === 0) found = p;
-        if (s && s.type === 'docs' && session.cwd.indexOf(s.path) === 0) found = p;
-      });
+  // Teams records which project each shared session belongs to.
+  App.sessionProject = function (session) { return App.project(session.projectId); };
+  // Files of a development-pattern library: index, then per spec 范式总结, 代码分析报告 and its PR records (see content/miner/pr-map.json).
+  App.minerFiles = function (names) {
+    var map = JSON.parse(App.content('miner/pr-map.json') || '{}');
+    var out = ['miner/index.md'];
+    names.forEach(function (n) {
+      out.push('miner/' + n + '/summary.md', 'miner/' + n + '/analyzer.md');
+      Object.keys(map).filter(function (pr) { return map[pr] === n; }).forEach(function (pr) { out.push('miner/' + n + '/input/prs/' + pr + '/metadata.json'); });
     });
-    return found;
+    return out;
+  };
+  // Document paths a Teams document set held at its latest recorded version (replaying the version records).
+  App.knownFiles = function (src) {
+    var files = {};
+    (src.versions || []).slice().reverse().forEach(function (v) {
+      (v.files || []).concat(v.added || [], v.modified || []).forEach(function (f) { files[f] = true; });
+      (v.removed || []).forEach(function (f) { delete files[f]; });
+    });
+    return Object.keys(files);
+  };
+  App.sourceFiles = function (src) {
+    var out = [];
+    (src.tree || []).forEach(function (g) { g.files.forEach(function (f) { out.push((g.dir ? g.dir + '/' : '') + f); }); });
+    return out;
   };
   // An artifact belongs to every project that holds one of its sources; session artifacts follow their sessions.
   App.artifactProjects = function (a) {
@@ -80,7 +116,7 @@ window.App = (function () {
   App.sourceState = function (src) {
     if (!src) return null;
     if (src.type === 'docs') return { version: App.latestVersion(src) };
-    if (src.type === 'repo') return { commit: src.commit.sha };
+    if (src.type === 'repo') return src.commit ? { commit: src.commit.sha } : null;
     return null;
   };
   App.basisOf = function (a) { return (a.draft && a.draft.basis) || (a.published && a.published.basis) || null; };
@@ -89,6 +125,7 @@ window.App = (function () {
     if (!src || !basis) return null;
     if (src.type === 'docs') { var c = App.docChanges(src, basis.version); c.text = App.changeCounts(c); return c; }
     if (src.type === 'repo') {
+      if (!src.commit) return null;
       var n = basis.commit === src.commit.sha ? 0 : 3;
       return { from: basis.commit, to: src.commit.sha, count: n, text: n ? n + ' 个新提交' : '' };
     }
@@ -245,27 +282,41 @@ window.App = (function () {
     dev: [['knowledge', '❏', '项目知识'], ['local', '⌕', '本地索引']]
   };
   App.home = { admin: 'sources', dev: 'knowledge' };
+  // Teams links to #/dev-knowledge for the developer's project knowledge.
+  App.aliases = { 'dev-knowledge': 'knowledge' };
+  // The project the user came for (?project= in the hash, e.g. from a Teams link); pages preselect it.
+  App.focusProject = null;
   App.parseHash = function () {
     var h = location.hash.replace(/^#\/?/, '');
     var parts = h.split('?');
     var params = {};
     (parts[1] || '').split('&').forEach(function (kv) { if (kv) { var p = kv.split('='); params[decodeURIComponent(p[0])] = decodeURIComponent(p[1] || ''); } });
-    var page = App.pages[parts[0]] ? parts[0] : App.home[App.state.role];
+    var name = App.aliases[parts[0]] || parts[0];
+    var page = App.pages[name] ? name : App.home[App.state.role];
+    if (params.project && App.project(params.project)) App.focusProject = params.project;
     return { page: page, params: params };
   };
   App.go = function (hash) { if (location.hash === hash) App.render(); else location.hash = hash; };
   App.member = function (id) { return byId(App.state.team.members, id); };
-  // Sessions team members share; sharing itself is set in iCode Teams.
+  App.memberName = function (id, fallback) { var m = App.member(id); return m ? m.name : (fallback || id); };
+  // Sessions team members shared in iCode Teams.
   App.teamSessions = function () { return App.state.sessions; };
+  // Where to go back to in Teams: the project's content tab.
+  App.teamsLink = function (projectId) {
+    var pid = projectId || App.focusProject || (App.state.projects[0] && App.state.projects[0].id) || 'carddemo';
+    return App.teams.origin + '/teams#/projects?project=' + encodeURIComponent(pid) + '&tab=content';
+  };
   App.renderChrome = function () {
     var st = App.state, page = App.pages[App.route.page];
     var role = page.role || st.role;
     if (role !== st.role) { st.role = role; App.save(); }
     document.querySelectorAll('[data-action="switch-role"]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.role === role)); });
+    // 管理员端 is the Teams owner; 开发者端 is a Teams member.
     var me = App.member(role === 'admin' ? st.team.admin : st.team.me);
-    document.querySelector('[data-who]').textContent = me.name + '（' + (role === 'admin' ? '管理员' : '开发者') + '）';
-    document.querySelector('[data-team]').textContent = st.team.name;
+    document.querySelector('[data-who]').textContent = me ? me.name + '（Teams ' + (me.role === 'owner' ? 'Owner' : '成员') + '）' : '未读取到 Teams 成员';
+    document.querySelector('[data-team]').textContent = st.team.name || 'iCode Teams 团队';
     document.querySelector('[data-role-label]').textContent = role === 'admin' ? '管理员端' : '开发者端';
+    document.querySelector('[data-teams-link]').href = App.teamsLink();
     document.querySelector('[data-nav-list]').innerHTML = App.nav[role].map(function (n) {
       return '<a href="#/' + n[0] + '"' + (n[0] === App.route.page ? ' aria-current="page"' : '') + '><span class="nav-icon" aria-hidden="true">' + n[1] + '</span>' + n[2] + '</a>';
     }).join('');
@@ -331,7 +382,7 @@ window.App = (function () {
     }
     if (task.cap === 'codegraph') {
       var repo = src.path, base = update ? task.input.from : null;
-      var head = '[codegraph] 代码版本：分支 ' + src.branch + '，提交 ' + src.commit.sha + '；上次成功的构建或更新：' + (base ? '提交 ' + base : '无记录');
+      var head = '[codegraph] 代码版本：分支 ' + src.branch + '，提交 ' + (src.commit ? src.commit.sha : 'HEAD') + '；上次成功的构建或更新：' + (base ? '提交 ' + base : '无记录');
       return update
         ? { seconds: 6, steps: ['自检', '同步代码变化', '校验索引'], logs: [head, '[codegraph] 自检通过：codegraph 1.6.0',
             '[codegraph] 运行：codegraph sync ' + repo, ch && ch.count ? 'Syncing ' + ch.count + ' commits, 14 changed files...' : 'No changes since last sync', 'Resolving refs...', '◆  Synced in 0.6s',
@@ -358,7 +409,7 @@ window.App = (function () {
       (task.prs || []).forEach(function (n) { lm.push('→ read   ' + run + '/input/prs/' + n + '/description.md', '→ read   ' + run + '/input/prs/' + n + '/diff.patch'); });
       if (!task.prs) lm.push('→ read   ' + run + '/input/snippets.md');
       lm.push('→ resource  icode-miner-pr/assets/analyzer_template.md', '需要补充上下文：读取相关服务的领域对象和应用服务。',
-        '→ grep   class .*Service in services/', '→ read   services/transaction-service/src/main/java/com/cardcore/transaction/application/PostingService.java',
+        '→ grep   class .*Service in services/', '→ read   services/marketing-service/src/main/java/com/carddemo/marketing/application/RewardEvaluationService.java',
         '→ write  ' + run + '/analyzer.md', '→ resource  icode-miner-pr/assets/summarizer_template.md', '→ write  ' + run + '/summary.md',
         '→ write  ' + run + '/naming.json', '→ script  icode-' + task.cap + '/scripts/archive_spec.py', '  ✓ 0.1s',
         '✓ Done · 4m 19s · ' + (17 + (task.prs || []).length * 2) + ' tool calls · session ' + sid);
@@ -372,10 +423,10 @@ window.App = (function () {
       ch.added.concat(ch.modified).forEach(function (f) { le.push('→ read   ' + f); });
       ch.removed.forEach(function (f) { le.push('已删除：' + f + '，标出引用它的知识条目'); });
       var prev = App.existingArtifact(task), outs = prev ? prev.files.filter(function (f) { return !/index\.md$/.test(f); }).map(function (f) { return f.split('/').pop(); }) : [];
-      if (src.id === 's-docs') le.push('→ read   上一版 业务规则目录.md', '→ edit   业务规则目录.md：新增 8 条，修订 1 条', '→ edit   统一语言术语表.md：新增 3 个术语');
+      if (src.fromTeams) le.push('→ read   上一版 业务规则目录.md', '→ edit   业务规则目录.md：补充新增文档中的返现规则', '→ edit   统一语言术语表.md：补充新增术语', '→ edit   数据字典.md：补充新增字段');
       else outs.forEach(function (f) { le.push('→ read   上一版 ' + f, '→ edit   ' + f + '：修订受这些文档影响的条目'); });
     } else {
-      le.push('读取 ' + names.join('、') + ' 的全部文档', '→ write  业务规则目录.md', '→ write  数据字典.md', '→ write  统一语言术语表.md', '→ write  五层业务模型.md');
+      le.push('读取 ' + names.join('、') + ' 的全部文档', '→ write  业务规则目录.md', '→ write  数据字典.md', '→ write  统一语言术语表.md');
     }
     le.push('✓ Done，会话 ' + sid);
     return { seconds: 12, steps: update ? ['读取文档变化', '修订受影响的知识', '整理产物'] : ['读取文档', '提取知识', '整理产物'], logs: le };
@@ -412,7 +463,7 @@ window.App = (function () {
     return a;
   };
   function trajTopic(ids) {
-    var topics = App.state.trajTopics, best = 'posting', bestScore = -1;
+    var topics = App.state.trajTopics, best = Object.keys(topics)[0], bestScore = -1;
     Object.keys(topics).forEach(function (k) {
       var score = 0;
       ids.forEach(function (id) { var s = App.session(id); if (s) topics[k].keywords.forEach(function (w) { if (s.title.indexOf(w) >= 0) score++; }); });
@@ -444,7 +495,7 @@ window.App = (function () {
         var base = (a.draft ? a.specs : (a.published && a.published.specs)) || [];
         var add = task.prs.map(function (n) { return map[n]; }).filter(Boolean);
         a.specs = base.concat(add.filter(function (n, i) { return base.indexOf(n) < 0 && add.indexOf(n) === i; }));
-        a.files = window.MINER_FILES(a.specs);
+        a.files = App.minerFiles(a.specs);
       }
       a.draft = draft;
       if (a.kind === 'index' && a.published) autoPublish(a, task);
@@ -470,8 +521,8 @@ window.App = (function () {
       a.name = src.name + ' 业务知识';
       a.desc = '从「' + src.name + '」提取的业务规则、术语和数据字典。';
       a.kind = 'files'; a.folder = '业务知识';
-      a.files = ['doc-knowledge/index.md', 'doc-knowledge/业务规则目录.md', 'doc-knowledge/数据字典.md', 'doc-knowledge/统一语言术语表.md', 'doc-knowledge/五层业务模型.md'];
-      a.skills = ['cobol-legacy-knowledge', 'bank-domain-payments'];
+      a.files = ['doc-knowledge/index.md', 'doc-knowledge/业务规则目录.md', 'doc-knowledge/统一语言术语表.md', 'doc-knowledge/数据字典.md'];
+      a.skills = ['bank-domain-payments'];
       a.usage = '涉及业务规则、字段含义、术语或业务流程时先查阅';
     } else {
       var map2 = JSON.parse(App.content('miner/pr-map.json') || '{}');
@@ -480,7 +531,7 @@ window.App = (function () {
       a.name = src.name + ' 开发范式';
       a.desc = '从已合并 PR 总结的实现范式，含步骤、约束和示例代码。';
       a.kind = 'files'; a.folder = 'miner';
-      a.files = window.MINER_FILES(a.specs);
+      a.files = App.minerFiles(a.specs);
       a.skills = ['find-reference-spec'];
       a.usage = '开发新需求或修改现有功能前，用 find-reference-spec 查找可参考的范式';
     }
@@ -491,6 +542,7 @@ window.App = (function () {
   var listeners = [];
   App.onTick = function (fn) { listeners.push(fn); };
   setInterval(function () {
+    if (!App.state) return;
     var finished = [];
     App.state.tasks.forEach(function (t) {
       if (t.status === 'running' && App.runProgress(t).done) finished.push(t);
@@ -529,14 +581,12 @@ window.App = (function () {
     else if (/本周|这周|最近一周|近一周/.test(text)) conds.push({ test: function (s) { return daysAgo(s) <= 7; }, text: '最近 7 天内更新' });
     else if (/今天/.test(text)) conds.push({ test: function (s) { return daysAgo(s) < 1; }, text: '今天更新' });
 
-    if (/legacy|COBOL|cobol|老系统|主机/.test(text)) conds.push({ test: function (s) { return /legacy/.test(s.cwd); }, text: '在 card-core-legacy 中进行' });
-    else if (/文档目录|docs/.test(text)) conds.push({ test: function (s) { return /docs/.test(s.cwd); }, text: '在业务文档目录中进行' });
     App.state.team.members.forEach(function (m) {
       if (text.indexOf(m.name) >= 0) conds.push({ test: function (s) { return s.owner === m.id; }, text: '由' + m.name + '共享' });
     });
     if (/问答|Q&A|QA/.test(text)) conds.push({ test: function (s) { return s.agent === 'Q&A Agent'; }, text: '使用 Q&A Agent' });
 
-    var topics = ['营销', '授权', '利息', '入账', '账户', '卡服务', '交易', '测试', '幂等', '乐观锁', '错误码', '还款', '迁移', '性能', '评审', '批处理', '修复', '欺诈', '客户', '报表'];
+    var topics = ['白金卡', '返现', '营销', '奖励', '资格', '明细', '账单', '通知', '权益', '入账', '账户', '交易', '测试', '幂等', '冲正', '乐观锁', '分页', '排序', '联调', '修复'];
     var topicHits = topics.filter(function (t) { return text.indexOf(t) >= 0; });
     if (/失败|报错|出错|返工|问题|缺陷|bug/i.test(text)) topicHits.push('问题');
     if (topicHits.length) {

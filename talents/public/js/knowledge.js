@@ -226,10 +226,11 @@ window.K = (function () {
   };
   function localPath(repoId) {
     var l = A.state.dev.local.filter(function (x) { return x.repo === repoId; })[0];
-    return l ? l.path : A.source(repoId).path;
+    var src = A.source(repoId);
+    return l ? l.path : src ? src.path : repoId;
   }
   K.scopeText = function (scope) {
-    if (scope.kind === 'repo') return scope.repos.map(function (id) { return A.source(id).name; }).join('、');
+    if (scope.kind === 'repo') return scope.repos.map(function (id) { var s = A.source(id); return s ? s.name : id; }).join('、');
     if (scope.kind === 'global') return '所有智能体';
     return scope.agents.map(function (id) { return A.agent(id).name; }).join('、');
   };
@@ -256,8 +257,8 @@ window.K = (function () {
       if (!files[path]) { files[path] = { verb: verb, lines: [] }; order.push(path); }
       files[path].lines = files[path].lines.concat(lines || []);
     }
-    var project = A.project(a.published ? a.published.project : 'p-card');
-    var knowledgeDir = TALENTS_HOME + '/knowledge/' + project.name + '/' + (a.folder || '') + '/';
+    var pid = a.published ? a.published.project : A.focusProject, project = A.project(pid);
+    var knowledgeDir = TALENTS_HOME + '/knowledge/' + (project ? project.name : pid) + '/' + (a.folder || '') + '/';
     var cloud = !a.published || a.published.delivery === 'cloud' || K.isIndex(a);
     var agents = scope.kind === 'agent' ? scope.agents : A.state.agents.map(function (g) { return g.id; });
     var k = K.kind(a);

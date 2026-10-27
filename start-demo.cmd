@@ -1,16 +1,16 @@
 @echo off
 setlocal
-cd /d "%~dp0teams"
+cd /d "%~dp0"
 where node >nul 2>nul
 if errorlevel 1 goto missing_node
-if not exist node_modules (
-  call npm ci
+if not exist teams\node_modules (
+  call npm run setup
   if errorlevel 1 goto install_failed
 )
 echo Teams:  http://127.0.0.1:45970/teams
-echo Talent: http://127.0.0.1:45980/talent
+echo Talents: http://127.0.0.1:45980/talents
 echo Keep this window open. Press Ctrl+C to stop.
-call npm run dev
+call node scripts\demo.mjs dev
 exit /b %errorlevel%
 :missing_node
 echo Please install Node.js 24.14.1 with npm, then reopen this launcher.
