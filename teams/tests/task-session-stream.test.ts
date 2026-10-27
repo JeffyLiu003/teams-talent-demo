@@ -1,13 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, appendFile, rm, readFile, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, appendFile, rm, readFile, symlink, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { initialState } from '../src/domain.js';
 import { createDeliveryRequirement } from '../src/delivery-requirements.js';
 import { createTaskSessionStream } from '../server/task-session-stream.js';
 import type { TaskSessionTurn, TaskSessionStreamQuery } from '../src/task-session-stream.js';
+import { nativeSessionMigrationFile } from '../server/native-session-location.js';
 const at = (seconds: number) => new Date(Date.UTC(2026, 9, 27, 0, 0, seconds)).toISOString();
 const message = (role: string, id: string, seconds: number, text: string): any => ({ role, message_id: id, contents: [{ type: 'text', text }], additional_properties: { _chrys_created_at: at(seconds), _chrys_analytics_item_id: id } });
 async function fixture() {
@@ -110,5 +111,21 @@ test('native in-flight checkpoints use the newest persisted envelope without mas
   await writeFile(primary,'{broken');await assert.rejects(observe(f.state,'owner',f.query),/格式无效/);await writeFile(primary,JSON.stringify(envelope(8,'有效主正文')));
   await writeFile(recovery,'{broken');await assert.rejects(observe(f.state,'owner',f.query),/格式无效/);await writeFile(recovery,JSON.stringify({...envelope(9,'无效时间'),meta:{session_id:f.sessionId,updated_at:'not-a-time'}}));await assert.rejects(observe(f.state,'owner',f.query),/持久化时间无效/);
   await writeFile(recovery,JSON.stringify({...envelope(9,'错误身份'),meta:{session_id:randomUUID(),updated_at:at(9)}}));await assert.rejects(observe(f.state,'owner',f.query),/身份/);
+ }finally{await f.cleanup();}
+});
+
+test('an explicit hashed relocation preserves native evidence and rejects foreign scope or changed records', async () => {
+ const f=await fixture();try{
+  const ownerPath=join(f.runRoot,'native-session.json'),manifestPath=join(f.runRoot,'manifest.json'),owner=JSON.parse(await readFile(ownerPath,'utf8'));
+  owner.sessionRoot=join(f.runtime,'previous-runtime','work-contexts',f.runId+'.native','session-root');await writeFile(ownerPath,JSON.stringify(owner));
+  const ownerBytes=await readFile(ownerPath),manifestBytes=await readFile(manifestPath),stateBefore=JSON.stringify(f.state),digest=(value:Buffer)=>createHash('sha256').update(value).digest('hex');
+  const observe=createTaskSessionStream(f.runtime,{isAlive:()=>false});await assert.rejects(observe(f.state,'owner',f.query),/绑定校验/);
+  const entry={runId:f.runId,...f.query,sessionId:f.sessionId,previousSessionRoot:owner.sessionRoot,sessionRoot:await realpath(join(f.runRoot,'session-root')),ownerSha256:digest(ownerBytes),manifestSha256:digest(manifestBytes)};
+  const save=(value:typeof entry)=>writeFile(join(f.runtime,nativeSessionMigrationFile),JSON.stringify({version:1,entries:[value]}));await save(entry);
+  const result=await observe(f.state,'owner',f.query);assert.equal(result.turns.length,1);assert.equal(result.sessions[0].status,'unknown');assert.equal(JSON.stringify(f.state),stateBefore);assert.deepEqual(await readFile(ownerPath),ownerBytes);assert.deepEqual(await readFile(manifestPath),manifestBytes);
+  await save({...entry,taskId:'FOREIGN'});await assert.rejects(observe(f.state,'owner',f.query),/迁移凭据/);await save(entry);
+  await writeFile(manifestPath,Buffer.concat([manifestBytes,Buffer.from(' ')]));await assert.rejects(observe(f.state,'owner',f.query),/迁移凭据/);
+  await writeFile(manifestPath,manifestBytes);await save({...entry,sessionRoot:join(f.runtime,'foreign','session-root')});await assert.rejects(observe(f.state,'owner',f.query),/迁移凭据/);
+  await writeFile(join(f.runtime,nativeSessionMigrationFile),'{broken');await assert.rejects(observe(f.state,'owner',f.query),/迁移凭据/);
  }finally{await f.cleanup();}
 });

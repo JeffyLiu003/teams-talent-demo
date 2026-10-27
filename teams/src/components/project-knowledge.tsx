@@ -1,55 +1,92 @@
-import { displayTalentArtifact } from '../talent-artifacts.js';
-import { displayText } from '../display-text.js';
 import { useEffect, useState } from 'react';
-import { Alert, Button, Drawer, Empty, Space, Spin, Tag } from 'antd';
-import { getBusinessKnowledge } from '../api.js';
+import { Alert, Button, Descriptions, Drawer, Empty, Segmented, Space, Spin, Tag } from 'antd';
+import { marked } from 'marked';
+import { getTalentsFile, getTalentsKnowledge } from '../api.js';
 import { useDemo } from '../context.js';
 import { FrameworkCard } from '../vendor/teams/components/page-layout.js';
 import { talentLink } from './common.js';
+import type { PublishedArtifact, PublishedFile } from '../../../shared/contracts.js';
 
-type Knowledge = Awaited<ReturnType<typeof getBusinessKnowledge>>;
+const categoryNames: Record<string, string> = { index: '知识索引', doc: '文档知识提取', code: '代码知识挖掘', traj: '轨迹分析' };
+const categoryOrder = ['doc', 'code', 'traj', 'index'];
+const deliveryNames = { local: '同步到本地', cloud: '云端查询' };
+const day = (value: string) => value.slice(0, 16).replace('T', ' ');
 
-/** Talent owns current results; the historical Teams knowledge flag is not a result source. */
-export function ProjectKnowledge({ projectId, compact = false }: { projectId: string; compact?: boolean }) {
-  const { state, role, busy, perform, showText, navigate } = useDemo();
-  const [expanded, setExpanded] = useState(false);
-  const [result, setResult] = useState<Knowledge | null>(null), [loading, setLoading] = useState(true), [failure, setFailure] = useState(''), [attempt, setAttempt] = useState(0);
+/** Renders one published file the way Talents shows it: markdown, a standalone HTML report, or plain text. */
+function FileView({ artifact, file }: { artifact: PublishedArtifact; file: PublishedFile }) {
+  const [content, setContent] = useState<string | null>(null), [failure, setFailure] = useState('');
   useEffect(() => {
-    let live = true;
-    setLoading(true); setFailure(''); setResult(null);
-    getBusinessKnowledge(projectId).then(value => {
-      const project = value.projects.find(item => item.id === projectId);
-      if (!project) throw new Error('Talent 未返回当前项目的知识状态。');
-      const assets = value.assets.filter(asset => asset.sourceProjectId === projectId);
-      if (project.status === 'ready' && !assets.length) throw new Error('Talent 项目已标记就绪，但未返回成果，请重新读取。');
-      if (live) setResult({ ...value, assets });
-    }).catch(error => { if (live) setFailure(error instanceof Error ? error.message : 'Talent 项目知识读取失败'); }).finally(() => { if (live) setLoading(false); });
+    let live = true; setContent(null); setFailure('');
+    getTalentsFile(artifact, file.path).then(value => { if (live) setContent(value.content); }).catch(error => { if (live) setFailure((error as Error).message); });
+    return () => { live = false; };
+  }, [artifact.id, artifact.version, file.path]);
+  if (failure) return <Alert type="error" showIcon title="无法读取产物文件" description={failure} />;
+  if (content === null) return <Spin size="small" />;
+  if (file.type === 'markdown' || file.type === 'html') {
+    const html = file.type === 'markdown' ? marked.parse(content, { async: false }) : content;
+    // Published content is untrusted. Keep its rendering outside the Teams origin,
+    // with no scripts, network, forms or parent navigation privileges.
+    const dark = document.documentElement.dataset.theme === 'dark';
+    const head = `<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; form-action 'none'"><style>body{font:14px/1.7 system-ui,sans-serif;margin:16px;color:${dark ? '#e5e7eb' : '#1f2937'};background:${dark ? '#18181b' : '#ffffff'};overflow-wrap:anywhere}pre{white-space:pre-wrap}img{max-width:100%}table{border-collapse:collapse}th,td{padding:6px;border:1px solid #888}a{color:${dark ? '#93c5fd' : '#2459a6'}}</style>`;
+    return <iframe className={'talents-report' + (file.type === 'markdown' ? ' talents-markdown' : '')} title={file.title} sandbox="" referrerPolicy="no-referrer" srcDoc={head + html} />;
+  }
+  return <pre className="talents-plain">{content}</pre>;
+}
+
+function ArtifactDrawer({ artifact, onClose }: { artifact: PublishedArtifact; onClose: () => void }) {
+  const [path, setPath] = useState(artifact.files[0]?.path);
+  const file = artifact.files.find(item => item.path === path);
+  return <Drawer className="talents-artifact-drawer" title={artifact.name} width={880} open onClose={onClose} destroyOnHidden>
+    <Descriptions size="small" column={2} items={[
+      { key: 'capability', label: '能力', children: artifact.capabilityName },
+      { key: 'version', label: '版本', children: `v${artifact.version} · ${day(artifact.publishedAt)}` },
+      { key: 'delivery', label: '交付方式', children: deliveryNames[artifact.delivery] },
+      { key: 'note', label: '更新说明', children: artifact.note },
+      ...(artifact.stats ?? []).map(([label, value]) => ({ key: label, label, children: value })),
+    ]} />
+    {artifact.kind === 'index'
+      ? <p className="muted">索引类知识通过 MCP 在线查询，开发者在 Talents 应用后由 iCode 直接调用，始终使用最新版本。</p>
+      : <>{artifact.files.length > 1 && <Segmented className="talents-file-tabs" value={path} onChange={value => setPath(value as string)} options={artifact.files.map(item => ({ value: item.path, label: item.title }))} />}
+        {file && <FileView artifact={artifact} file={file} />}</>}
+  </Drawer>;
+}
+
+/** Knowledge Talents has published for this project, read by the Teams server from the shared data directory. */
+export function ProjectKnowledge({ projectId, compact = false }: { projectId: string; compact?: boolean }) {
+  const { state, role } = useDemo();
+  const [expanded, setExpanded] = useState(false), [opened, setOpened] = useState<PublishedArtifact | null>(null);
+  const [artifacts, setArtifacts] = useState<PublishedArtifact[] | null>(null), [failure, setFailure] = useState(''), [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    let live = true; setFailure('');
+    getTalentsKnowledge(projectId).then(value => { if (live) setArtifacts(value.artifacts); }).catch(error => { if (live) setFailure((error as Error).message); });
     return () => { live = false; };
   }, [projectId, state.revision, attempt]);
+  useEffect(() => { setArtifacts(null); setOpened(null); setExpanded(false); }, [projectId, role]);
   useEffect(() => { const refresh = () => setAttempt(value => value + 1); window.addEventListener('focus', refresh); return () => window.removeEventListener('focus', refresh); }, []);
-  const ready = result?.projects.find(project => project.id === projectId)?.status === 'ready';
-  const assets = ready ? result?.assets ?? [] : [];
-  const enabled = state.workspace.connections.some(connection => connection.id === 'talent' && connection.enabled);
-  const hasInputs = projectId === 'carddemo' ? !!state.workspace.project.assets.length : projectId === 'teams' || !!state.workspace.projects?.find(project => project.id === projectId)?.assets?.length;
-  const status = loading ? '读取中' : failure ? '读取失败' : ready ? `${assets[0]?.version ?? '项目知识'} 已就绪` : '尚未构建';
-  const content = <div className="project-knowledge" data-knowledge-project={projectId}>
-      {loading ? <Space><Spin size="small" /><span className="muted">正在读取 Talent 项目知识…</span></Space> : failure ? <Alert showIcon type="error" title="无法读取 Talent 项目知识" description={failure} action={<Button onClick={() => setAttempt(value => value + 1)}>重试</Button>} /> : ready ? <>
-        <div className="project-material-list">{assets.map(asset => <div className="project-material" key={asset.id}><div><strong>{displayText(asset.title)}</strong><p>{displayText(asset.summary)}</p><small>{displayText(asset.version ?? '未记录版本')} · Talent 构建</small></div><Button size="small" aria-label={'查看项目知识：' + asset.title} onClick={() => showText(displayText(asset.title), displayTalentArtifact(asset.detail))}>查看</Button></div>)}</div>
-        {projectId !== 'carddemo' && <p className="muted">当前成果为已关联资料的来源索引，业务规则仍需抽取与确认。</p>}
-      </> : <><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="尚未生成项目知识" /><p className="muted">Talent 尚未为此项目构建成果。{projectId === 'carddemo' ? 'Owner 可基于关联资料发起知识整合。' : 'Owner 可基于关联资料显式构建来源索引。'}</p></>}
-      <Space wrap className="card-actions">
-        {role === 'owner' && !loading && !failure && <Button data-action="knowledge" type="primary" loading={busy} disabled={ready || !hasInputs || !enabled} onClick={async () => { await perform('knowledge'); setAttempt(value => value + 1); }}>{ready ? '项目知识已整合' : '发起项目知识整合'}</Button>}
-        <Button href={talentLink('knowledge', { projectId, role })}>在 Talent 查看成果</Button>
-        {!loading && <Button size="small" onClick={() => setAttempt(value => value + 1)}>刷新成果</Button>}
-      </Space>
-      {!loading && !failure && !ready && !hasInputs && <p className="muted">请先在本项目关联资料。</p>}
-      {!enabled && !ready && <p className="muted">等待 Owner 启用 Talent 接入。{role === 'owner' && <Button type="link" size="small" onClick={() => navigate('connections')}>查看企业连接</Button>}</p>}
-    </div>;
-  const card = <FrameworkCard title="项目知识成果" action={<Tag color={ready && !failure ? 'green' : undefined}>{status}</Tag>}>{content}</FrameworkCard>;
+  const loading = artifacts === null && !failure, ready = !!artifacts?.length;
+  const status = loading ? '读取中' : failure ? '读取失败' : ready ? `已发布 ${artifacts!.length} 项` : '尚未发布';
+  const groups = categoryOrder.concat([...new Set((artifacts ?? []).map(item => item.category))].filter(id => !categoryOrder.includes(id)))
+    .map(id => ({ id, items: (artifacts ?? []).filter(item => item.category === id) })).filter(group => group.items.length);
+  const content = <div className="project-knowledge talents-knowledge" data-knowledge-project={projectId}>
+    {loading ? <Space><Spin size="small" /><span className="muted">正在读取 Talents 项目知识…</span></Space>
+      : failure ? <Alert showIcon type="error" title="无法读取 Talents 项目知识" description={failure} action={<Button onClick={() => setAttempt(value => value + 1)}>重试</Button>} />
+      : ready ? groups.map(group => <section key={group.id} className="talents-knowledge-group"><h4>{categoryNames[group.id] ?? group.id}</h4>
+        <div className="project-material-list">{group.items.map(artifact => <div className="project-material" key={artifact.id} data-artifact={artifact.id}><div>
+          <strong>{artifact.name}</strong><p>{artifact.description}</p>
+          <small>{artifact.capabilityName} · v{artifact.version} · 发布于 {day(artifact.publishedAt)}{artifact.note ? ' · ' + artifact.note : ''}</small>
+        </div><Tag>{deliveryNames[artifact.delivery]}</Tag><Button size="small" onClick={() => setOpened(artifact)}>查看</Button></div>)}</div></section>)
+      : <><Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Talents 尚未为此项目发布知识" /><p className="muted">Talents 读取本项目对接的代码仓与设计文档挖掘知识，Owner 审阅发布后在这里展示。</p></>}
+    <Space wrap className="card-actions">
+      <Button type={ready ? 'default' : 'primary'} href={talentLink('knowledge', { projectId, role })}>{role === 'owner' ? '在 Talents 挖掘知识' : '在 Talents 应用知识'}</Button>
+      {!loading && <Button size="small" onClick={() => setAttempt(value => value + 1)}>刷新</Button>}
+    </Space>
+    {opened?.projectId === projectId && <ArtifactDrawer key={opened.id + ":" + opened.version} artifact={opened} onClose={() => setOpened(null)} />}
+  </div>;
+  const card = <FrameworkCard title="项目知识" action={<Tag color={ready && !failure ? 'green' : undefined}>{status}</Tag>}>{content}</FrameworkCard>;
   if (!compact) return card;
   return <div className="overview-knowledge-summary" data-knowledge-summary={projectId}>
-    <strong>项目知识</strong><Tag color={ready && !failure ? 'green' : undefined}>{status}</Tag><span className="muted">{failure ? 'Talent 连接或读取失败' : ready ? `${assets.length} 项 Talent 成果` : '按项目读取 Talent 实际状态'}</span><Button size="small" onClick={() => setExpanded(true)}>知识成果</Button>
+    <strong>项目知识</strong><Tag color={ready && !failure ? 'green' : undefined}>{status}</Tag><span className="muted">{failure ? 'Talents 知识读取失败' : ready ? `${artifacts!.length} 项 Talents 产物` : '来自 Talents 发布'}</span><Button size="small" onClick={() => setExpanded(true)}>查看知识</Button>
     {failure && <Button size="small" onClick={() => setAttempt(value => value + 1)}>重试</Button>}
-    <Drawer className="project-knowledge-drawer" title="项目知识成果" width={760} open={expanded} onClose={() => setExpanded(false)} destroyOnHidden>{card}</Drawer>
+    <Drawer className="project-knowledge-drawer" title="项目知识" width={760} open={expanded} onClose={() => setExpanded(false)} destroyOnHidden>{card}</Drawer>
   </div>;
 }

@@ -1,6 +1,7 @@
+import { exportTaskSessions } from './talent-intake.js';
 import { nativeTaskSessionDocuments } from './task-session-documents.js';
 import { createHash } from 'node:crypto';
-import { talentOrigin,origin,runtimeDir } from './config.js';
+import { runtimeDir } from './config.js';
 import { deliveryRequirement,requireDeliveryMember } from '../src/delivery-requirements.js';
 import type { TalentTaskSessionReceipt } from '../src/talent-contract.js';
 import { requireCurrentTaskMember } from '../src/task-assignment.js';
@@ -15,21 +16,11 @@ export class TaskAutomationService {
   private active = new Map<string, Promise<DemoState>>();
   constructor(private store: Store, data: Presentation, private dependencies: Dependencies = {
     async inputs(state, scope) {
-      // Register the already assigned requirement facts, without building project
-      // knowledge or asserting that the agent has adopted/read the inputs.
-      const task=deliveryRequirement(state,scope.projectId,scope.taskId);
-      if(task&&!task.preparedAt){
-        const auth=await fetch(talentOrigin+'/api/session',{signal:AbortSignal.timeout(5000),redirect:'error'});
-        if(!auth.ok)throw new Error('Talent连接失败 HTTP '+auth.status);
-        const {token}=await auth.json();if(typeof token!=='string')throw new Error('Talent连接凭据无效');
-        const registered=await fetch(talentOrigin+'/api/task-inputs/register',{method:'POST',headers:{origin,'content-type':'application/json','x-demo-token':token},body:JSON.stringify({role:'owner',...scope}),signal:AbortSignal.timeout(10000),redirect:'error'});
-        if(!registered.ok){const error=await registered.json();throw new Error(error.error??'Talent任务输入登记失败 HTTP '+registered.status);}
-      }
       const context = await collaborationContext(state, data, { ...scope, nodeId: 'prepare' });
       if (context.knowledge.status === 'unavailable') throw new Error(context.knowledge.error ?? '项目知识暂不可读取');
       return { mode: context.mode as ImportedTaskInputs['mode'], contextId: context.contextId, requirement: context.agreement.title,
         knowledgeStatus: context.knowledge.status,
-        knowledge: context.knowledge.assets.map((item: any) => ({ id: item.id, title: item.title, version: item.version ?? '未标注' })),
+        knowledge: context.knowledge.assets.map((item: any) => ({ id: item.id, title: item.title ?? item.name, version: String(item.version ?? '未标注') })),
         skills: context.skills.map(item => ({ id: item.id, version: item.version, available: !!item.content && !item.availability.includes('unavailable') && item.availability !== 'example-only' })),
         references: context.references.map(item => ({ id: item.id, title: item.title, version: item.version })), materials: context.materials.map(item => ({ id: item.id, title: item.title })),
         notes: ['这里只读取现有知识、需求和 Skill；尚未替成员确认采用或冻结上下文。', ...context.skills.filter(item => !item.content).map(item => item.id + ' 正文不可用')],
@@ -41,19 +32,18 @@ export class TaskAutomationService {
       const acceptedAt=task?.acceptedAt??[...state.audit].reverse().find(item=>item.action==='通过功能验收')?.at;
       if(!acceptedAt)throw new Error('缺少验收时间，未发送会话');
       const inputDigest=task?.inputDigest??createHash('sha256').update(JSON.stringify(state.context)).digest('hex');
-      const auth=await fetch(talentOrigin+'/api/session',{signal:AbortSignal.timeout(5000),redirect:'error'});if(!auth.ok)throw new Error('Talent连接失败 HTTP '+auth.status);const token=(await auth.json()).token;if(typeof token!=='string')throw new Error('Talent连接凭据无效');
       const sessionDocuments=task&&(task.workDirectory||task.id==='DEMO-MKT-001')?await nativeTaskSessionDocuments(runtimeDir,scope,record.sessions,{id:record.id,acceptedAt}):undefined;
-      const response=await fetch(talentOrigin+'/api/task-sessions',{method:'POST',headers:{origin,'content-type':'application/json','x-demo-token':token},body:JSON.stringify({...scope,deliveryId:record.id,idempotencyKey:record.id,acceptedAt,inputDigest,sessions:record.sessions,...(sessionDocuments?{sessionDocuments}:{})}),signal:AbortSignal.timeout(10000),redirect:'error'});
-      const value=await response.json();if(!response.ok)throw new Error(value.error??'Talent上报失败 HTTP '+response.status);const receipt=value.receipt??value;
-      if(typeof receipt.id!=='string'||receipt.projectId!==scope.projectId||receipt.taskId!==scope.taskId||!Array.isArray(receipt.sessionIds)||!receipt.receivedAt||typeof receipt.payloadSha256!=='string'||JSON.stringify([...receipt.sessionIds].sort())!==JSON.stringify([...new Set(record.sessions.map(item=>item.sessionId))].sort()))throw new Error('Talent接收回执与当前任务不一致');if(sessionDocuments&&JSON.stringify([...(receipt.documentHashes??[])].sort((a,b)=>a.sessionId.localeCompare(b.sessionId)))!==JSON.stringify(sessionDocuments.map(({sessionId,sha256})=>({sessionId,sha256})).sort((a,b)=>a.sessionId.localeCompare(b.sessionId))))throw new Error('Talent正文接收摘要与原生文件不一致');return receipt;
+      return exportTaskSessions(state,{...scope,deliveryId:record.id,idempotencyKey:record.id,acceptedAt,inputDigest,sessions:record.sessions,...(sessionDocuments?{sessionDocuments}:{})});
     },
-  }) {}
+  }, private changed: () => Promise<unknown> = async () => {}) {}
   private run(key: string, operation: () => Promise<DemoState>) {
     const existing = this.active.get(key); if (existing) return existing;
     const pending = operation().finally(() => this.active.delete(key)); this.active.set(key, pending); return pending;
   }
-  private save(scope: TaskScope, work: (state: DemoState) => void, action: string, role: Role) {
-    return this.store.transact(current => { const next = structuredClone(current); work(next); next.revision++; next.audit.push({ id: next.revision, at: new Date().toISOString(), role, system: 'Teams', action, detail: scope.projectId + '/' + scope.taskId, origin: 'simulated' }); return next; });
+  private async save(scope: TaskScope, work: (state: DemoState) => void, action: string, role: Role) {
+    const saved = await this.store.transact(current => { const next = structuredClone(current); work(next); next.revision++; next.audit.push({ id: next.revision, at: new Date().toISOString(), role, system: 'Teams', action, detail: scope.projectId + '/' + scope.taskId, origin: 'simulated' }); return next; });
+    await this.changed();
+    return saved;
   }
   prepare(role: Role, scope: TaskScope, retry = false) {
     requireWritableTask(scope,this.store.state);
@@ -105,9 +95,9 @@ export class TaskAutomationService {
   }
   private async upload(scope:TaskScope){
     if(!this.dependencies.report)return this.store.state;
-    await this.save(scope,state=>{taskAutomation(state,scope)!.collection!.reporting={status:'uploading',reason:'正在向 Talent 上报本任务会话'};},'验收后会话上报 · 发送','owner');
-    try{const receipt=await this.dependencies.report(this.store.state,scope);return this.save(scope,state=>{taskAutomation(state,scope)!.collection!.reporting={status:'reported',reason:'Talent 已接收并保存',receipt};},'验收后会话上报 · 已接收','owner');}
-    catch(error){return this.save(scope,state=>{taskAutomation(state,scope)!.collection!.reporting={status:'failed',reason:(error as Error).message};},'验收后会话上报 · 未完成','owner');}
+    await this.save(scope,state=>{taskAutomation(state,scope)!.collection!.reporting={status:'uploading',reason:'正在共享本任务会话至 Talents'};},'验收后会话共享 · 开始','owner');
+    try{const receipt=await this.dependencies.report(this.store.state,scope);return this.save(scope,state=>{taskAutomation(state,scope)!.collection!.reporting={status:'reported',reason:'会话已写入共享目录，Talents 可读取',receipt};},'验收后会话共享 · 已写入','owner');}
+    catch(error){return this.save(scope,state=>{taskAutomation(state,scope)!.collection!.reporting={status:'failed',reason:(error as Error).message};},'验收后会话共享 · 未完成','owner');}
   }
 
 }

@@ -16,7 +16,7 @@ for(const id of ['MKT-MODAL-A','MKT-MODAL-B']){const task=createDeliveryRequirem
 await writeFile(join(root,'state.json'),JSON.stringify(seed));
 // Compile current candidate to memory: never replace the running service's dist.
 const bundle=await build({entryPoints:['src/main.tsx'],bundle:true,outdir:join(root,'bundle'),format:'esm',minify:true,target:['chrome120'],define:{'process.env.NODE_ENV':'"production"'},write:false});
-const server=spawn(process.execPath,['--import','tsx','server/index.ts'],{env:{...process.env,DEMO_PORT:'46221',DEMO_TALENT_PORT:'46222',DEMO_STATE_DIR:root,DEMO_TALENT_STATE_DIR:join(root,'talent'),DEMO_NATIVE_DISABLED:'1'},stdio:['ignore','pipe','pipe']});let logs='';server.stdout.on('data',data=>logs+=data);server.stderr.on('data',data=>logs+=data);let browser;
+const server=spawn(process.execPath,['--import','tsx','server/index.ts'],{env:{...process.env,DEMO_PORT:'46221',DEMO_TALENT_PORT:'46222',DEMO_STATE_DIR:root,DEMO_SHARED_DIR:join(root,'shared'),DEMO_SHARED_SEED_DIR:join(root,'no-seed'),DEMO_NATIVE_DISABLED:'1'},stdio:['ignore','pipe','pipe']});let logs='';server.stdout.on('data',data=>logs+=data);server.stderr.on('data',data=>logs+=data);let browser;
 try{
  let ready=false;for(let i=0;i<100;i++){try{if((await fetch(origin+'/api/health')).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,100));}assert.ok(ready,logs);
  const before=await readFile(join(root,'state.json'));browser=await chromium.launch({channel:'chrome',headless:true});const page=await browser.newPage({viewport:{width:1440,height:1000}});page.setDefaultTimeout(5000);const posts:string[]=[],errors:string[]=[];

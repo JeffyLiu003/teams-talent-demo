@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { initialState } from '../src/domain.js';
 const origin = 'http://127.0.0.1:46172', dir = await mkdtemp(join(tmpdir(), 'teams-groups-e2e-'));
 await writeFile(join(dir, 'state.json'), JSON.stringify(initialState()));
-const server = spawn(process.execPath, ['--import', 'tsx', 'server/index.ts'], { env: { ...process.env, DEMO_PORT: '46172', DEMO_TALENT_PORT: '46182', DEMO_STATE_DIR: dir, DEMO_TALENT_STATE_DIR: join(dir, 'talent'), DEMO_NATIVE_DISABLED: '1' }, stdio: ['ignore', 'pipe', 'pipe'] });
+const server = spawn(process.execPath, ['--import', 'tsx', 'server/index.ts'], { env: { ...process.env, DEMO_PORT: '46172', DEMO_TALENT_PORT: '46182', DEMO_STATE_DIR: dir, DEMO_SHARED_DIR: join(dir, 'shared'), DEMO_SHARED_SEED_DIR: join(dir, 'no-seed'), DEMO_NATIVE_DISABLED: '1' }, stdio: ['ignore', 'pipe', 'pipe'] });
 let logs = ''; server.stdout.on('data', data => logs += data); server.stderr.on('data', data => logs += data);
 await mkdir('test-results/teams', { recursive: true });
 let browser, page: Page | undefined;

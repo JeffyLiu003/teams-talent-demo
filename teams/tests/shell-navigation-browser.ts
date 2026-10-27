@@ -12,17 +12,17 @@ const teams = 'http://127.0.0.1:46224', talent = 'http://127.0.0.1:46225';
 const seed = initialState(), taskId = 'MKT-NAV-001';
 createDeliveryRequirement(seed, 'owner', { projectId: 'carddemo', id: taskId, title: '导航范围核对', description: '只验证布局操作保留当前工作位置。', assigneeId: 'member', skillIds: ['dev-code-reviewer'] }, '2026-10-27T00:00:00Z');
 await writeFile(join(root, 'state.json'), JSON.stringify(seed));
-const env = { ...process.env, DEMO_PORT: '46224', DEMO_TALENT_PORT: '46225', DEMO_STATE_DIR: root, DEMO_TALENT_STATE_DIR: join(root, 'talent'), DEMO_NATIVE_DISABLED: '1' };
-const processes = ['server/index.ts', 'server/talent.ts'].map(file => spawn(process.execPath, ['--import', 'tsx', file], { env, stdio: ['ignore', 'pipe', 'pipe'] }));
+const env = { ...process.env, DEMO_PORT: '46224', DEMO_TALENT_PORT: '46225', DEMO_STATE_DIR: root, DEMO_SHARED_DIR: join(root, 'shared'), DEMO_SHARED_SEED_DIR: join(root, 'no-seed'), DEMO_NATIVE_DISABLED: '1' };
+const processes = ['server/index.ts'].map(file => spawn(process.execPath, ['--import', 'tsx', file], { env, stdio: ['ignore', 'pipe', 'pipe'] }));
 let logs = '', browser;
 for (const process of processes) { process.stdout.on('data', value => logs += value); process.stderr.on('data', value => logs += value); }
 try {
-  for (const origin of [teams, talent]) {
+  for (const origin of [teams]) {
     let ready = false;
     for (let n = 0; n < 100; n++) { try { if ((await fetch(origin + '/api/health')).ok) { ready = true; break; } } catch {} await new Promise(resolve => setTimeout(resolve, 100)); }
     assert.ok(ready, logs);
   }
-  const stateFiles = [join(root, 'state.json'), join(root, 'talent', 'talent-state.json')];
+  const stateFiles = [join(root, 'state.json')];
   const before = await Promise.all(stateFiles.map(file => readFile(file)));
   browser = await chromium.launch({ channel: 'chrome', headless: true });
   const posts: string[] = [], errors: string[] = [], layouts: unknown[] = [];
@@ -74,14 +74,16 @@ try {
     await context.close();
   }
   const talentContext = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
-  await talentContext.addInitScript(() => localStorage.setItem('teams-sidebar-collapsed', 'true'));
-  const page = await talentContext.newPage(); page.on('request', request => { if (request.method() === 'POST') posts.push(request.url()); }); page.on('pageerror', error => errors.push(error.message));
-  await page.goto(talent + '/talent?demo-role=owner#/knowledge?project=carddemo'); await page.locator('.talent-sidebar').waitFor();
-  assert.equal((await page.locator('.talent-sidebar').boundingBox())!.width, 240); assert.equal(await page.locator('.global-navigation-toggle').count(), 0);
+  const page = await talentContext.newPage();
+  await page.route(talent + '/**', route => route.fulfill({ contentType: 'text/html', body: '<p>Independent app navigation transport fixture</p>' }));
+  await page.goto(teams + '/teams?demo-role=owner#/projects?project=carddemo&tab=content');
+  await page.locator('.framework-sidebar').getByRole('link', { name: 'Talents', exact: true }).click();
+  await page.waitForURL(talent + '/talents?role=owner#/review?project=carddemo');
+  assert.equal(await page.locator('.global-navigation-toggle').count(), 0);
   await talentContext.close();
   assert.deepEqual(posts, []); assert.deepEqual(errors, []);
   for (const [index, file] of stateFiles.entries()) assert.deepEqual(await readFile(file), before[index]);
-  await writeFile('test-results/shell-navigation/result.json', JSON.stringify({ passed: true, layouts, keyboardToggle: true, resizeAndRefreshPreference: true, talentUnchanged: true, posts, errors, stateBytesUnchanged: true, nativeInvocations: 0 }, null, 2));
+  await writeFile('test-results/shell-navigation/result.json', JSON.stringify({ passed: true, layouts, keyboardToggle: true, resizeAndRefreshPreference: true, independentTalentsNavigation: true, posts, errors, stateBytesUnchanged: true, nativeInvocations: 0 }, null, 2));
   console.log('PASS shell collapse/expand: 200px default, retained resize, eight role/theme/viewport layouts, 0 POST');
 } finally {
   await browser?.close();

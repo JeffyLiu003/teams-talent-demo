@@ -3,6 +3,7 @@ import { readFile, realpath, open, mkdir, link, unlink } from 'node:fs/promises'
 import { join, resolve, sep } from 'node:path';
 import type { CollectedSession, TaskScope } from '../src/task-automation.js';
 import type { TalentTaskSessionPayload } from '../src/talent-contract.js';
+import { nativeSessionRootMatches } from './native-session-location.js';
 
 type Documents = NonNullable<TalentTaskSessionPayload['sessionDocuments']>;
 interface Capture { id: string; acceptedAt: string }
@@ -57,7 +58,7 @@ export async function nativeTaskSessionDocuments(runtime: string, scope: TaskSco
       const runRoot = await realpath(join(runtime, 'work-contexts', runId + '.native'));
       if (runRoot !== resolve(runtimeRoot, 'work-contexts', runId + '.native')) throw new Error('原生运行目录不允许符号链接替换');
       const owner = JSON.parse(await readFile(join(runRoot, 'native-session.json'), 'utf8')), result = await optionalJson(join(runRoot, 'result.json'));
-      if (owner.source !== 'icode-active-session-owner' || owner.projectId !== scope.projectId || owner.taskId !== scope.taskId || owner.runId !== runId || owner.sessionId !== session.sessionId || ![join(runRoot, 'session-root'), resolve(runtime, 'work-contexts', runId + '.native', 'session-root')].includes(owner.sessionRoot)) throw new Error('原生会话范围不匹配，未上报会话正文');
+      if (owner.source !== 'icode-active-session-owner' || owner.projectId !== scope.projectId || owner.taskId !== scope.taskId || owner.runId !== runId || owner.sessionId !== session.sessionId || !await nativeSessionRootMatches(runtimeRoot, runRoot, owner, runtime)) throw new Error('原生会话范围不匹配，未上报会话正文');
       let kind = 'completed-session';
       if (owner.executionMode === 'interactive') {
         const manifest = JSON.parse(await readFile(join(runRoot, 'manifest.json'), 'utf8'));

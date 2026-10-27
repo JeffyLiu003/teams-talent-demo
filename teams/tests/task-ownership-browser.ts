@@ -38,13 +38,13 @@ state.workspace.genericTasks = [
 await mkdir(join(dir, 'teams'), { recursive: true });
 await writeFile(join(dir, 'teams/state.json'), JSON.stringify(state));
 const bundle = await build({ entryPoints: ['src/main.tsx'], bundle: true, outdir: join(out, 'bundle'), write: false, format: 'esm', minify: true, target: ['chrome120'], define: { 'process.env.NODE_ENV': '"production"' } });
-const env = { ...process.env, DEMO_PORT: '46076', DEMO_TALENT_PORT: '46086', DEMO_STATE_DIR: join(dir, 'teams'), DEMO_TALENT_STATE_DIR: join(dir, 'talent'), DEMO_NATIVE_DISABLED: '1' };
+const env = { ...process.env, DEMO_PORT: '46076', DEMO_TALENT_PORT: '46086', DEMO_STATE_DIR: join(dir, 'teams'), DEMO_SHARED_DIR: join(dir, 'shared'), DEMO_SHARED_SEED_DIR: join(dir, 'no-seed'), DEMO_NATIVE_DISABLED: '1' };
 let logs = '', browser: Browser | undefined;
-const children = ['server/index.ts', 'server/talent.ts'].map(entry => { const child = spawn(process.execPath, ['--import', 'tsx', entry], { env, stdio: ['ignore', 'pipe', 'pipe'] }); child.stdout.on('data', data => logs += data); child.stderr.on('data', data => logs += data); return child; });
-const hashes = async () => Promise.all([join(dir, 'teams/state.json'), join(dir, 'talent/talent-state.json')].map(async path => createHash('sha256').update(await readFile(path)).digest('hex')));
+const children = ['server/index.ts'].map(entry => { const child = spawn(process.execPath, ['--import', 'tsx', entry], { env, stdio: ['ignore', 'pipe', 'pipe'] }); child.stdout.on('data', data => logs += data); child.stderr.on('data', data => logs += data); return child; });
+const hashes = async () => Promise.all([join(dir, 'teams/state.json')].map(async path => createHash('sha256').update(await readFile(path)).digest('hex')));
 try {
   let ready = false;
-  for (let i = 0; i < 100; i++) { try { if ((await fetch(teams + '/api/health')).ok && (await fetch(talent + '/api/health')).ok) { ready = true; break; } } catch {} await new Promise(resolve => setTimeout(resolve, 100)); }
+  for (let i = 0; i < 100; i++) { try { if ((await fetch(teams + '/api/health')).ok) { ready = true; break; } } catch {} await new Promise(resolve => setTimeout(resolve, 100)); }
   assert.ok(ready, logs); const before = await hashes();
   await mkdir(out, { recursive: true });
   browser = await chromium.launch({ channel: 'chrome', headless: true });

@@ -6,7 +6,7 @@ import { parseDocument } from 'yaml';
 import { atomicText } from './store.js';
 
 /** Add only our process-scoped native hooks; keep every existing hook and setting. */
-export async function ensureNativeTuiHooks(script: string, backupDirectory: string, configDirectory = process.platform === 'win32' ? join(process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming'), 'chrys') : join(homedir(), '.chrys')) {
+export async function ensureNativeTuiHooks(script: string, backupDirectory: string, configDirectory = process.platform === 'win32' ? join(process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming'), 'chrys') : join(homedir(), '.chrys'), previousScript?: string) {
   const directory = join(configDirectory, 'hooks');
   let path = join(directory, 'hooks.json'), original: string | null = null;
   for (const name of ['hooks.yaml', 'hooks.yml', 'hooks.json']) {
@@ -26,7 +26,10 @@ export async function ensureNativeTuiHooks(script: string, backupDirectory: stri
   let changed = false;
   for (const definition of definitions) {
     const existing = value.hooks.filter((hook: {id:string}) => hook?.id === definition.id);
-    if (existing.length > 1 || existing.length === 1 && JSON.stringify(existing[0]) !== JSON.stringify(definition)) throw new Error('Teams TUI Hook 与已有同名配置不同，请核对后再启动；未覆盖配置');
+    const prior = existing[0];
+    const migrated = existing.length === 1 && prior && previousScript && prior.run?.argv?.length === 2 && prior.run.argv[0] === process.execPath && prior.run?.argv?.[1] === previousScript && JSON.stringify({...prior, run: {...prior.run, argv: [process.execPath, script]}}) === JSON.stringify(definition);
+    if (migrated) { document.setIn(['hooks', value.hooks.indexOf(prior)], definition); changed = true; }
+    if (!migrated && (existing.length > 1 || existing.length === 1 && JSON.stringify(existing[0]) !== JSON.stringify(definition))) throw new Error('Teams TUI Hook 与已有同名配置不同，请核对后再启动；未覆盖配置');
     if (!existing.length) { document.addIn(['hooks'], definition); changed = true; }
   }
   if (!changed) return { path, changed: false };

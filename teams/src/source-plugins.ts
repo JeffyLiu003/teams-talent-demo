@@ -3,7 +3,7 @@ import { externalPlatforms } from './external-platforms.js';
 
 export type SourcePluginId = typeof externalPlatforms[number]['id'];
 export type SourceProjectId = string;
-export type SourceAssetKind = 'repository' | 'code' | 'requirement' | 'defect' | 'document' | 'test-case' | 'knowledge';
+export type SourceAssetKind = 'repository' | 'code' | 'requirement' | 'defect' | 'document' | 'test-case';
 
 export interface SourceAssetReference {
   readonly collection: 'sources' | 'teams-documents' | 'graph';
@@ -34,7 +34,7 @@ export interface SourcePluginAsset {
   readonly issue?: { owner: string; severity: string; status: string; closed: boolean | null; confirmed: boolean; blocksDelivery: boolean; progress: string };
 }
 
-export type SourcePluginData = Pick<Presentation, 'blueprint' | 'teamsProject' | 'sources'> & Partial<Pick<Presentation, 'graph'>> & { talentKnowledgeAssets?: readonly SourcePluginAsset[] };
+export type SourcePluginData = Pick<Presentation, 'blueprint' | 'teamsProject' | 'sources'> & Partial<Pick<Presentation, 'graph'>>;
 export interface SourceAssetFilter { pluginId?: SourcePluginId; sourceProjectId?: SourceProjectId }
 export interface SourcePluginProvider {
   readonly id: SourcePluginId;
@@ -50,15 +50,15 @@ export interface SourcePluginCatalog {
 }
 
 export const sourceAssetKindLabels: Record<SourceAssetKind, string> = {
-  repository: '代码仓', code: '代码资产', requirement: '需求', defect: '问题单 / 缺陷', document: '设计与业务资料', 'test-case': '测试用例', knowledge: '业务知识',
+  repository: '代码仓', code: '代码资产', requirement: '需求', defect: '问题单 / 缺陷', document: '设计与业务资料', 'test-case': '测试用例',
 };
 export const sourceAssetId = (pluginId: SourcePluginId, projectId: SourceProjectId, sourceRecordId: string) => `${pluginId}:${projectId}:${sourceRecordId}`;
 
 const cardRequirement = sourceAssetId('requirements', 'carddemo', 'DEMO-MKT-001');
 const teamRequirement = (id: string) => sourceAssetId('requirements', 'teams', id);
 const marketingDesign = 'teams/docs/cashback-contract.md';
-const marketingIntegration = 'teams/docs/cashback-integration.md';
-const authenticationScope = 'teams/docs/security-scope.md';
+const marketingIntegration = 'workspace/carddemo-java-1025/docs/design/adr/ADR-009-marketing-integration.md';
+const authenticationScope = 'workspace/carddemo-java-1025/docs/design/adr/ADR-007-authentication-scope.md';
 const localFile = (collection: SourceAssetReference['collection'], path: string, label: string): SourceAssetReference => ({
   collection, path, label, extent: collection === 'graph' ? 'excerpt' : 'full-file', origin: 'existing-local-file',
 });
@@ -256,18 +256,13 @@ const provider = (id: SourcePluginId, kinds: readonly SourceAssetKind[], provide
   id, name: externalPlatforms.find(platform => platform.id === id)!.name, kinds: Object.freeze([...kinds]), provide,
 });
 
-/** Five raw source providers; Talent knowledge is supplied explicitly by its HTTP API. */
+/** Raw source providers. Talents knowledge is shown on the project knowledge page, not as a source. */
 export const sourcePluginProviders: readonly SourcePluginProvider[] = Object.freeze([
   provider('repository', ['repository', 'code'], repositoryAssets),
   provider('requirements', ['requirement'], requirementAssets),
   provider('defects', ['defect'], defectAssets),
   provider('design-library', ['document'], designAssets),
   provider('test-assets', ['test-case'], testAssets),
-  provider('business-knowledge', ['knowledge'], data => {
-    const records = data.talentKnowledgeAssets ?? [];
-    if (records.some(record => record.pluginId !== 'business-knowledge' || record.kind !== 'knowledge')) throw new Error('Talent 知识来源类型无效');
-    return records;
-  }),
 ]);
 
 export function createSourcePluginCatalog(data: SourcePluginData): SourcePluginCatalog {

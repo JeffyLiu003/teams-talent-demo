@@ -1,4 +1,5 @@
 import { projectSessionTurns } from './task-session-turns.js';
+import { nativeSessionRootMatches } from './native-session-location.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { open, readdir, realpath } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
@@ -95,7 +96,7 @@ export function createTaskSessionStream(runtime: string, options: { isAlive?: (p
         const runRoot = join(root, 'work-contexts', name), owner = await readJson(root, join(runRoot, 'native-session.json'));
         if (!owner || !scopeMatches(owner)) continue;
         const runId = name.slice(0, -7), manifest = await readJson(root, join(runRoot, 'manifest.json'));
-        if (!uuid.test(owner.sessionId) || owner.runId !== runId || owner.source !== 'icode-active-session-owner' || !nodes.has(owner.nodeId) || !timestamp(owner.startedAt) || ![join(runRoot, 'session-root'), resolve(runtime, 'work-contexts', name, 'session-root')].includes(owner.sessionRoot) || !manifest || manifest.runId !== runId || !scopeMatches(manifest.scope ?? {}) || manifest.scope.nodeId !== owner.nodeId) throw new DomainError('原生会话与任务绑定校验失败', 409);
+        if (!uuid.test(owner.sessionId) || owner.runId !== runId || owner.source !== 'icode-active-session-owner' || !nodes.has(owner.nodeId) || !timestamp(owner.startedAt) || !await nativeSessionRootMatches(root, runRoot, owner, runtime) || !manifest || manifest.runId !== runId || !scopeMatches(manifest.scope ?? {}) || manifest.scope.nodeId !== owner.nodeId) throw new DomainError('原生会话与任务绑定校验失败', 409);
         bind(owner.sessionId, 'icode', owner.nodeId, owner.startedAt, runId);
         bindings.get(owner.sessionId)!.runs.set(runId, { ...owner, sessionRoot: join(runRoot, 'session-root') });
       }

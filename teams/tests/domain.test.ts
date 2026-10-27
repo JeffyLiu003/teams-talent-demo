@@ -12,33 +12,33 @@ import { teamUsage, usageSummary } from '../src/operations.js';
 import { resourcePublications, resourceSubscriptions } from '../src/resource-sharing.js';
 import { readSkillCatalog } from '../server/skill-packages.js';
 import { updateWorkspace } from '../src/workspace.js';
-const flow: [Action, Role][] = [['assign','owner'],['knowledge','owner'],['prepare','member'],['replay','member'],['check-fail','member'],['fix','member'],['submit','member'],['enroll','owner'],['purchase','owner'],['deduplicate','owner'],['uat','owner'],['accept','owner'],['candidate','owner'],['evaluate','owner'],['release','owner'],['adopt','owner']];
-test('two-role delivery retains frozen context and local collection never invents a Talent receipt', () => {
+const step = (s: ReturnType<typeof initialState>, action: Action, role: Role) => transition(s, action, role, action === 'knowledge' ? { knowledgeVersion: '信用卡营销返现业务知识 v2' } : action === 'assign' ? { assigneeId: 'member' } : {});
+const flow: [Action, Role][] = [['assign','owner'],['knowledge','owner'],['prepare','member'],['replay','member'],['check-fail','member'],['fix','member'],['submit','member'],['enroll','owner'],['purchase','owner'],['deduplicate','owner'],['uat','owner'],['accept','owner']];
+test('two-role delivery records the Talents knowledge version and keeps security status', () => {
   let s = initialState();
-  for (const [action, role] of flow.slice(0,12)) { if(action==='submit')s=updateWorkspace(s,'session.link','member',{...mainTask,nodeId:'develop',tool:'icode',sessionId:'unit-session'});s = transition(s, action, role,action==='assign'?{assigneeId:'member'}:{}); }
-  finishTaskCollection(s,mainTask,collectTaskSessions(s,mainTask),new Date().toISOString());
-  assert.equal(s.stage,'accepted'); assert.equal(s.evolution,'none');assert.equal(s.workspace.sessionReported,false);assert.throws(()=>updateWorkspace(s,'analysis.run','owner',{scope:'project'}),/上报/);
+  for (const [action, role] of flow) s = transition(s, action, role, action === 'knowledge' ? { knowledgeVersion: '信用卡营销返现业务知识 v2' } : action === 'assign' ? { assigneeId: 'member' } : {});
+  assert.equal(s.stage,'accepted');
   assert.equal(s.context?.skillVersion,'1.0.0'); assert.equal(s.context?.agentVersion,'r1');
-  assert.equal(s.adoptedSkill,'1.0.0'); assert.equal(s.adoptedAgent,'r1');
+  assert.equal(s.context?.knowledgeVersion,'信用卡营销返现业务知识 v2');
   assert.equal(s.security,'unverified'); assert.equal(s.balance,2670.15);
   assert.equal(s.transactions.length,1); assert.equal(s.transactions[0].reward,0.6);
-  assert.equal(s.published,false); assert.equal(s.audit.length,13); assert.equal(s.audit.filter(a=>a.system==='Talent').length,0);
-  assert.equal(s.audit.find(a=>a.action==='发起项目知识整合')?.system,'Teams');
+  assert.equal(s.published,false); assert.equal(s.audit.length,12); assert.equal(s.audit.find(a=>a.action==='发起项目知识整合')?.detail,'Talents 已发布项目知识：信用卡营销返现业务知识 v2');
+  assert.throws(()=>transition(s,'knowledge','owner',{knowledgeVersion:'信用卡营销返现业务知识 v2'}),/尚未发布新的项目知识/);
 });
 test('permission and prerequisite failures do not mutate state', () => {
   const s=initialState(), before=JSON.stringify(s);
   assert.throws(()=>transition(s,'assign','member'), /无权/);
   assert.throws(()=>transition(s,'publish' as Action,'owner'), /未知操作/);
-  for (const action of ['knowledge','candidate','evaluate'] as const) assert.throws(()=>transition(s,action,'member'), /无权/);
+  assert.throws(()=>transition(s,'knowledge','member'), /无权/);
   assert.throws(()=>transition(s,'prepare','member'),/先分配需求并完成知识/);
   assert.throws(()=>transition(s,'accept','owner'),/未完成/);
   assert.throws(()=>transition(s,'toString' as Action,'owner'),/未知/);
   assert.equal(JSON.stringify(s),before);
 });
 test('role navigation separates team management while retaining shared tool and project entry points', () => {
-  assert.deepEqual(teamsPages('owner').map(p=>p.id).sort(), ['home','projects','team','agent','resources','subscriptions','publications','connections','team-work','talent'].sort());
+  assert.deepEqual(teamsPages('owner').map(p=>p.id).sort(), ['home','projects','team','agent','resources','subscriptions','publications','connections','team-work','trace-monitor','talent'].sort());
   assert.deepEqual(teamsPages('member').map(p=>p.id).sort(), ['home','projects','team','agent','resources','subscriptions','publications','talent'].sort());
-  assert.ok(isOwnerPage('connections')); assert.ok(isOwnerPage('organization')); assert.ok(isOwnerPage('team-work'));
+  assert.ok(isOwnerPage('connections')); assert.ok(isOwnerPage('organization')); assert.ok(isOwnerPage('team-work')); assert.ok(isOwnerPage('trace-monitor'));
   assert.equal(isOwnerPage('trace'), false, 'a member must retain access to their project execution record');
 });
 test('usage counts people rather than instances and separates waiting from running', () => {
@@ -52,16 +52,16 @@ test('usage counts people rather than instances and separates waiting from runni
 });
 test('failed tests prevent delivery and duplicate purchase cannot change ledger', () => {
   let s=initialState();
-  for(const [a,r] of flow.slice(0,5))s=transition(s,a,r,a==='assign'?{assigneeId:'member'}:{});
+  for(const [a,r] of flow.slice(0,5))s=step(s,a,r);
   assert.throws(()=>transition(s,'submit','member'),/检查未通过/);
-  for(const [a,r] of flow.slice(5,9))s=transition(s,a,r,a==='assign'?{assigneeId:'member'}:{});
+  for(const [a,r] of flow.slice(5,9))s=step(s,a,r);
   const serialized=JSON.stringify(s);
   assert.throws(()=>transition(s,'purchase','owner'),/只记账一次/);
   assert.equal(JSON.stringify(s),serialized);
 });
 test('Owner returns delivery and member must fix, submit and revalidate', () => {
   let s=initialState();
-  for(const [a,r] of flow.slice(0,11))s=transition(s,a,r,a==='assign'?{assigneeId:'member'}:{});
+  for(const [a,r] of flow.slice(0,11))s=step(s,a,r);
   s=transition(s,'return','owner',{reason:'补充核验范围'});
   assert.equal(s.uat,false);assert.equal(s.stage,'returned');
   assert.throws(()=>transition(s,'accept','owner'),/未完成/);
@@ -87,7 +87,7 @@ test('native shell arguments quote spaces and apostrophes without interpolation'
 });
 
 test('project knowledge can precede assignment and frozen inputs retain selected skills and materials',()=>{
-  let s=initialState();s=transition(s,'knowledge','owner');assert.equal(s.assigned,false);
+  let s=initialState();s=step(s,'knowledge','owner');assert.equal(s.assigned,false);
   s=transition(s,'assign','owner',{assigneeId:'member'});
   s=updateWorkspace(s,'material.add','member',{title:'新增边界',body:'检查普通卡资格边界'});
   s=updateWorkspace(s,'skills.select','member',{skills:['dev-frontend-ui','office-word']});
@@ -105,13 +105,11 @@ test('team and connection management enforce roles and protect fixed demonstrati
   s=updateWorkspace(s,'member.approve','owner',{teamId:'carddemo',id});assert.equal(s.workspace.team.members.at(-1)!.status,'active');
   assert.throws(()=>updateWorkspace(s,'member.remove','owner',{teamId:'carddemo',id:'member'}),/固定/);
   s=updateWorkspace(s,'member.remove','owner',{teamId:'carddemo',id});assert.equal(s.workspace.team.members.length,6);
-  s=updateWorkspace(s,'connection.update','owner',{id:'talent',enabled:false,description:'暂时停用'});
-  assert.throws(()=>transition(s,'knowledge','owner'),/启用 Talent/);
 });
 test('manual post-delivery reporting is rejected and acceptance queues an independent collection',()=>{
   let s=initialState();assert.throws(()=>updateWorkspace(s,'session.report','member',{}),/自动归集/);
   assert.throws(()=>updateWorkspace(s,'analysis.run','owner',{scope:'single'}),/上报/);
-  for(const [a,r] of flow.slice(0,12))s=transition(s,a,r,a==='assign'?{assigneeId:'member'}:{});
+  for(const [a,r] of flow.slice(0,12))s=step(s,a,r);
   assert.equal(s.workspace.taskAutomation?.[0].collection?.status,'queued');
   assert.equal(s.workspace.sessionReported,false);
   finishTaskCollection(s,mainTask,collectTaskSessions(s,mainTask),new Date().toISOString());
@@ -120,7 +118,7 @@ test('manual post-delivery reporting is rejected and acceptance queues an indepe
   assert.throws(()=>updateWorkspace(s,'session.report','member',{}),/自动归集/);
 });
 test('base collaboration settings govern progress and session report independently of business skills',()=>{
-  let s=initialState();for(const [a,r] of flow.slice(0,4))s=transition(s,a,r,a==='assign'?{assigneeId:'member'}:{});
+  let s=initialState();for(const [a,r] of flow.slice(0,4))s=step(s,a,r);
   s=updateWorkspace(s,'progress.sync','member',{text:'已确认需求影响范围'});assert.equal(s.workspace.progress.length,1);
   s=updateWorkspace(s,'foundation.update','member',{progressEnabled:false,uploadEnabled:true});
   assert.throws(()=>updateWorkspace(s,'progress.sync','member',{text:'测试'}),/启用/);
@@ -166,7 +164,7 @@ test('resource publishing and subscriptions stay separate from unpublished proje
   assert.throws(()=>updateWorkspace(s,'resource.publish','owner',{id:'office-word'}),/共享范围/);
   assert.throws(()=>updateWorkspace(s,'skills.select','member',{skills:['not-owned']}),/有效的项目或用户/);
   assert.throws(()=>updateWorkspace(s,'skills.select','member',{skills:[]}),/有效的项目或用户/);
-  s=transition(s,'assign','owner',{assigneeId:'member'});s=transition(s,'knowledge','owner');
+  s=transition(s,'assign','owner',{assigneeId:'member'});s=step(s,'knowledge','owner');
   assert.throws(()=>transition({...s,workspace:{...s.workspace,selectedSkills:[]}},'prepare','member'),/请选择/);
   s=updateWorkspace(s,'skills.select','member',{skills:['dev-frontend-ui','office-excel']});s=transition(s,'prepare','member');
   const context=structuredClone(s.context);
@@ -221,7 +219,7 @@ test('old campaign state remains readable but cannot execute current rules until
 });
 test('purchase needs no enrollment and uses current extra cashback amount', () => {
   let s = initialState();
-  for (const [action, role] of flow.slice(0, 7)) s = transition(s, action, role,action==='assign'?{assigneeId:'member'}:{});
+  for (const [action, role] of flow.slice(0, 7)) s = step(s, action, role);
   assert.equal(s.enrolled, false);
   s = transition(s, 'purchase', 'owner');
   assert.equal(s.transactions[0].reward, 0.6); assert.equal(s.balance, 2670.15);

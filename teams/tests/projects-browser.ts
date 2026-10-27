@@ -6,25 +6,33 @@ import { mkdir, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { initialState } from '../src/domain.js';
+import { sharedPaths, type PublishedArtifact, type TalentsKnowledge } from '../../shared/contracts.js';
 
-const origin = 'http://127.0.0.1:45973', dir = await mkdtemp(join(tmpdir(), 'teams-create-e2e-'));
+const origin = 'http://127.0.0.1:45973', dir = await mkdtemp(join(tmpdir(), 'teams-create-e2e-')), shared = join(dir, 'shared');
 const talentOrigin = 'http://127.0.0.1:45983';
 const legacy = initialState(); legacy.knowledge = true; legacy.revision = 1;
 await writeFile(join(dir, 'state.json'), JSON.stringify(legacy));
-const serviceEnv = { ...process.env, DEMO_PORT: '45973', DEMO_TALENT_PORT: '45983', DEMO_STATE_DIR: dir, DEMO_TALENT_STATE_DIR: join(dir, 'talent'), DEMO_NATIVE_DISABLED: '1' };
+const serviceEnv = { ...process.env, DEMO_PORT: '45973', DEMO_TALENT_PORT: '45983', DEMO_STATE_DIR: dir, DEMO_SHARED_DIR: shared, DEMO_SHARED_SEED_DIR: join(dir, 'no-seed'), DEMO_NATIVE_DISABLED: '1' };
 const server = spawn(process.execPath, ['--import', 'tsx', 'server/index.ts'], { env: serviceEnv, stdio: ['ignore', 'pipe', 'pipe'] });
-const talent = spawn(process.execPath, ['--import', 'tsx', 'server/talent.ts'], { env: serviceEnv, stdio: ['ignore', 'pipe', 'pipe'] });
 let logs = ''; server.stdout.on('data', c => logs += c); server.stderr.on('data', c => logs += c);
-talent.stdout.on('data', c => logs += c); talent.stderr.on('data', c => logs += c);
+/** Stands in for the Talents service: publishes one markdown artifact per project into the shared data directory. */
+const published: PublishedArtifact[] = [];
+async function publishFromTalents(projectId: string, id: string, name: string) {
+  const file = 'doc-knowledge/' + name + '.md';
+  published.push({ id, projectId, name, description: name + '（Talents 发布）', capability: 'doc-extract', capabilityName: '业务知识提取', category: 'doc', kind: 'files', version: 1, publishedAt: '2026-10-27T10:00:00.000Z', note: '', delivery: 'local', files: [{ path: file, title: name, type: 'markdown' }] });
+  await mkdir(join(shared, 'talents', 'files', id, 'v1', 'doc-knowledge'), { recursive: true });
+  await writeFile(join(shared, sharedPaths.talentsFile(id, 1, file)), '# ' + name + '\n\n- 来源：' + projectId + '\n<script>parent.__publishedArtifactExecuted = true</script><img src="https://invalid.example/preview-probe" onerror="parent.__publishedArtifactExecuted = true">');
+  await writeFile(join(shared, sharedPaths.talentsKnowledge), JSON.stringify({ schemaVersion: 1, exportedAt: new Date().toISOString(), artifacts: published } satisfies TalentsKnowledge));
+}
 await mkdir('test-results', { recursive: true });
 let browser, page: Page | undefined;
 try {
   let ready = false;
-  for (let i = 0; i < 100; i++) { try { if ((await fetch(origin + '/api/health')).ok && (await fetch(talentOrigin + '/api/health')).ok) { ready = true; break; } } catch {} await new Promise(r => setTimeout(r, 100)); }
+  for (let i = 0; i < 100; i++) { try { if ((await fetch(origin + '/api/health')).ok) { ready = true; break; } } catch {} await new Promise(r => setTimeout(r, 100)); }
   assert.ok(ready, logs);
   const bootstrap = await (await fetch(origin + '/api/bootstrap')).json() as any;
   const state = async () => await (await fetch(origin + '/api/state')).json() as any;
-  const initial = await state(), headers = { 'content-type': 'application/json', 'x-demo-token': bootstrap.token, origin };
+  let initial = await state(); const headers = { 'content-type': 'application/json', 'x-demo-token': bootstrap.token, origin };
   const draft = { id: randomUUID(), name: '客户服务门户', description: '独立项目说明', remoteUrl: 'https://github.com/example/customer-portal.git', repositoryIdentity: 'github.com/example/customer-portal' };
   const request = async (role: string, kind: string, payload: unknown) => fetch(origin + '/api/workspace', { method: 'POST', headers, body: JSON.stringify({ role, kind, payload, revision: (await state()).revision }) });
   assert.equal((await request('member', 'project.create', draft)).status, 403);
@@ -38,12 +46,20 @@ try {
   const openPanel = async (name: string, target = page!) => { await closePanels(target); await target.getByRole('button', { name, exact: true }).click(); };
   const closeText = async (target = page!) => { await target.locator('.ant-drawer').filter({ has: target.locator('.drawer-console') }).locator('.ant-drawer-close').click(); await target.locator('.drawer-console').waitFor({ state: 'hidden' }); };
   const save = async (kind: string, name: string) => { const [response] = await Promise.all([page!.waitForResponse(r => r.url() === origin + '/api/workspace' && r.request().postDataJSON().kind === kind), page!.getByRole('button', { name, exact: true }).click()]); assert.equal(response.status(), 200, await response.text()); };
-  await visit('projects?project=carddemo&tab=content'); await openPanel('知识成果');
-  await page.locator('.project-knowledge').getByText('尚未生成项目知识', { exact: true }).waitFor();
-  assert.equal(await page.locator('[data-action="knowledge"]').isEnabled(), true, 'legacy Teams projection must not disable actual Talent build');
-  const [built] = await Promise.all([page.waitForResponse(response => response.url() === talentOrigin + '/api/action'), page.locator('[data-action="knowledge"]').click()]); assert.equal(built.status(), 200);
-  await page.getByRole('button', { name: '查看项目知识：白金卡资格独立判断', exact: true }).waitFor();
-  assert.deepEqual(await state(), initial, 'same-revision legacy projection stays unchanged while actual results refresh');
+  const talentsHref = async (target = page!) => new URL((await target.locator('.project-knowledge').getByRole('link', { name: /在 Talents (挖掘|应用)知识/ }).getAttribute('href'))!);
+  await visit('projects?project=carddemo&tab=content'); await openPanel('查看知识');
+  await page.locator('.project-knowledge').getByText('Talents 尚未为此项目发布知识', { exact: true }).waitFor();
+  assert.equal(await page.locator('[data-action="knowledge"]').count(), 0, 'Teams no longer starts knowledge integration');
+  let href = await talentsHref(); assert.equal(href.origin, talentOrigin); assert.equal(href.hash, '#/review?project=carddemo');
+  assert.deepEqual(await state(), initial, 'legacy Teams knowledge flag is not shown as published knowledge and is left unchanged');
+  await publishFromTalents('carddemo', 'a-card', '白金卡返现业务规则'); await page.reload(); await openPanel('查看知识');
+  await page.locator('[data-artifact="a-card"]').getByText('白金卡返现业务规则', { exact: true }).waitFor();
+  await page.locator('[data-artifact="a-card"]').getByRole('button', { name: /查\s*看/ }).click(); await page.frameLocator('.talents-artifact-drawer .talents-markdown').locator('h1').getByText('白金卡返现业务规则', { exact: true }).waitFor();
+  assert.equal(await page.locator('.talents-artifact-drawer .talents-markdown').getAttribute('sandbox'), '');
+  assert.equal(await page.evaluate(() => (window as Window & { __publishedArtifactExecuted?: boolean }).__publishedArtifactExecuted), undefined, 'published Markdown cannot execute against the Teams origin');
+  await page.locator('.talents-artifact-drawer .ant-drawer-close').click(); await page.locator('.talents-artifact-drawer').waitFor({ state: 'hidden' }); await closePanels();
+  const synced = await state(); assert.equal(synced.knowledgeVersion, '白金卡返现业务规则 v1'); assert.equal(synced.audit.at(-1).detail, 'Talents 已发布项目知识：白金卡返现业务规则 v1');
+  initial = synced;
   await visit('projects?tab=list');
   await page.getByRole('button', { name: '添加项目', exact: true }).click();
   await page.screenshot({ path: 'test-results/project-create-form.png' });
@@ -59,9 +75,10 @@ try {
   assert.ok(!['carddemo', 'teams'].includes(projectId));
   const business = (value: any) => { const copy = structuredClone(value); delete copy.workspace.projects; copy.revision = 0; copy.audit = []; return copy; };
   assert.deepEqual(business(created), business(initial));
-  await openPanel('项目资料'); await page.getByText('尚未关联项目资料', { exact: true }).waitFor(); await closePanels(); await openPanel('知识成果');
-  assert.equal(await page.locator('.created-project [data-action]:not([data-action="knowledge"])').count(), 0);
-  assert.equal(await page.locator('[data-action="knowledge"]').isDisabled(), true); await closePanels();
+  await openPanel('项目资料'); await page.getByText('尚未关联项目资料', { exact: true }).waitFor(); await closePanels(); await openPanel('查看知识');
+  assert.equal(await page.locator('.created-project [data-action]').count(), 0);
+  await page.locator('.project-knowledge').getByText('Talents 尚未为此项目发布知识', { exact: true }).waitFor();
+  href = await talentsHref(); assert.equal(href.hash, '#/review?project=' + projectId); await closePanels();
   await page.screenshot({ path: 'test-results/project-create-content.png' });
   await page.reload(); await page.locator('.breadcrumb strong').getByText(draft.name, { exact: true }).waitFor();
   const empty = [['任务管理', '尚无项目需求'], ['任务交付', '尚无可交付任务']];
@@ -85,15 +102,15 @@ try {
   await member.goto(origin + '/teams#/projects?project=' + projectId + '&tab=settings'); await member.getByText('项目成员可查看基础信息，由 Owner 维护。', { exact: true }).waitFor(); assert.equal(await member.getByRole('textbox', { name: '项目名称', exact: true }).isDisabled(), true);
   assert.equal((await request('member', 'project.metadata.update', { ...draft, id: projectId, name: '越权更新' })).status, 403);
   await closePanels(); await page.getByRole('button', { name: '切换到浅色模式' }).click();
-  const sharedTitles = ['项目基础信息', '项目资料与资产', '项目知识成果', '需求材料与来源', '项目可用 Skill'];
+  const sharedTitles = ['项目基础信息', '项目资料与资产', '项目知识', '需求材料与来源', '项目可用 Skill'];
   const layoutChecks: unknown[] = [];
   for (const [roleName, target] of [['owner', page], ['member', member]] as const) for (const id of ['carddemo', 'teams', projectId]) {
     await target.goto(origin + '/teams#/projects?project=' + id + '&tab=content');
     if (roleName === 'owner') {
       await target.locator('.project-owner-overview').waitFor(); assert.equal(await target.locator('[data-metric]').count(), 10);
-      await openPanel('知识成果', target); if (id !== 'carddemo') await target.getByText('尚未生成项目知识', { exact: true }).waitFor(); await closePanels(target);
+      await openPanel('查看知识', target); await target.locator('.project-knowledge').getByText(id === 'carddemo' ? '白金卡返现业务规则' : 'Talents 尚未为此项目发布知识', { exact: true }).waitFor(); await closePanels(target);
       await openPanel('项目资料', target);
-    } else { await target.locator('.project-content-template').waitFor(); assert.deepEqual(await target.locator('.project-content-template h2').allTextContents(), sharedTitles); if (id !== 'carddemo') await target.getByText('尚未生成项目知识', { exact: true }).waitFor(); }
+    } else { await target.locator('.project-content-template').waitFor(); assert.deepEqual(await target.locator('.project-content-template h2').allTextContents(), sharedTitles); await target.locator('.project-knowledge').getByText(id === 'carddemo' ? '白金卡返现业务规则' : 'Talents 尚未为此项目发布知识', { exact: true }).waitFor(); assert.equal((await talentsHref(target)).hash, '#/dev-knowledge?project=' + id); }
     if (id === 'teams') { assert.equal(await target.getByRole('button', { name: '关联项目资产', exact: true }).count(), 0); await target.getByRole('button', { name: '项目成员与职责', exact: true }).click(); await target.getByText('成员 A、B、C 为项目协作成员。', { exact: false }).waitFor(); }
     if (roleName === 'owner') await openPanel('查看 Skill', target);
     if (id === 'teams') for (const skill of bootstrap.data.teamsProject.project.skills) { await target.getByRole('button', { name: '查看 Skill：' + skill.name, exact: true }).click(); const original = bootstrap.data.teamsProject.documents.find((doc: any) => doc.path === '.agents/skills/' + skill.name + '/SKILL.md').content; assert.ok((await target.locator('.drawer-console').innerText()).includes(original)); await closeText(target); }
@@ -108,25 +125,24 @@ try {
   await save('asset.link', '关联所选资产');
   await page.getByRole('button', { name: '查看来源：信用卡消费返现', exact: true }).click();
   assert.ok((await page.locator('.drawer-console').innerText()).includes('来源插件')); await closeText();
-  await page.reload(); await openPanel('项目资料'); await page.getByRole('button', { name: '查看来源：信用卡消费返现', exact: true }).waitFor(); await openPanel('知识成果');
-  await page.locator('.project-knowledge').getByText('尚未生成项目知识', { exact: true }).waitFor();
+  await page.reload(); await openPanel('项目资料'); await page.getByRole('button', { name: '查看来源：信用卡消费返现', exact: true }).waitFor(); await openPanel('查看知识');
+  await page.locator('.project-knowledge').getByText('Talents 尚未为此项目发布知识', { exact: true }).waitFor();
   const beforeIndex = await state();
-  const [indexed] = await Promise.all([page.waitForResponse(response => response.url() === talentOrigin + '/api/action'), page.locator('[data-action="knowledge"]').click()]); assert.equal(indexed.status(), 200);
-  await page.getByRole('button', { name: '查看项目知识：信用卡消费返现 · 来源索引', exact: true }).waitFor();
-  await page.locator('.project-knowledge').getByText('当前成果为已关联资料的来源索引，业务规则仍需抽取与确认。', { exact: true }).waitFor();
-  assert.equal(await page.getByRole('button', { name: '查看项目知识：白金卡资格独立判断', exact: true }).count(), 0);
-  assert.deepEqual(await state(), beforeIndex, 'new project indexing must not update CardDemo state');
-  await page.route('**/api/knowledge/assets?project=' + projectId, route => route.abort());
-  await page.getByRole('button', { name: '刷新成果', exact: true }).click(); await page.getByText('无法读取 Talent 项目知识', { exact: true }).waitFor();
-  assert.equal(await page.getByRole('button', { name: '查看项目知识：信用卡消费返现 · 来源索引', exact: true }).count(), 0);
+  await publishFromTalents(projectId, 'a-portal', '客户门户来源索引'); await page.reload(); await openPanel('查看知识');
+  await page.locator('[data-artifact="a-portal"]').getByText('客户门户来源索引', { exact: true }).waitFor();
+  assert.equal(await page.locator('[data-artifact="a-card"]').count(), 0, 'no cross-project knowledge');
+  assert.deepEqual(await state(), beforeIndex, 'knowledge published for a new project must not update CardDemo state');
+  await page.route('**/api/talents/knowledge?project=' + projectId, route => route.abort());
+  await page.locator('.project-knowledge').getByRole('button', { name: /^刷\s*新$/ }).click(); await page.getByText('无法读取 Talents 项目知识', { exact: true }).waitFor();
+  assert.equal(await page.locator('[data-artifact="a-portal"]').count(), 0);
   await page.screenshot({ path: 'test-results/project-knowledge-offline.png', animations: 'disabled' });
-  await page.unroute('**/api/knowledge/assets?project=' + projectId);
-  await page.locator('.project-knowledge').getByRole('button', { name: /^重\s*试$/ }).click(); await page.getByRole('button', { name: '查看项目知识：信用卡消费返现 · 来源索引', exact: true }).waitFor();
+  await page.unroute('**/api/talents/knowledge?project=' + projectId);
+  await page.locator('.project-knowledge').getByRole('button', { name: /^重\s*试$/ }).click(); await page.locator('[data-artifact="a-portal"]').waitFor();
   assert.equal((await request('member', 'asset.link', { projectId, sourceAssetId: 'repository:teams:icode-teams' })).status, 403);
   assert.equal((await request('owner', 'asset.link', { projectId, sourceAssetId: 'not-in-provider' })).status, 409);
   assert.equal((await state()).assigned, false);
   created = await state(); assert.equal(created.workspace.projects.length, 1); assert.equal(created.workspace.projects[0].name, '客户门户新版'); assert.deepEqual(business(created), business(initial)); assert.deepEqual(errors, []);
-  await writeFile('test-results/project-create-results.json', JSON.stringify({ passed: true, projectId, roleProtection: true, requiredValidation: true, refreshPersistence: true, cardDemoUnchanged: true, emptyTabs: true, sharedTitles, layoutChecks, providerAssociation: true, actualTalentKnowledge: ['legacy flag ignored', 'same-revision build refresh', 'new project source index', 'no cross-project results', 'offline retry'], pageErrors: errors }, null, 2));
+  await writeFile('test-results/project-create-results.json', JSON.stringify({ passed: true, projectId, roleProtection: true, requiredValidation: true, refreshPersistence: true, cardDemoUnchanged: true, emptyTabs: true, sharedTitles, layoutChecks, providerAssociation: true, talentsKnowledge: ['legacy flag ignored', 'shared-dir publish syncs CardDemo', 'artifact markdown drawer', 'new project knowledge', 'no cross-project results', 'offline retry'], pageErrors: errors }, null, 2));
   console.log('PASS: independent project create/edit, list/sidebar, refresh, empty tabs, Owner enforcement, invalid fields, existing projects unchanged');
 } catch (error) { await page?.screenshot({ path: 'test-results/project-create-failure.png' }); throw error; }
-finally { await browser?.close(); await Promise.all([server, talent].map(process => new Promise(resolve => { process.once('exit', resolve); process.kill('SIGTERM'); }))); await rm(dir, { recursive: true, force: true }); }
+finally { await browser?.close(); await Promise.all([server].map(process => new Promise(resolve => { process.once('exit', resolve); process.kill('SIGTERM'); }))); await rm(dir, { recursive: true, force: true }); }

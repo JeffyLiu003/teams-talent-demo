@@ -1,3 +1,4 @@
+import { collectTaskSessions, taskAutomation, type CollectedSession, type TaskAutomation, type TaskScope } from './task-automation.js';
 import { projectDeliveryTasks, type DeliveryPhase } from './project-delivery-tasks.js';
 import { verificationChecks,type DeliveryRequirement } from './delivery-requirements.js';
 import type { Presentation } from './api.js';
@@ -100,6 +101,21 @@ export function projectOverview(state: DemoState, data: Presentation, projectId:
   for (const filter of ['issues', 'open', 'closed', 'unconfirmed', 'blocking'] as const) result.counts[filter] = filterIssues(result, filter).length;
   if (role === 'owner') result.projectActivity = latestReport();
   return result;
+}
+export interface TeamWorkEntry { id: string; projectId: string; projectName: string; item: OverviewRequirement; scope: TaskScope; sessions: CollectedSession[]; automation?: TaskAutomation }
+export function teamWorkIndex(state: DemoState, data: Presentation, role: Role = 'owner'): TeamWorkEntry[] {
+  const projects = [
+    { id: 'carddemo', name: state.workspace.project.name },
+    { id: 'teams', name: data.teamsProject.project.name },
+    ...(state.workspace.projects ?? []).map(project => ({ id: project.id, name: project.name })),
+  ];
+  return projects.flatMap(project => {
+    const model = projectOverview(state, data, project.id, undefined, role);
+    return [...model.requirements, ...model.research].filter(item => item.taskId).map(item => {
+      const scope = { projectId: project.id, taskId: item.taskId! };
+      return { id: project.id + ':' + item.id, projectId: project.id, projectName: project.name, item, scope, sessions: collectTaskSessions(state, scope), automation: taskAutomation(state, scope) };
+    });
+  });
 }
 export function filterRequirements(data: ProjectOverview, filter: OverviewFilter) { return data.requirements.filter(item => filter === 'pending' ? item.phase === '待开展' : filter === 'active' ? ['准备', '开发', '验证'].includes(item.phase) : filter === 'acceptance' ? item.phase === '待验收' : filter === 'delivered' ? item.phase === '已交付' : true); }
 export function filterIssues(data: ProjectOverview, filter: OverviewFilter) { return data.issues.filter(item => filter === 'blocking' ? item.blocksDelivery : filter === 'open' ? item.closed === false : filter === 'closed' ? item.closed === true : filter === 'unconfirmed' ? item.closed === null : true); }

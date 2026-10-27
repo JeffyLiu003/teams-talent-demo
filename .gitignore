@@ -2,6 +2,7 @@ node_modules/
 dist/
 .runtime/
 .talent-runtime/
+teams/trace-server/trace_data/
 test-results/
 target/
 __pycache__/
@@ -15,3 +16,6 @@ __pycache__/
 /archives/
 /sessions-original/
 /restoration/
+
+# Shared exchange directory written at runtime by Teams and Talents
+/shared/data/

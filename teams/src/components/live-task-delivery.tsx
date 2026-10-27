@@ -94,7 +94,7 @@ export function LiveTaskDelivery({ task, node }: { task: DeliveryRequirement; no
             {task.acceptedAt && <p className="muted">验收时间：{stamp(task.acceptedAt)}</p>}
             {task.stage === 'returned' && task.nodes.accept.summary && <Button size="small" onClick={() => detail('退回说明', task.nodes.accept.summary)}>查看退回说明</Button>}
             {role === 'owner' && task.stage === 'awaiting-acceptance' && <Space wrap><Button type="primary" onClick={() => setAccepting(true)}>通过需求验收</Button><Button onClick={() => setReturning(true)}>退回补充</Button></Space>}
-            {task.stage === 'accepted' && <p className="muted">{record?.collection?.reporting?.status === 'reported' ? '已取得 Talent 接收回执，可在数据收集节点查看。' : record?.collection?.reporting?.status === 'failed' ? '会话上报未完成，请在数据收集节点查看详情。' : '会话归集与上报状态见数据收集节点，尚未取得接收回执。'}</p>}
+            {task.stage === 'accepted' && <p className="muted">{record?.collection?.reporting?.status === 'reported' ? record.collection.reporting.receipt?.id.startsWith('SHARED-') ? '会话已写入共享目录，不代表 Talents 已读取或分析。' : record.collection.reporting.receipt?.id.startsWith('TALENT-INBOX-') ? '历史 Talent 接收回执已保留，可在数据收集节点查看。' : '会话归集已完成，回执来源可在数据收集节点查看。' : record?.collection?.reporting?.status === 'failed' ? '会话上报未完成，请在数据收集节点查看详情。' : '会话归集与上报状态见数据收集节点，尚未取得接收回执。'}</p>}
           </>}
         </> } }}
     materials={<>      <h4>需求说明</h4>

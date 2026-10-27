@@ -20,6 +20,7 @@ test('scoped TUI hooks preserve existing configuration, back it up, remain idemp
     assert.equal(await readFile(join(backups, createHash('sha256').update(original).digest('hex') + '.yaml'), 'utf8'), original);
     assert.equal((await ensureNativeTuiHooks(hook, backups, config)).changed, false); assert.equal(await readFile(path, 'utf8'), after);
     await assert.rejects(ensureNativeTuiHooks('/unrelated/hook.mjs', backups, config), /同名配置不同/); assert.equal(await readFile(path, 'utf8'), after);
+    const relocated=join(directory,'teams/scripts/native/tui-work-hook.mjs');assert.equal((await ensureNativeTuiHooks(relocated,backups,config,hook)).changed,true);const moved=parse(await readFile(path,'utf8'));assert.deepEqual(moved.hooks[0],parsed.hooks[0]);assert.deepEqual(moved.settings,parsed.settings);assert.deepEqual(moved.hooks.slice(1).map((item:any)=>item.run.argv),[[process.execPath,relocated],[process.execPath,relocated]]);assert.equal(await readFile(join(backups,createHash('sha256').update(after).digest('hex')+'.yaml'),'utf8'),after);assert.equal((await ensureNativeTuiHooks(relocated,backups,config,hook)).changed,false);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
 

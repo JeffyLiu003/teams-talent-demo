@@ -20,6 +20,8 @@ import { userSkillExamples } from '../src/project-skill-examples.js';
 import { createSourcePluginCatalog } from '../src/source-plugins.js';
 import { legacyAssetSourceIds } from '../src/project-asset-links.js';
 import { root, talentOrigin } from './config.js';
+import { sharedTaskInputs } from './talent-intake.js';
+import { projectKnowledge } from './shared-data.js';
 import type { Store } from './store.js';
 
 export const collaborationSkillPath = join(root, 'skills/teams-demo-collaboration/SKILL.md');
@@ -72,23 +74,21 @@ export async function collaborationContext(state: DemoState, data: Presentation,
   let nodeInputs:TalentNodeInputs|null=null;
   let knowledge: { status: string; origin: string; selectedVersion: string | null; assets: unknown[]; error?: string };
   if(scopedNode&&scope.taskId){
-    try{nodeInputs=await readTalentNodeInputs({projectId:scope.projectId,taskId:scope.taskId,nodeId:scopedNode});talentInputs=nodeInputs;knowledge={status:nodeInputs.knowledge.assets.length?'available':'not-built',origin:talentOrigin,selectedVersion:nodeInputs.knowledge.version??null,assets:nodeInputs.knowledge.assets};skills=nodeInputs.skills.map(item=>({...item,scope:'talent',path:null,files:[],availability:nodeInputs!.selection.basis==='historical-subset'?'historical-node-subset':'talent-node-input',loadedByAgent:false}));}
+    try{nodeInputs=await readTalentNodeInputs(state,data,{projectId:scope.projectId,taskId:scope.taskId,nodeId:scopedNode});talentInputs=nodeInputs;knowledge={status:nodeInputs.knowledge.assets.length?'available':'not-built',origin:talentOrigin,selectedVersion:nodeInputs.knowledge.version??null,assets:nodeInputs.knowledge.assets};skills=nodeInputs.skills.map(item=>({...item,scope:'talent',path:null,files:[],availability:nodeInputs!.selection.basis==='historical-subset'?'historical-node-subset':'talent-node-input',loadedByAgent:false}));}
     catch(error){knowledge={status:'unavailable',origin:talentOrigin,selectedVersion:null,assets:[],error:(error as Error).message};skills=[];}
   } else if (live && !frozen) {
     try {
-      if(!talentInputs){const response=await fetch(talentOrigin+'/api/task-inputs?'+new URLSearchParams({projectId:scope.projectId,taskId:live.id}),{signal:AbortSignal.timeout(5000),redirect:'error'});if(!response.ok)throw new Error('Talent 输入 HTTP '+response.status);talentInputs=await response.json() as TalentTaskInputs;}
-      if(talentInputs.projectId!==scope.projectId||talentInputs.taskId!==live.id||!Array.isArray(talentInputs.skills)||!Array.isArray(talentInputs.knowledge.assets))throw new Error('Talent 输入范围或结构无效');
+      talentInputs ??= await sharedTaskInputs(state, scope.projectId, live.id);
+      if(talentInputs.projectId!==scope.projectId||talentInputs.taskId!==live.id||!Array.isArray(talentInputs.skills)||!Array.isArray(talentInputs.knowledge.assets))throw new Error('Talents 输入范围或结构无效');
       knowledge={status:talentInputs.knowledge.assets.length?'available':'not-built',origin:talentOrigin,selectedVersion:talentInputs.knowledge.version??null,assets:talentInputs.knowledge.assets};
       skills=[...talentInputs.skills.map(item=>({id:item.id,scope:'talent',version:item.version,sha256:item.sha256,contentSha256:item.contentSha256,path:null,content:item.content,files:[],availability:'talent-registered-asset',loadedByAgent:false})),...skills.filter(item=>item.scope==='user')];
     }catch(error){knowledge={status:'unavailable',origin:talentOrigin,selectedVersion:null,assets:[],error:(error as Error).message};skills=[];}
   } else {
   try {
-    const response = await fetch(talentOrigin + '/api/knowledge/assets?project=' + encodeURIComponent(scope.projectId), { signal: AbortSignal.timeout(4000), redirect: 'error' });
-    if (!response.ok) throw new Error(`Talent HTTP ${response.status}`);
-    const value = await response.json();
-    need(Array.isArray(value.assets), 'Talent 知识响应无效', 502);
-    const matches = value.assets.filter((a: any) => a.sourceProjectId === scope.projectId && (!frozen || a.version === frozen.knowledgeVersion));
-    knowledge = { status: matches.length ? 'available' : frozen ? 'frozen-version-unavailable' : 'not-built', origin: talentOrigin, selectedVersion: frozen?.knowledgeVersion ?? null, assets: matches };
+    // Published Talents artifacts for this project, read from the shared data directory.
+    const published = await projectKnowledge(scope.projectId);
+    const assets = frozen ? published.filter(artifact => `${artifact.name} v${artifact.version}` === frozen.knowledgeVersion) : published;
+    knowledge = { status: assets.length ? 'available' : frozen ? 'frozen-version-unavailable' : 'not-built', origin: talentOrigin, selectedVersion: frozen?.knowledgeVersion ?? null, assets };
   } catch (error) { knowledge = { status: 'unavailable', origin: talentOrigin, selectedVersion: frozen?.knowledgeVersion ?? null, assets: [], error: (error as Error).message }; }
   }
   const agreement = live ? {id:live.id,title:live.title,assignee:{id:live.assigneeId,name:projectMemberName(state,live.projectId,live.assigneeId)},background:live.description,criteria:[],revision:'requirement-v1:'+live.createdAt} : card && scope.taskId ? { id: scope.taskId, title: data.blueprint.scenario.slice, assignee: { id: taskAssigneeId(state), name: taskAssigneeName(state) }, background: data.blueprint.scenario.parent_requirement, criteria: data.blueprint.acceptance_criteria, revision: 'demo-r1' } : task ? { id: task.id, title: task.title, background: task.goal, scope: task.scope, criteria: task.criteria, revision: data.teamsProject.sourceCommit } : { id: scope.projectId, title: card ? state.workspace.project.name : teams ? data.teamsProject.project.name : created!.name, background: card ? state.workspace.project.description : teams ? data.teamsProject.project.description : created!.description, criteria: [], revision: 'project-preparation' };
@@ -101,7 +101,7 @@ export async function collaborationContext(state: DemoState, data: Presentation,
   return { contract: 'teams-demo-collaboration-v1', revision: state.revision, basisDigest, ...basis,
     talentInputs, nodeInputs, nodeContract:nodeContract?{version:taskNodeContractVersion,...nodeContract}:null,
     automaticPreparation: scope.taskId ? taskAutomation(state, {projectId:scope.projectId,taskId:scope.taskId})?.knowledge ?? null : null,
-    inputSources: scopedNode ? {knowledge:nodeInputs?.selection.basis==='historical-subset'?'当前节点相关历史采用知识':'Talent 当前节点知识',skills:'Talent 当前节点所选登记包',talentSkillLoading:nodeInputs?'connected':'unavailable'} : { knowledge: frozen?'历史冻结的 Talent 知识版本':'Talent 项目知识', skills: live&&!frozen ? 'Talent 登记资产（Teams 源包）' : 'Teams 项目与固定订阅版本', talentSkillLoading: live&&!frozen ? 'connected' : 'not-connected' },
+    inputSources: scopedNode ? {knowledge:nodeInputs?.selection.basis==='historical-subset'?'当前节点相关历史采用知识':'Teams 当前节点知识与 Talents 共享产物',skills:'Teams 当前节点所选登记包',talentSkillLoading:nodeInputs?'shared-inputs':'unavailable'} : { knowledge: frozen?'历史冻结的 Talent 知识版本':'Talent 项目知识', skills: live&&!frozen ? 'Talent 登记资产（Teams 源包）' : 'Teams 项目与固定订阅版本', talentSkillLoading: live&&!frozen ? 'connected' : 'not-connected' },
     stage: live ? live.stage : card ? state.stage : task?.status ?? 'no-task',
     adoptedBasis: (state.workspace.collaboration?.adoptions ?? []).filter(a => a.projectId === scope.projectId && a.taskId === scope.taskId && a.nodeId === scope.nodeId),
     events: (state.workspace.collaboration?.events ?? []).filter(e => e.projectId === scope.projectId && (!scope.taskId || e.taskId === scope.taskId) && (!scope.nodeId || e.nodeId === scope.nodeId)),

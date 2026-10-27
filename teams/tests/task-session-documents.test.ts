@@ -1,11 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp,mkdir,writeFile,readFile,rm } from 'node:fs/promises';
+import { mkdtemp,mkdir,writeFile,readFile,rm,realpath } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID,createHash } from 'node:crypto';
 import { nativeTaskSessionDocuments, readNativeTuiEnvelope } from '../server/task-session-documents.js';
 import type { CollectedSession } from '../src/task-automation.js';
+import { nativeSessionMigrationFile } from '../server/native-session-location.js';
 
 test('native upload reads exact completed session bytes, verifies scope and rejects unfinished or foreign content',async()=>{
  const runtime=await mkdtemp(join(tmpdir(),'task-session-doc-'));const runId=randomUUID(),sessionId=randomUUID(),scope={projectId:'carddemo',taskId:'MKT-TEST-001'};
@@ -17,6 +18,12 @@ test('native upload reads exact completed session bytes, verifies scope and reje
   const owner={...scope,runId,sessionId,sessionRoot,source:'icode-active-session-owner'};
   await writeFile(join(root,'native-session.json'),JSON.stringify(owner));await writeFile(join(root,'result.json'),JSON.stringify({runId,sessionId,status:'completed'}));
   const docs=await nativeTaskSessionDocuments(runtime,scope,[session]);assert.deepEqual(docs,[{sessionId,content,sha256:createHash('sha256').update(content).digest('hex')}]);
+  const relocatedOwner={...owner,nodeId:'prepare',sessionRoot:join(runtime,'previous','work-contexts',runId+'.native','session-root')};
+  const manifestBytes=Buffer.from(JSON.stringify({runId,scope:{...scope,nodeId:'prepare'}})),ownerBytes=Buffer.from(JSON.stringify(relocatedOwner)),sha=(value:Buffer)=>createHash('sha256').update(value).digest('hex');
+  await writeFile(join(root,'native-session.json'),ownerBytes);await writeFile(join(root,'manifest.json'),manifestBytes);
+  await assert.rejects(nativeTaskSessionDocuments(runtime,scope,[session]),/范围不匹配/);
+  await writeFile(join(runtime,nativeSessionMigrationFile),JSON.stringify({version:1,entries:[{...scope,nodeId:'prepare',runId,sessionId,previousSessionRoot:relocatedOwner.sessionRoot,sessionRoot:await realpath(sessionRoot),ownerSha256:sha(ownerBytes),manifestSha256:sha(manifestBytes)}]}));
+  assert.deepEqual(await nativeTaskSessionDocuments(runtime,scope,[session]),docs);assert.deepEqual(await readFile(join(root,'native-session.json')),ownerBytes);
   await assert.rejects(nativeTaskSessionDocuments(runtime,{...scope,taskId:'MKT-FOREIGN'},[session]),/范围/);
   await writeFile(join(root,'result.json'),JSON.stringify({runId,sessionId,status:'running'}));await assert.rejects(nativeTaskSessionDocuments(runtime,scope,[session]),/完成回执/);
   await writeFile(join(root,'result.json'),JSON.stringify({runId,sessionId,status:'completed'}));await writeFile(path,JSON.stringify({meta:{session_id:randomUUID()}}));await assert.rejects(nativeTaskSessionDocuments(runtime,scope,[session]),/正文身份/);

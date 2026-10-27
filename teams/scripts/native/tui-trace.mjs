@@ -1,6 +1,6 @@
 const controlled = new Set(['trace2.project.id', 'teams.task.id', 'teams.node.id', 'teams.run.id']);
 export function nativeTraceEnvironment(base, scope, endpoint) {
-  const value = endpoint ?? base.DEMO_TRACE_ENDPOINT ?? base.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ?? 'http://127.0.0.1:8012/v1/traces';
+  const value = endpoint ?? base.DEMO_TRACE_ENDPOINT ?? base.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ?? `http://127.0.0.1:${base.DEMO_TRACE_PORT ?? 8012}/v1/traces`;
   const url = new URL(value);
   if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) || url.username || url.password || url.search || url.hash || url.pathname !== '/v1/traces') throw new Error('Teams TUI trace 必须指向本机 HTTP /v1/traces 接收端，不允许外部地址或凭据');
   const env = { ...base };
@@ -26,7 +26,8 @@ export async function checkNativeTraceReceiver(endpoint, expected = {}) {
   const response = await fetch(url, { signal: AbortSignal.timeout(2000), redirect: 'error' });
   if (!response.ok) throw new Error(`本机 trace 接收端未就绪（HTTP ${response.status}）`);
   let health; try { health = await response.json(); } catch { throw new Error('本机 trace 接收端健康响应不是有效 JSON'); }
-  if (health.app !== 'teams-local-trace' || health.service !== 'trace' || health.status !== 'ok' || health.protocol !== 'otlp/http-protobuf') throw new Error('本机端口不是已核验的 OTLP trace 接收服务');
+  if (!['teams-trace-server', 'teams-local-trace'].includes(health.app) || health.service !== 'trace' || health.status !== 'ok' || health.protocol !== 'otlp/http-protobuf') throw new Error('本机端口不是已核验的 OTLP trace 接收服务');
+  if (expected.app && health.app !== expected.app) throw new Error('本机 trace 接收服务实现不匹配，未发送轨迹');
   if (expected.workspaceRoot && health.workspaceRoot !== expected.workspaceRoot || expected.stateRoot && health.stateRoot !== expected.stateRoot) throw new Error('本机 trace 接收服务属于其他工作区，未发送轨迹');
   return { endpoint, status: 'receiver-ready' };
 }

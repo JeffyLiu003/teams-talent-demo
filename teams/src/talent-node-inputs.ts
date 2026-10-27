@@ -4,7 +4,7 @@ import type { TalentTaskInputs } from './talent-contract.js';
 export interface TalentNodeInputs extends TalentTaskInputs {
   nodeId: RequirementNode;
   selection: {
-    version: string; source: 'preset-scenario'; status: 'configured' | 'not-configured';
+    version: string; source: 'preset-scenario' | 'teams-node-selection'; status: 'configured' | 'not-configured';
     basis: 'recommendation' | 'adopted-node' | 'historical-subset';
     note: string; missingSkillIds: string[];
     knowledge: Array<{ id: string; slot: string; reason: string; nodeId: RequirementNode }>;

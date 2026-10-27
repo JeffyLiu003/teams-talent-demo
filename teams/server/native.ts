@@ -7,8 +7,9 @@ import { access, readFile, mkdir, writeFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import { binary, workspace, runtimeDir, codeRoot, root, origin } from './config.js';
+import { binary, workspace, runtimeDir, codeRoot, root, origin, traceDataDir, icodeBinarySource, icodeBinaryNotes } from './config.js';
 import { atomicJson, atomicText } from './store.js';
+import { nativeSkillEnvironment } from './native-skill-reader.js';
 import { nativeTraceRuntime } from './native-trace-runtime.js';
 import { ensureNativeTuiHooks } from './native-tui-hooks.js';
 import { nativeTraceEnvironment, checkNativeTraceReceiver, traceLaunchSettings } from '../scripts/native/tui-trace.mjs';
@@ -18,18 +19,37 @@ const execute = promisify(execFile);
 let launchBusy = false;
 const launched = new Map<string, { identity: string; result: Promise<unknown> }>();
 const terminalLauncher = createTerminalLauncher();
-const expectedTraceReceiver = () => process.env.DEMO_TRACE_ENDPOINT || process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ? {} : {workspaceRoot:root,stateRoot:join(runtimeDir,'local-traces')};
+const expectedTraceReceiver = () => process.env.DEMO_TRACE_ENDPOINT || process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ? {} : {app:'teams-trace-server',workspaceRoot:root,stateRoot:traceDataDir};
 export const shellQuote = posixQuote;
 export async function installed(path: string) { try { await access(path, constants.X_OK); return true; } catch (e) { if ((e as NodeJS.ErrnoException).code === 'ENOENT') return false; throw e; } }
 async function openCodePath() {
   return findExecutable(process.env.DEMO_OPENCODE_BINARY ?? 'opencode');
 }
 export async function toolsStatus() {
-  const iCodeInstalled = await installed(binary), opencode = await openCodePath();
-  const version = iCodeInstalled ? (await execute(binary, ['--version'], { timeout: 15000 })).stdout.trim() : null;
-  const unsupportedReason = process.platform === 'win32' && opencode && !/\.exe$/i.test(opencode) ? '检测到 OpenCode .cmd/.bat；自动启动需设置 DEMO_OPENCODE_BINARY 为 opencode.exe 的绝对路径。' : undefined;
-  const openVersion = opencode && !unsupportedReason ? (await execute(opencode, ['--version'], { timeout: 15000 })).stdout.trim() : null;
-  return { ...await terminalPreferences.context(), icode: { installed: iCodeInstalled, path: binary, version, workspace, sessionId: '', sessionAvailable: false, active: null }, opencode: { installed: !!opencode && !unsupportedReason, path: opencode, version: openVersion, unsupportedReason }, verification: null };
+  let installedICode = false, installError: string | undefined;
+  try { installedICode = await installed(binary); }
+  catch (error) { installError = 'iCode 探测失败：' + (error as Error).message; }
+  let version: string | null = null, versionError: string | undefined;
+  if (installedICode) {
+    try { version = (await execute(binary, ['--version'], { timeout: 15000 })).stdout.trim(); }
+    catch (error) { versionError = 'iCode 版本探测失败：' + (error as Error).message; }
+  }
+  let opencode: string | null = null, openError: string | undefined;
+  try { opencode = await openCodePath(); }
+  catch (error) { openError = 'OpenCode 探测失败：' + (error as Error).message; }
+  const unsupportedReason = openError ?? (process.platform === 'win32' && opencode && !/\.exe$/i.test(opencode) ? '检测到 OpenCode .cmd/.bat；自动启动需设置 DEMO_OPENCODE_BINARY 为 opencode.exe 的绝对路径。' : undefined);
+  let openVersion: string | null = null;
+  if (opencode && !unsupportedReason) {
+    try { openVersion = (await execute(opencode, ['--version'], { timeout: 15000 })).stdout.trim(); }
+    catch (error) { openError = 'OpenCode 版本探测失败：' + (error as Error).message; }
+  }
+  const notes = [...icodeBinaryNotes, ...(installError ? [installError] : []), ...(versionError ? [versionError] : [])];
+  return {
+    ...await terminalPreferences.context(),
+    icode: { installed: installedICode, path: binary, version, workspace, sessionId: '', sessionAvailable: false, active: null, source: icodeBinarySource, notes },
+    opencode: { installed: !!opencode && !unsupportedReason, path: opencode, version: openVersion, unsupportedReason, notes: openError ? [openError] : [] },
+    verification: null,
+  };
 }
 export async function foundationSkill() {
   const path = join(root, 'skills/teams-demo-collaboration/SKILL.md');
@@ -112,7 +132,8 @@ export async function startNativeWork(input: { directory: string; agent: string;
     await mkdir(output, { recursive: true });
     const manifest = join(output, 'manifest.json');
     await atomicJson(manifest, { version: 1, executionMode: 'interactive', runId: input.task.runId, scope: input.task.scope, executable: binary, directory: input.directory, agent: input.agent, model: input.model, trace: {...traceLaunchSettings(trace),...expectedTraceReceiver(),runtime:traceRuntime}, taskFile: input.task.path, taskSha256: createHash('sha256').update(await readFile(input.task.path)).digest('hex') });
-    await ensureNativeTuiHooks(join(root, 'scripts/native/tui-work-hook.mjs'), join(runtimeDir, 'native-hook-backups'));
+    const nativeEnvironment = traceRuntime ?? await nativeSkillEnvironment();
+    await ensureNativeTuiHooks(join(root, 'scripts/native/tui-work-hook.mjs'), join(runtimeDir, 'native-hook-backups'), nativeEnvironment.configDirectory, join(root, '..', 'demo', 'scripts/native/tui-work-hook.mjs'));
     const terminal = await terminalPreferences.selected(input.terminal);
     return terminalLauncher.launch({ executable: process.execPath, directory: input.directory, args: [join(root, 'scripts/native/run-project-tui.mjs'), manifest], instruction: '进入 iCode 交互界面；输入工作指令后，当前任务节点上下文将通过原生 Hook 附带。', terminal: terminal.id });
   }

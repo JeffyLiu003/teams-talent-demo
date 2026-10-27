@@ -11,6 +11,7 @@ import { nativeWorkDefaults, startNativeWork } from './native.js';
 import { codeRoot, root, runtimeDir, sessionId, workspace, origin } from './config.js';
 import { formatShellCommand } from './terminal-launcher.js';
 import { collaborationContext, collaborationSkillPath } from './collaboration-service.js';
+import { taskWorkDirectory } from './task-work-directory.js';
 import { atomicJson, atomicText } from './store.js';
 
 const execute = promisify(execFile);
@@ -122,7 +123,7 @@ export class ProjectWorkService {
       directory={root:await realpath(codeRoot),valid:true,kind:'imported-snapshot',diagnostic:'原主任务使用已核验的导入源码目录；与其他任务使用同一 CLI 交付协议。'};
     } else if (requirement) {
       directory = { root: requirement.workDirectory ?? null, valid: false, kind: 'git-binding', diagnostic: '此需求尚未登记可工作的独立代码目录。' };
-      if (requirement.workDirectory) try { directory.root = await inspectDirectory(requirement.workDirectory, requirement.workDirectory, this.data.baseline.sourceRoot); directory.valid = true; directory.diagnostic = '本需求工作目录与 Git 根目录已核验；交互式 iCode 使用此目录。'; } catch (error) { directory.diagnostic = (error as Error).message; }
+      if (requirement.workDirectory) try { const selected = await taskWorkDirectory(this.directory, requirement); directory.root = await inspectDirectory(selected!, selected!, this.data.baseline.sourceRoot); directory.valid = true; directory.diagnostic = '本需求工作目录与 Git 根目录已核验；交互式 iCode 使用此目录。'; } catch (error) { directory.diagnostic = (error as Error).message; }
     } else if (work.target.projectId === 'carddemo') {
       await access(join(codeRoot, 'docs/design/08-marketing-capability.md'));
       directory = { root: await realpath(codeRoot), valid: true, kind: 'imported-snapshot', diagnostic: '已核验本机导入源码快照；该快照没有 .git，不宣称已完成生产仓库绑定。' };
@@ -140,7 +141,7 @@ export class ProjectWorkService {
       if (['awaiting-acceptance', 'accepted'].includes(requirement.stage) || work.target.nodeId === 'accept') taskStartReason = '当前需求已进入 Owner 验收，不再启动开发工作';
     }
     const actions: ProjectWorkPlan['actions'] = [{ id: 'new', label: requirement ? '打开当前节点的 iCode 交互会话' : '新建当前工作的 iCode 会话', enabled: !!defaults && !defaults.terminal.error && directory.valid && (!requirement || defaults.trace?.readiness !== 'unavailable') && !taskStartReason, reason: !defaults ? '配套 iCode 未安装' : defaults.terminal.error ?? (requirement && defaults.trace?.readiness === 'unavailable' ? defaults.trace.diagnostic : undefined) ?? (!directory.valid ? directory.diagnostic : taskStartReason) }];
-    const plan: ProjectWorkPlan = { executionMode: 'interactive', target: work.target, projectName: work.projectName, title: work.title, location: work.location, source: work.source, planToken: '', instance: { installed: !!defaults, name: '本机 iCode 0.31.0', ...defaults, trace: requirement ? defaults?.trace : undefined }, directory, context, actions, defaultAction: 'new' };
+    const plan: ProjectWorkPlan = { executionMode: 'interactive', target: work.target, projectName: work.projectName, title: work.title, location: work.location, source: work.source, planToken: '', instance: { installed: !!defaults, name: '本机 iCode', ...defaults, trace: requirement ? defaults?.trace : undefined }, directory, context, actions, defaultAction: 'new' };
     plan.planToken = hash({ role, plan, revision: state.revision });
     plan.previous = await this.previous(work.target); return plan;
   }

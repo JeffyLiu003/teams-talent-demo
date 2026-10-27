@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, mkdir, realpath } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, rm, mkdir, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import {migrateMainDelivery} from '../server/delivery-migration.js';
 import { initialState } from '../src/domain.js';
@@ -111,4 +111,20 @@ test('Owner delivery uses the same native adapter and exact task scope; other us
  const task=createDeliveryRequirement(state,'owner',{id:'MKT-OWNER-001',projectId:'carddemo',title:'白金卡返现规则说明页',description:'只使用确认事实与待确认项',assigneeId:'owner',skillIds:['dev-frontend-ui'],workDirectory:await realpath(repo)},new Date().toISOString());
  const before=structuredClone(state);
  try{const service=new ProjectWorkService(()=>state,fixtures,dir,t.value),target={projectId:'carddemo',tab:'delivery',taskId:task.id,nodeId:'prepare'},owner=await service.plan('owner',target),member=await service.plan('member',target);assert.equal(owner.actions[0].enabled,true);assert.equal(member.actions[0].enabled,false);await assert.rejects(service.start('member',{requestId:randomUUID(),target,action:'new',planToken:member.planToken}),/交付人/);assert.equal(t.calls.length,0);const id=randomUUID(),receipt=await service.start('owner',{requestId:id,target,action:'new',planToken:owner.planToken});assert.equal(t.calls.length,1);assert.equal(t.calls[0].task.scope.taskId,task.id);assert.match(await readFile(receipt.contextPath,'utf8'),/--role owner/);assert.deepEqual(state,before);}finally{await rm(dir,{recursive:true,force:true});}
+});
+
+
+test('explicit relocated task directory preserves business state and rejects stale or altered bindings',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'work-task-relocation-')),repo=join(dir,'moved'),runtime=join(dir,'runtime'),t=transport(),state=initialState();
+  try{
+    await mkdir(repo);await mkdir(runtime);execFileSync('git',['init','-q',repo]);
+    const original=join(dir,'old','task'),task=createDeliveryRequirement(state,'owner',{id:'MKT-RELOCATE',projectId:'carddemo',title:'Relocated task',description:'Keep recorded task evidence',assigneeId:'owner',skillIds:['dev-frontend-ui'],workDirectory:original},new Date().toISOString());
+    const before=JSON.stringify(state),service=new ProjectWorkService(()=>state,fixtures,runtime,t.value),target={projectId:'carddemo',tab:'delivery',taskId:task.id,nodeId:'prepare'};
+    assert.equal((await service.plan('owner',target)).directory.valid,false);
+    const binding={projectId:task.projectId,taskId:task.id,recordedDirectory:original,directory:await realpath(repo),gitConfigSha256:createHash('sha256').update(await readFile(join(repo,'.git/config'))).digest('hex')};
+    const file=join(runtime,'project-task-directory-bindings.json');await writeFile(file,JSON.stringify({version:1,bindings:[binding]}));const plan=await service.plan('owner',target);assert.equal(plan.directory.valid,true);assert.equal(plan.directory.root,await realpath(repo));assert.equal(plan.actions[0].enabled,true);assert.equal(JSON.stringify(state),before);assert.equal(t.calls.length,0);
+    await writeFile(file,JSON.stringify({version:1,bindings:[{...binding,recordedDirectory:'/wrong/source'}]}));assert.match((await service.plan('owner',target)).directory.diagnostic,/登记来源不一致/);
+    await writeFile(file,JSON.stringify({version:1,bindings:[{...binding,gitConfigSha256:'0'.repeat(64)}]}));assert.match((await service.plan('owner',target)).directory.diagnostic,/配置发生变化/);
+    await writeFile(file,'{invalid');assert.equal((await service.plan('owner',target)).directory.valid,false);assert.equal(JSON.stringify(state),before);
+  }finally{await rm(dir,{recursive:true,force:true});}
 });

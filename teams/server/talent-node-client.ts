@@ -1,10 +1,14 @@
-import {DomainError} from '../src/domain.js';
+import {DomainError,type DemoState} from '../src/domain.js';
+import type {Presentation} from '../src/api.js';
 import type {TalentNodeInputs} from '../src/talent-node-inputs.js';
 import type {RequirementNode} from '../src/delivery-requirements.js';
 import {talentOrigin} from './config.js';
-export async function readTalentNodeInputs(scope:{projectId:string;taskId:string;nodeId:RequirementNode}):Promise<TalentNodeInputs>{
- const response=await fetch(talentOrigin+'/api/task-node-inputs?'+new URLSearchParams(scope),{signal:AbortSignal.timeout(5000),redirect:'error'});
- const value=await response.json();if(!response.ok)throw new DomainError(value.error??'Talent节点输入 HTTP '+response.status,response.status);
- if(value.projectId!==scope.projectId||value.taskId!==scope.taskId||value.nodeId!==scope.nodeId||!Array.isArray(value.skills)||!Array.isArray(value.knowledge?.assets)||!value.selection)throw new DomainError('Talent节点输入范围或结构无效',502);
- return value;
+import {talentNodeInputs} from './talent-node-inputs.js';
+import {registeredTaskSkill} from './talent-intake.js';
+import {projectKnowledge} from './shared-data.js';
+/** Teams consumes Talents' published shared data. No removed Talent HTTP service is called. */
+export async function readTalentNodeInputs(state:DemoState,data:Presentation,scope:{projectId:string;taskId:string;nodeId:RequirementNode}):Promise<TalentNodeInputs>{
+ const project=scope.projectId==='carddemo'?state.workspace.project:scope.projectId==='teams'?data.teamsProject.project:state.workspace.projects?.find(item=>item.id===scope.projectId);
+ if(!project)throw new DomainError('项目不存在',404);
+ return talentNodeInputs({state,project:{id:scope.projectId,name:project.name,generation:state.talentGeneration??'initial'}},data,scope.taskId,scope.nodeId,talentOrigin,registeredTaskSkill,await projectKnowledge(scope.projectId));
 }

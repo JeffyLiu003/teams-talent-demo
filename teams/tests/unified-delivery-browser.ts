@@ -16,9 +16,9 @@ import type { DemoState } from '../src/domain.js';
 const bundle = await build({ entryPoints: ['src/main.tsx'], bundle: true, outdir: 'test-results/unified-delivery/bundle', write: false, format: 'esm', minify: true, target: ['chrome120'], define: { 'process.env.NODE_ENV': '"production"' } });
 const dir = await mkdtemp(join(tmpdir(), 'unified-delivery-ui-'));
 const teams = 'http://127.0.0.1:46078', talent = 'http://127.0.0.1:46088';
-const env = { ...process.env, DEMO_PORT: '46078', DEMO_TALENT_PORT: '46088', DEMO_STATE_DIR: join(dir, 'teams'), DEMO_TALENT_STATE_DIR: join(dir, 'talent'), DEMO_NATIVE_DISABLED: '1' };
+const env = { ...process.env, DEMO_PORT: '46078', DEMO_TALENT_PORT: '46088', DEMO_STATE_DIR: join(dir, 'teams'), DEMO_SHARED_DIR: join(dir, 'shared'), DEMO_SHARED_SEED_DIR: join(dir, 'no-seed'), DEMO_NATIVE_DISABLED: '1' };
 let logs = '', browser: Browser | undefined;
-const children = ['server/index.ts', 'server/talent.ts'].map(entry => {
+const children = ['server/index.ts'].map(entry => {
   const child = spawn(process.execPath, ['--import', 'tsx', entry], { env, stdio: ['ignore', 'pipe', 'pipe'] });
   child.stdout.on('data', data => logs += data); child.stderr.on('data', data => logs += data); return child;
 });
@@ -28,12 +28,12 @@ const post = async (path: string, body: object) => {
   const response = await fetch(teams + path, { method: 'POST', headers: { origin: teams, 'content-type': 'application/json', 'x-demo-token': token }, body: JSON.stringify({ role: 'owner', revision: (await state()).revision, ...body }) });
   const value = await response.json(); assert.equal(response.status, 200, JSON.stringify(value)); return value;
 };
-const hashes = async () => Promise.all([join(dir, 'teams/state.json'), join(dir, 'talent/talent-state.json')].map(async path => createHash('sha256').update(await readFile(path)).digest('hex')));
+const hashes = async () => Promise.all([join(dir, 'teams/state.json')].map(async path => createHash('sha256').update(await readFile(path)).digest('hex')));
 const ids = ['DEMO-MKT-001', 'MKT-E2E-001'];
 const out = 'test-results/unified-delivery';
 try {
   let ready = false;
-  for (let n = 0; n < 120; n++) { try { if ((await fetch(teams + '/api/health')).ok && (await fetch(talent + '/api/health')).ok) { ready = true; break; } } catch {} await new Promise(resolve => setTimeout(resolve, 100)); }
+  for (let n = 0; n < 120; n++) { try { if ((await fetch(teams + '/api/health')).ok) { ready = true; break; } } catch {} await new Promise(resolve => setTimeout(resolve, 100)); }
   assert.ok(ready, logs);
   await post('/api/action', { action: 'assign', assigneeId: 'member' });
   await post('/api/delivery-requirements', { action: 'create', input: { projectId: 'carddemo', id: ids[1], title: '第二条独立需求的完整标题用于验证两行省略与任务资料范围', description: '独立需求乙：核对本任务的输入和结果。仅用于界面范围验证，不代表真实 iCode 执行。', assigneeId: 'member', skillIds: ['dev-frontend-ui'] } });

@@ -12,8 +12,8 @@ import { Store } from '../server/store.js';
 
 const dir = await mkdtemp(join(tmpdir(), 'teams-collaboration-'));
 const origin = 'http://127.0.0.1:45977', talent = 'http://127.0.0.1:45987';
-const env = { ...process.env, DEMO_PORT: '45977', DEMO_TALENT_PORT: '45987', DEMO_STATE_DIR: join(dir, 'teams'), DEMO_TALENT_STATE_DIR: join(dir, 'talent'), DEMO_NATIVE_DISABLED: '1' };
-const children = ['server/index.ts', 'server/talent.ts'].map(file => spawn(process.execPath, ['--import', 'tsx', file], { env, stdio: ['ignore', 'pipe', 'pipe'] }));
+const env = { ...process.env, DEMO_PORT: '45977', DEMO_TALENT_PORT: '45987', DEMO_STATE_DIR: join(dir, 'teams'), DEMO_TALENT_STATE_DIR: join(dir, 'talent'), DEMO_SHARED_DIR: join(dir,'shared'), DEMO_SHARED_SEED_DIR: join(dir,'empty-seed'), DEMO_NATIVE_DISABLED: '1' };
+const children = ['server/index.ts'].map(file => spawn(process.execPath, ['--import', 'tsx', file], { env, stdio: ['ignore', 'pipe', 'pipe'] }));
 let logs = ''; for (const child of children) { child.stdout!.on('data', d => logs += d); child.stderr!.on('data', d => logs += d); }
 const get = async (base: string, path: string) => { const r = await fetch(base + path); assert.equal(r.status, 200, await r.clone().text()); return r.json(); };
 const state = () => get(origin, '/api/state');
@@ -26,7 +26,7 @@ const context = (selected: object = scope) => cli(['context', 'get', '--input', 
 const post = async (base: string, path: string, body: object, expected = 200) => { const session = await get(base, '/api/session'); const r = await fetch(base + path, { method: 'POST', headers: { origin: base, 'content-type': 'application/json', 'x-demo-token': session.token }, body: JSON.stringify({ revision: (await state()).revision, role: 'owner', ...body }) }); const v = await r.json(); assert.equal(r.status, expected, JSON.stringify(v)); return v; };
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 try {
-  let ready = false; for (let i = 0; i < 100; i++) { try { await get(origin, '/api/health'); await get(talent, '/api/health'); ready = true; break; } catch {} await new Promise(r => setTimeout(r, 100)); } assert.ok(ready, logs);
+  let ready = false; for (let i = 0; i < 100; i++) { try { await get(origin, '/api/health'); ready = true; break; } catch {} await new Promise(r => setTimeout(r, 100)); } assert.ok(ready, logs);
   const before = JSON.stringify(await state());
   const preparation = await context(); assert.equal(preparation.mode, 'preparation'); assert.equal(preparation.agreement.id, scope.taskId); assert.deepEqual(preparation.agreement.criteria, []);assert.match(preparation.agreement.background,/0.5%/); assert.equal(JSON.stringify(await state()), before);
   assert.match((await cli(['context','get','--project','teams','--task','DEMO-MKT-001','--node','develop'], false)).error, /任务不属于/);
@@ -38,7 +38,7 @@ try {
   const catalog=(await get(origin,'/api/bootstrap')).data;const pinned=catalog.skillCatalog.find((item:any)=>item.id==='audit-evidence');assert.equal(pinned.version,'2.0.0');
   await post(origin,'/api/workspace',{kind:'skills.select',role:'member',payload:{skills:['audit-evidence']}},409);
   await post(origin,'/api/workspace',{kind:'resource.acquire',role:'member',payload:{name:pinned.id,version:pinned.version,sha256:pinned.sha256}});
-  await post(talent,'/api/action',{action:'knowledge',projectId:'carddemo'});
+  await mkdir(join(dir,'shared/talents'),{recursive:true});await writeFile(join(dir,'shared/talents/knowledge.json'),JSON.stringify({schemaVersion:1,exportedAt:new Date().toISOString(),artifacts:[]}));
   await post(origin,'/api/action',{action:'assign',assigneeId:'member'});
   await post(origin,'/api/workspace',{kind:'skills.select',role:'member',payload:{skills:['dev-frontend-ui','teams-collaboration','office-word','audit-evidence']}});
   await post(origin,'/api/workspace',{kind:'material.add',role:'member',payload:{title:'CLI 专属需求依据',body:'实际阅读的输入，不是自动采用。'}});
@@ -55,7 +55,7 @@ try {
   assert.deepEqual(frozen.skills.map((skill:any)=>skill.id),['arch-solution-design','dev-backend-service','dev-api-integration']);assert.ok(!frozen.skills.some((skill:any)=>['office-word','teams-collaboration','audit-evidence'].includes(skill.id)));
   const projectContext=await context({projectId:'carddemo',tab:'content'});const subscribedSkill=projectContext.skills.find((item:any)=>item.id==='audit-evidence');assert.equal(subscribedSkill.version,pinned.version);assert.equal(subscribedSkill.sha256,pinned.sha256);assert.equal(subscribedSkill.contentSha256,pinned.contentSha256);assert.equal(subscribedSkill.content,catalog.skillContents[pinned.id]);assert.equal(subscribedSkill.loadedByAgent,false);
   assert.equal(JSON.parse(await readFile(join(dir,'context.json'),'utf8')).basisDigest,frozen.basisDigest);
-  const talentBefore = await readFile(join(dir,'talent/talent-state.json'));
+  const talentBefore = await readFile(join(dir,'shared/talents/knowledge.json'));
   let input={...scope,runId,sessionId,expectedRevision:frozen.revision,basisDigest:frozen.basisDigest,readReferences:[frozen.references[0].id,frozen.skills[0].id]};
   const operationId=randomUUID();const adoptArgs=['inputs','adopt','--operation-id',operationId,'--input',JSON.stringify(input)];
   const adopted=await cli(adoptArgs);assert.equal(adopted.ok,true);assert.ok(adopted.receipt.adoptionId);
@@ -79,10 +79,10 @@ try {
   const result=await cli(['result','submit','--operation-id',randomUUID(),'--input',JSON.stringify({...progress,expectedRevision:blocked.receipt.revision,summary:'已核对接口契约，提交本机实现说明待确认',...nodeResultFixture('develop')})]);
   const after=await state();assert.equal(after.workspace.collaboration.events.at(-1).phase,'result');assert.equal(after.workspace.deliveryRequirements.find((t:any)=>t.id===scope.taskId).stage,'verifying');assert.equal(after.stage,'draft');assert.equal(after.security,'unverified');assert.equal(after.checks,'none');
   await page.goto(origin+'/teams?demo-role=owner#/projects?project=carddemo&tab=content');await page.locator('.project-owner-overview').waitFor();assert.equal(await page.getByRole('button',{name:/作业待协调/}).count(),0);await page.goto(origin+'/teams?demo-role=owner#/projects?project=carddemo&tab=delivery&node=develop');await page.getByText('已核对接口契约，提交本机实现说明待确认',{exact:true}).first().waitFor();
-  assert.equal((await context()).basisDigest,frozen.basisDigest);assert.deepEqual(await readFile(join(dir,'talent/talent-state.json')),talentBefore);
+  assert.equal((await context()).basisDigest,frozen.basisDigest);assert.deepEqual(await readFile(join(dir,'shared/talents/knowledge.json')),talentBefore);
   const reloaded=new Store(join(dir,'teams/state.json'));await reloaded.init();assert.deepEqual(reloaded.state,after);
   const corrupt=structuredClone(after);corrupt.workspace.collaboration.events[0].phase='accepted';await writeFile(join(dir,'broken.json'),JSON.stringify(corrupt));await assert.rejects(new Store(join(dir,'broken.json')).init(),/协作记录损坏/);
   // Native work remains mocked/disabled; no launch/focus endpoint is called by this test.
-  assert.deepEqual(errors,[]);await writeFile('test-results/collaboration/result.json',JSON.stringify({passed:true,scope,runId,sessionId,adoption:adopted.receipt,blocked:blocked.receipt,result:result.receipt,checks:['read-only preparation','frozen exact versions and Talent HTTP','3 project isolation','scope/role/session/revision rejects','stable operation replay and persisted receipts','API and Owner/member visible progress','result keeps quality and acceptance unchanged','Talent state unchanged','state reload and corrupt-record rejection'],events:after.workspace.collaboration.events},null,2));
+  assert.deepEqual(errors,[]);await writeFile('test-results/collaboration/result.json',JSON.stringify({passed:true,scope,runId,sessionId,adoption:adopted.receipt,blocked:blocked.receipt,result:result.receipt,checks:['read-only preparation','frozen exact versions and shared node inputs','3 project isolation','scope/role/session/revision rejects','stable operation replay and persisted receipts','API and Owner/member visible progress','result keeps quality and acceptance unchanged','shared Talents data unchanged','state reload and corrupt-record rejection'],events:after.workspace.collaboration.events},null,2));
   console.log('Collaboration CLI/API/browser checks passed');
 } finally { await browser?.close(); await Promise.all(children.map(child=>new Promise<void>(resolve=>{if(child.exitCode!==null){resolve();return;}child.once('exit',()=>resolve());child.kill('SIGTERM');})));await rm(dir,{recursive:true,force:true}); }

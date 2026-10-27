@@ -32,6 +32,21 @@ export const powershellQuote = (value: string) => "'" + value.replaceAll("'", "'
 export function formatShellCommand(args: string[], platform: NodeJS.Platform = process.platform) {
   return (platform === 'win32' ? '& ' : '') + args.map(platform === 'win32' ? powershellQuote : posixQuote).join(' ');
 }
+/**
+ * Interactive terminals must not inherit the host agent's non-interactive color
+ * suppression (`NO_COLOR=1`, `TERM=dumb`). Keep the user's terminal profile, but
+ * make the launched TUI advertise a color-capable terminal.
+ */
+export function launchEnvironment(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const next = { ...env };
+  delete next.NO_COLOR;
+  delete next.CLICOLOR;
+  delete next.CLICOLOR_FORCE;
+  if (next.FORCE_COLOR === '0') delete next.FORCE_COLOR;
+  if (!next.TERM || next.TERM === 'dumb') next.TERM = 'xterm-256color';
+  if (!next.COLORTERM) next.COLORTERM = 'truecolor';
+  return next;
+}
 /** CommandLineToArgv/CRT inverse: quote every argv element, including empty values. */
 export function windowsArgument(value: string) {
   return '"' + value.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, '$1$1') + '"';
@@ -54,7 +69,17 @@ export async function findExecutable(name: string, platform: NodeJS.Platform = p
   const explicit = paths.isAbsolute(name) || /[\\/]/.test(name);
   const names = platform === 'win32' && !/\.[a-z0-9]+$/i.test(name) ? [name + '.exe', name + '.cmd', name + '.bat'] : [name];
   const candidates = explicit ? names : (env.PATH ?? env.Path ?? '').split(platform === 'win32' ? ';' : delimiter).filter(Boolean).flatMap(dir => names.map(file => paths.join(dir.replace(/^"|"$/g, ''), file)));
-  for (const path of candidates) if (await canExecute(path)) return paths.resolve(path);
+  for (const path of candidates) {
+    try { if (await canExecute(path)) return paths.resolve(path); }
+    catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      // Windows App Execution Aliases (for example wt.exe under WindowsApps) can
+      // deny stat() while access(X_OK) succeeds. Treat them as absent during PATH
+      // discovery; an explicitly configured path still reports the real error.
+      if (!explicit && platform === 'win32' && (code === 'EACCES' || code === 'EPERM')) continue;
+      throw error;
+    }
+  }
   return null;
 }
 export function createTerminalLauncher(overrides: Partial<TerminalRuntime> = {}) {
@@ -93,6 +118,7 @@ export function createTerminalLauncher(overrides: Partial<TerminalRuntime> = {})
       return { status: 'terminal-requested', terminal: selected.name as 'Terminal' | 'Ghostty', ...(reply?.stdout.trim() ? { terminalId: reply.stdout.trim() } : {}), command, note: '系统已受理 ' + selected.name + ' 启动请求；不代表模型执行或上下文已读取。' };
     }
     if (input.terminal && input.terminal !== 'system') throw new Error('所选终端不适用于 Windows，未启动其他终端');
+    const launchEnv = launchEnvironment(runtime.env);
     const shell = await configured('DEMO_POWERSHELL_BINARY', ['pwsh.exe', 'powershell.exe', ...(runtime.env.SystemRoot ? [win32.join(runtime.env.SystemRoot, 'System32/WindowsPowerShell/v1.0/powershell.exe')] : [])]);
     if (!shell) throw new Error('未找到 PowerShell；请安装 PowerShell 7 或设置 DEMO_POWERSHELL_BINARY 为 powershell.exe / pwsh.exe 绝对路径');
     const command = powershellPayload({ ...input, executable }), encoded = Buffer.from(command, 'utf16le').toString('base64');
@@ -103,7 +129,7 @@ export function createTerminalLauncher(overrides: Partial<TerminalRuntime> = {})
       if (profile && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(profile.replace(/^\{(.*)\}$/, '$1'))) throw new Error('WT_PROFILE_ID 必须是有效 GUID，未发送终端请求');
       if (shell.includes(';')) throw new Error('PowerShell 路径含 Windows Terminal 命令分隔符；请设置 DEMO_WINDOWS_TERMINAL=none 使用独立控制台');
       // No user cwd/title/argv is exposed to WT's semicolon command parser.
-      await runtime.execute(wt, ['-w', '0', 'nt', ...(profile ? ['--profile', profile] : []), '--title', 'Teams Agent', shell, ...shellArgs], { cwd: input.directory, env: runtime.env });
+      await runtime.execute(wt, ['-w', '0', 'nt', ...(profile ? ['--profile', profile] : []), '--title', 'Teams Agent', shell, ...shellArgs], { cwd: input.directory, env: launchEnv });
       return { status: 'terminal-requested', terminal: 'Windows Terminal', command, note: 'Windows Terminal 已受理新标签页请求；不代表工具已读取上下文或完成工作。' };
     }
     // Start-Process creates a fresh console with real standard handles; detached +
@@ -112,7 +138,7 @@ export function createTerminalLauncher(overrides: Partial<TerminalRuntime> = {})
       `$terminal = Start-Process -FilePath ${powershellQuote(shell)} -ArgumentList ${powershellQuote(shellArgs.join(' '))} -WorkingDirectory ${powershellQuote(input.directory)} -WindowStyle Normal -PassThru -ErrorAction Stop`,
       '[Console]::WriteLine($terminal.Id)',
     ].join('\n');
-    const reply = await runtime.execute(shell, ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(controller, 'utf16le').toString('base64')], { cwd: input.directory, env: runtime.env });
+    const reply = await runtime.execute(shell, ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(controller, 'utf16le').toString('base64')], { cwd: input.directory, env: launchEnv });
     const pidText = reply?.stdout.trim(), pid = Number(pidText);
     if (!pidText || !/^\d+$/.test(pidText) || !Number.isSafeInteger(pid) || pid < 2) throw new Error('PowerShell 终端请求未返回可核对的 PID；结果待核对，未重复启动');
     return { status: 'terminal-requested', terminal: 'PowerShell', pid, command, note: '系统已创建 PowerShell 终端进程；工具启动或模型结果需在终端核对。' };
