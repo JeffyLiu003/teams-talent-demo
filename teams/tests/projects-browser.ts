@@ -11,7 +11,7 @@ const origin = 'http://127.0.0.1:45973', dir = await mkdtemp(join(tmpdir(), 'tea
 const talentOrigin = 'http://127.0.0.1:45983';
 const legacy = initialState(); legacy.knowledge = true; legacy.revision = 1;
 await writeFile(join(dir, 'state.json'), JSON.stringify(legacy));
-const serviceEnv = { ...process.env, DEMO_PORT: '45973', DEMO_TALENT_PORT: '45983', DEMO_STATE_DIR: dir, DEMO_TALENT_STATE_DIR: join(dir, 'talent'), DEMO_NATIVE_DISABLED: '1' };
+const serviceEnv = { ...process.env, DEMO_PORT: '45973', DEMO_TALENT_PORT: '45983', DEMO_STATE_DIR: dir, DEMO_SHARED_DIR: join(dir, 'shared'), DEMO_NATIVE_DISABLED: '1' };
 const server = spawn(process.execPath, ['--import', 'tsx', 'server/index.ts'], { env: serviceEnv, stdio: ['ignore', 'pipe', 'pipe'] });
 const talent = spawn(process.execPath, ['--import', 'tsx', 'server/talent.ts'], { env: serviceEnv, stdio: ['ignore', 'pipe', 'pipe'] });
 let logs = ''; server.stdout.on('data', c => logs += c); server.stderr.on('data', c => logs += c);

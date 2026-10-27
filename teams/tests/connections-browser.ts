@@ -10,7 +10,7 @@ const origin='http://127.0.0.1:45974',dir=await mkdtemp(join(tmpdir(),'teams-sou
 await mkdir(output,{recursive:true});
 const initial=initialState();initial.workspace.connections.find(item=>item.id==='requirements')!.enabled=false;
 await writeFile(join(dir,'state.json'),JSON.stringify(initial));
-const server=spawn(process.execPath,['--import','tsx','server/index.ts'],{env:{...process.env,DEMO_PORT:'45974',DEMO_TALENT_PORT:'45984',DEMO_STATE_DIR:dir,DEMO_TALENT_STATE_DIR:join(dir,'talent'),DEMO_NATIVE_DISABLED:'1'},stdio:['ignore','pipe','pipe']});
+const server=spawn(process.execPath,['--import','tsx','server/index.ts'],{env:{...process.env,DEMO_PORT:'45974',DEMO_TALENT_PORT:'45984',DEMO_STATE_DIR:dir,DEMO_SHARED_DIR:join(dir, 'shared'),DEMO_NATIVE_DISABLED:'1'},stdio:['ignore','pipe','pipe']});
 let logs='';server.stdout.on('data',chunk=>logs+=chunk);server.stderr.on('data',chunk=>logs+=chunk);
 let browser;
 try{

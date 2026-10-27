@@ -15,3 +15,6 @@ __pycache__/
 /archives/
 /sessions-original/
 /restoration/
+
+# Shared exchange directory written at runtime by Teams and Talents
+/shared/data/

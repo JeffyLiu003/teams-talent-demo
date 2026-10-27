@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 const origin='http://127.0.0.1:45971',talentOrigin='http://127.0.0.1:45981', dir=await mkdtemp(join(tmpdir(),'teams-demo-e2e-'));
-const serviceEnv={...process.env,DEMO_PORT:'45971',DEMO_TALENT_PORT:'45981',DEMO_STATE_DIR:dir,DEMO_TALENT_STATE_DIR:join(dir,'talent'),DEMO_NATIVE_DISABLED:'1'};
+const serviceEnv={...process.env,DEMO_PORT:'45971',DEMO_TALENT_PORT:'45981',DEMO_STATE_DIR:dir,DEMO_SHARED_DIR:join(dir, 'shared'),DEMO_NATIVE_DISABLED:'1'};
 const servers=['server/index.ts','server/talent.ts'].map(entry=>spawn(process.execPath,['--import','tsx',entry],{env:serviceEnv,stdio:['ignore','pipe','pipe']}));
 let logs='';for(const server of servers){server.stdout!.on('data',c=>logs+=c);server.stderr!.on('data',c=>logs+=c);}
 const output='test-results';await mkdir(output,{recursive:true});

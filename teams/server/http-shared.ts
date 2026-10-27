@@ -8,7 +8,7 @@ import { root, workspace, origin, talentOrigin } from './config.js';
 export function headers(request: IncomingMessage, response: ServerResponse) {
   response.setHeader('X-Content-Type-Options', 'nosniff');
   response.setHeader('Referrer-Policy', 'no-referrer');
-  if (request.headers.origin && [origin, talentOrigin].includes(request.headers.origin)) {
+  if (request.headers.origin === origin) {
     response.setHeader('Access-Control-Allow-Origin', request.headers.origin);
     response.setHeader('Vary', 'Origin');
     response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -20,7 +20,7 @@ export async function bodyJson(request: IncomingMessage) {
   for await (const chunk of request) { size += chunk.length; if (size > 65536) throw new DomainError('请求过大', 413); chunks.push(chunk); }
   try { return JSON.parse(Buffer.concat(chunks).toString()) as Record<string, any>; } catch { throw new DomainError('JSON 请求无效', 400); }
 }
-export async function staticFile(path: string, app: 'teams' | 'talent', response: ServerResponse) {
+export async function staticFile(path: string, app: 'teams', response: ServerResponse) {
   if (!['/', '/' + app, '/main.js', '/main.css', '/main.js.map', '/main.css.map'].includes(path)) return false;
   const name = path.startsWith('/main.') ? path.slice(1) : 'index.html';
   let content = await readFile(join(root, 'dist', name));

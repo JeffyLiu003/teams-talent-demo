@@ -9,7 +9,7 @@ const dir=await mkdtemp(join(tmpdir(),'work-browser-')),origin='http://127.0.0.1
 const stub=join(dir,'icode-probe');await writeFile(stub,`#!/usr/bin/env node
 const args=process.argv.slice(2);if(args[0]==='--version')console.log('0.31.0-test');else if(args[0]==='agent')console.log(JSON.stringify({default:'Code',agents:[{name:'Code',id:'test-code',displayName:'Code',default:true,launchableAsMain:true,model:'active'}]}));else if(args[0]==='model')console.log(JSON.stringify({active:'test-model',models:[{id:'test-model',name:'Test Model'}]}));else {console.error('Probe refuses tool execution');process.exit(99);}
 `);await chmod(stub,0o700);
-const server=spawn(process.execPath,['--import','tsx','server/index.ts'],{env:{...process.env,DEMO_PORT:'45978',DEMO_TALENT_PORT:'45988',DEMO_STATE_DIR:dir,DEMO_TALENT_STATE_DIR:join(dir,'talent'),DEMO_NATIVE_DISABLED:'1',DEMO_ICODE_BINARY:stub},stdio:'pipe'});
+const server=spawn(process.execPath,['--import','tsx','server/index.ts'],{env:{...process.env,DEMO_PORT:'45978',DEMO_TALENT_PORT:'45988',DEMO_STATE_DIR:dir,DEMO_SHARED_DIR:join(dir, 'shared'),DEMO_NATIVE_DISABLED:'1',DEMO_ICODE_BINARY:stub},stdio:'pipe'});
 let logs='';server.stderr.on('data',c=>logs+=c);let browser;
 try{
   for(let n=0;n<100;n++){try{if((await fetch(origin+'/api/health')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}

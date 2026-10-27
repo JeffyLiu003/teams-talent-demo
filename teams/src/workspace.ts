@@ -19,7 +19,6 @@ export interface WorkspaceState {
   materials: Material[]; selectedSkills: string[];
   progress: { id: string; text: string; at: string; node: string }[];
   sessionReported: boolean; reportAt: string | null;
-  analysis: { scope: 'single' | 'project'; status: 'idle' | 'analyzed' };
   team: { name: string; members: { id: string; name: string; role: 'owner' | 'member'; status: 'active' | 'invited' }[] };
   connections: { id: string; name: string; kind: string; enabled: boolean; description: string }[];
   foundation: { progressEnabled: boolean; uploadEnabled: boolean };
@@ -34,19 +33,19 @@ export function initialWorkspace(): WorkspaceState {
       { id:'adr',title:'交易处理边界',kind:'document',location:'teams/docs/cashback-integration.md',sourceAssetId:'design-library:carddemo:ADR-009' },
       { id:'security',title:'权限与安全范围',kind:'document',location:'teams/docs/security-scope.md',sourceAssetId:'design-library:carddemo:ADR-007' },
     ] }, materials: [], selectedSkills: [...defaultSkills], progress: [], sessionReported:false, reportAt:null,
-    analysis:{scope:'single',status:'idle'}, foundation:{progressEnabled:true,uploadEnabled:true},
+    foundation:{progressEnabled:true,uploadEnabled:true},
     team:{ name:'信用卡研发团队',members:[['owner','林悦'],['member','陈晨'],['su','苏晴'],['yang','杨帆'],['zhao','赵宁'],['wang','王晓']].map(([id,name])=>({id,name,role:id==='owner'?'owner':'member',status:'active'})) },
     connections: [
       ['repository','代码仓与项目资产','asset','关联当前返现规则与项目代码。'],['requirements','需求与文档','asset','关联项目需求和设计资料。'],
       ['review','代码 Review','quality','检查业务状态、变更影响与事务边界，保留问题与修复依据。'],['test','测试与复测','quality','保留真实退出码、测试范围及结构化报告。'],
       ['security','安全扫描','quality','尚未提供安全扫描报告，需接入报告后核验。'],['model','组织模型服务','model','展示团队模型使用要求，真实凭据由原生工具管理。'],
-      ['mcp','工具与 MCP','tool','按工具声明能力和权限，成员通过 iCode 调用。'],['talent','Talent 知识与演进','talent','依据 Teams 项目资产整合知识，分析轨迹并评估改进候选。'],
+      ['mcp','工具与 MCP','tool','按工具声明能力和权限，成员通过 iCode 调用。'],
     ].map(([id,name,kind,description])=>({id,name,kind,description,enabled:true})),
   };
 }
-export const workspaceActions = ['project.create','project.metadata.update','project.update','asset.link','asset.add','material.add','skills.select','resource.publish','resource.publish-all','resource.acquire','team.update','member.invite','member.approve','member.role','member.remove','progress.sync','session.report','analysis.run','connection.update','foundation.update'] as const;
+export const workspaceActions = ['project.create','project.metadata.update','project.update','asset.link','asset.add','material.add','skills.select','resource.publish','resource.publish-all','resource.acquire','team.update','member.invite','member.approve','member.role','member.remove','progress.sync','session.report','connection.update','foundation.update'] as const;
 export type WorkspaceAction = typeof workspaceActions[number];
-const ownerActions: WorkspaceAction[] = ['project.create','project.metadata.update','resource.publish','resource.publish-all','project.update','asset.link','asset.add','team.update','member.invite','member.approve','member.role','member.remove','analysis.run','connection.update'];
+const ownerActions: WorkspaceAction[] = ['project.create','project.metadata.update','resource.publish','resource.publish-all','project.update','asset.link','asset.add','team.update','member.invite','member.approve','member.role','member.remove','connection.update'];
 const memberActions: WorkspaceAction[] = ['material.add','skills.select','progress.sync','session.report'];
 function need(ok:unknown,message:string):asserts ok { if(!ok)throw new DomainError(message); }
 function text(p:Record<string,unknown>,key:string,max=1000){ const value=p[key];need(typeof value==='string'&&value.trim().length>0&&value.length<=max,`${key} 不能为空或超出长度`);return value.trim(); }
@@ -112,9 +111,8 @@ export function updateWorkspace(previous:DemoState,kind:WorkspaceAction,role:Rol
     case 'member.remove': need(typeof p.id==='string'&&!['owner','member'].includes(p.id)&&w.team.members.some(m=>m.id===p.id),'无法移除固定角色或不存在的成员');w.team.members=w.team.members.filter(m=>m.id!==p.id);label='移除团队成员';break;
     case 'progress.sync': need(w.foundation.progressEnabled,'请先启用团队协作进度同步能力');need(s.context&&['developing','failed','fixed','returned'].includes(s.stage),'请先开始 iCode 开发作业');w.progress.push({id,text:text(p,'text',2000),at,node:'develop'});label='iCode 进度同步';break;
     case 'session.report': need(w.foundation.uploadEnabled,'请先启用团队协作会话上报能力');need(['submitted','accepted'].includes(s.stage),'请先提交交付成果');need(!w.sessionReported,'该会话已经关联上报');w.sessionReported=true;w.reportAt=at;label='关联会话与轨迹';break;
-    case 'analysis.run': need(w.sessionReported,'请先上报并关联交付会话');need(p.scope==='single'||p.scope==='project','分析范围无效');need(s.evolution==='none','已有改进候选，请保留本次分析依据');w.analysis={scope:p.scope,status:'analyzed'};label=p.scope==='project'?'项目多需求分析':'单需求轨迹分析';break;
     case 'connection.update': {let c=w.connections.find(c=>c.id===p.id);if(!c&&typeof p.id==='string'){const seeded=externalPlatformDefault(p.id);if(seeded){c=w.connections.find(connection=>connection.id===seeded.id);if(!c){c=seeded;w.connections.push(c);}}}need(c,'连接不存在');need(typeof p.enabled==='boolean','启用状态无效');c.enabled=p.enabled;c.description=text(p,'description',1500);label=externalPlatformDefault(c.id)?'更新企业连接配置':'更新能力配置';break;}
     case 'foundation.update': need(typeof p.progressEnabled==='boolean'&&typeof p.uploadEnabled==='boolean','基础能力配置无效');w.foundation={progressEnabled:p.progressEnabled,uploadEnabled:p.uploadEnabled};label='更新基础协作配置';break;
   }
-  s.revision++;s.audit.push({id:s.revision,at,role,system:kind==='analysis.run'?'Talent':'Teams',action:label,detail:kind==='progress.sync'?String(p.text):kind==='resource.publish'?String(p.id)+' · '+resourceVersion(s,String(p.id)):kind==='resource.acquire'?String(p.name):label,origin:'simulated'});return s;
+  s.revision++;s.audit.push({id:s.revision,at,role,system:'Teams',action:label,detail:kind==='progress.sync'?String(p.text):kind==='resource.publish'?String(p.id)+' · '+resourceVersion(s,String(p.id)):kind==='resource.acquire'?String(p.name):label,origin:'simulated'});return s;
 }

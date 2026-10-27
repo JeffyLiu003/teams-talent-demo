@@ -11,7 +11,7 @@ const dir = await mkdtemp(join(tmpdir(), 'owner-overview-')), origin = 'http://1
 let seeded = initialState();
 for (const [action, role] of [['knowledge', 'owner']] as const) seeded = transition(seeded, action, role);
 await writeFile(join(dir, 'state.json'), JSON.stringify(seeded));
-const env = { ...process.env, DEMO_PORT: '45975', DEMO_TALENT_PORT: '45985', DEMO_STATE_DIR: dir, DEMO_TALENT_STATE_DIR: join(dir, 'talent'), DEMO_NATIVE_DISABLED: '1' };
+const env = { ...process.env, DEMO_PORT: '45975', DEMO_TALENT_PORT: '45985', DEMO_STATE_DIR: dir, DEMO_SHARED_DIR: join(dir, 'shared'), DEMO_NATIVE_DISABLED: '1' };
 const processes = ['server/index.ts', 'server/talent.ts'].map(file => spawn(process.execPath, ['--import', 'tsx', file], { env, stdio: ['ignore', 'pipe', 'pipe'] }));
 let logs = ''; for (const process of processes) { process.stdout.on('data', value => logs += value); process.stderr.on('data', value => logs += value); }
 let browser;

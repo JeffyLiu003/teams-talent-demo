@@ -1,5 +1,5 @@
 import { currentSystemContext, systemRuntime } from './system-links.js';
-import type { BusinessKnowledgeResponse, TalentSnapshot } from './talent-contract.js';
+import type { PublishedArtifact, PublishedFile } from '../../shared/contracts.js';
 import type { DemoState, Role, Action } from './domain.js';
 import type { WorkspaceAction } from './workspace.js';
 import type blueprint from '../fixtures/demo-blueprint.json';
@@ -7,7 +7,6 @@ import type inventory from '../fixtures/skill-inventory.json';
 import type teamsProject from '../fixtures/teams-project.json';
 export interface Presentation {
   skillCatalog: import('./resource-sharing.js').SkillCatalogEntry[];
-  talent?: TalentSnapshot;
   localPaths: { collaborationSkill: string; cli: string };
   teamsProject: typeof teamsProject;
   blueprint: typeof blueprint; skills: typeof inventory;
@@ -27,31 +26,31 @@ export interface NativeStatus {
   verification: { status: string; at: string; messageCount: number; note: string } | null;
 }
 const tokens = new Map<string, string>();
-async function tracedJson<T>(service: 'teams' | 'talent', path: string, init?: RequestInit): Promise<T> {
-  const runtime = systemRuntime(), origin = service === 'teams' ? runtime.teamsOrigin : runtime.talentOrigin;
+async function tracedJson<T>(service: 'teams', path: string, init?: RequestInit): Promise<T> {
+  const origin = systemRuntime().teamsOrigin;
   if (init?.method === 'POST' && !tokens.has(origin)) {
     const session = await tracedJson<{token:string}>(service, '/api/session'); tokens.set(origin, session.token);
   }
   let result: Response;
   try { result = await fetch(origin + path, { ...init, signal: AbortSignal.timeout(10000), headers: { 'Content-Type': 'application/json', 'X-Demo-Token': tokens.get(origin) ?? '', 'X-Demo-Request': crypto.randomUUID(), ...init?.headers } }); }
-  catch (error) { throw new Error(`无法连接 ${service === 'talent' ? 'Talent 知识服务' : 'Teams 项目服务'}（${origin}）：${(error as Error).message}`); }
+  catch (error) { throw new Error(`无法连接 Teams 项目服务（${origin}）：${(error as Error).message}`); }
   const data = await result.json();
   if (!result.ok) { if (result.status === 403) tokens.delete(origin); throw new Error(data.error ?? '请求失败'); }
   return data;
 }
 const projectQuery = () => '?project=' + encodeURIComponent(currentSystemContext().projectId);
 export async function bootstrap() {
-  const runtime = systemRuntime();
-  const data = await tracedJson<{ token: string; state: DemoState; data: Presentation }>(runtime.app, '/api/bootstrap' + projectQuery());
-  tokens.set(runtime.app === 'teams' ? runtime.teamsOrigin : runtime.talentOrigin, data.token); return data;
+  const data = await tracedJson<{ token: string; state: DemoState; data: Presentation }>('teams', '/api/bootstrap' + projectQuery());
+  tokens.set(systemRuntime().teamsOrigin, data.token); return data;
 }
 export const getState = () => tracedJson<DemoState>('teams', '/api/state');
 export const getTools = () => tracedJson<NativeStatus>('teams', '/api/tools');
-export const act = (state: DemoState, role: Role, action: Action, reason?: string) => tracedJson<DemoState>(['knowledge', 'candidate', 'evaluate', 'release'].includes(action) ? 'talent' : 'teams', '/api/action', { method: 'POST', body: JSON.stringify({ revision: state.revision, action, reason, ...currentSystemContext(), role }) });
-export const updateWorkspace = (state: DemoState, role: Role, kind: WorkspaceAction, payload: Record<string,unknown>) => tracedJson<DemoState>(kind === 'analysis.run' ? 'talent' : 'teams', '/api/workspace', { method: 'POST', body: JSON.stringify({ revision:state.revision, kind, payload, ...currentSystemContext(), role }) });
+export const act = (state: DemoState, role: Role, action: Action, reason?: string) => tracedJson<DemoState>('teams', '/api/action', { method: 'POST', body: JSON.stringify({ revision: state.revision, action, reason, ...currentSystemContext(), role }) });
+export const updateWorkspace = (state: DemoState, role: Role, kind: WorkspaceAction, payload: Record<string,unknown>) => tracedJson<DemoState>('teams', '/api/workspace', { method: 'POST', body: JSON.stringify({ revision:state.revision, kind, payload, ...currentSystemContext(), role }) });
 export const reset = (state: DemoState, role: Role) => tracedJson<DemoState>('teams', '/api/reset', { method: 'POST', body: JSON.stringify({ revision: state.revision, role }) });
 export const native = <T = any>(role: Role, action: string, data: Record<string, unknown> = {}) => tracedJson<T>('teams', '/api/native/' + action, { method: 'POST', body: JSON.stringify({ role, ...data }) });
-export const getBusinessKnowledge = (projectId?: string) => tracedJson<BusinessKnowledgeResponse>('talent', '/api/knowledge/assets' + (projectId ? '?project=' + encodeURIComponent(projectId) : ''));
+export const getTalentsKnowledge = (projectId: string) => tracedJson<{ talentsOrigin: string; artifacts: PublishedArtifact[] }>('teams', '/api/talents/knowledge?project=' + encodeURIComponent(projectId));
+export const getTalentsFile = (artifact: PublishedArtifact, path: string) => tracedJson<PublishedFile & { content: string }>('teams', '/api/talents/file?' + new URLSearchParams({ artifact: artifact.id, version: String(artifact.version), path }));
 
 export const getProjectWork = (role: Role, target: import('./project-work.js').ProjectWorkSelection) => tracedJson<import('./project-work.js').ProjectWorkPlan>('teams', '/api/project-work?' + new URLSearchParams({ role, ...target }).toString());
 export const bindProjectWork = (role: Role, target: import('./project-work.js').ProjectWorkSelection, directory: string) => native<import('./project-work.js').ProjectWorkPlan>(role, 'work-bind', { target, directory });

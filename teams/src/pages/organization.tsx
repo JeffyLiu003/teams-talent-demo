@@ -1,7 +1,7 @@
 import { displayText } from '../display-text.js';
 import { useState } from 'react';
 import { Button, Collapse, Drawer, Empty, Input, Modal, Space, Switch, Tabs, Tag } from 'antd';
-import { BookOutlined, BulbOutlined, BranchesOutlined, BugOutlined, ExperimentOutlined, FileTextOutlined } from '@ant-design/icons';
+import { BookOutlined, BranchesOutlined, BugOutlined, ExperimentOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useDemo } from '../context.js';
 import { FrameworkCard } from '../vendor/teams/components/page-layout.js';
 import { EnterpriseSourceData } from '../components/enterprise-source-data.js';
@@ -14,8 +14,8 @@ import '../enterprise-connections.css';
 
 type Connection = WorkspaceState['connections'][number];
 type PlatformRow = Connection & { pluginId: string; platform: string; summary: string; dataTypes: readonly string[] };
-const platformIcons = { repository: <BranchesOutlined />, requirements: <FileTextOutlined />, defects: <BugOutlined />, 'design-library': <BookOutlined />, 'test-assets': <ExperimentOutlined />, 'business-knowledge': <BulbOutlined /> };
-const configurationTabs = [{ key: 'quality', label: '质量与安全' }, { key: 'services', label: '模型与工具服务' }, { key: 'talent', label: 'Talent 接入' }];
+const platformIcons = { repository: <BranchesOutlined />, requirements: <FileTextOutlined />, defects: <BugOutlined />, 'design-library': <BookOutlined />, 'test-assets': <ExperimentOutlined /> };
+const configurationTabs = [{ key: 'quality', label: '质量与安全' }, { key: 'services', label: '模型与工具服务' }];
 /** The upstream enterprise-connection route currently supplies CapabilityState.
  * Keep its route vocabulary and port the existing resource-card/header/meta/footer
  * structure from agent-resources/src/client/ui/index.ts. Platform cards are demo adapters. */

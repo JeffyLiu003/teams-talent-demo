@@ -10,6 +10,7 @@ import { userSkillExamples } from '../src/project-skill-examples.js';
 import { createSourcePluginCatalog } from '../src/source-plugins.js';
 import { legacyAssetSourceIds } from '../src/project-asset-links.js';
 import { root, talentOrigin } from './config.js';
+import { projectKnowledge } from './shared-data.js';
 import type { Store } from './store.js';
 
 export const collaborationSkillPath = join(root, 'skills/teams-demo-collaboration/SKILL.md');
@@ -62,12 +63,9 @@ export async function collaborationContext(state: DemoState, data: Presentation,
   }));
   let knowledge: { status: string; origin: string; selectedVersion: string | null; assets: unknown[]; error?: string };
   try {
-    const response = await fetch(talentOrigin + '/api/knowledge/assets?project=' + encodeURIComponent(scope.projectId), { signal: AbortSignal.timeout(4000), redirect: 'error' });
-    if (!response.ok) throw new Error(`Talent HTTP ${response.status}`);
-    const value = await response.json();
-    need(Array.isArray(value.assets), 'Talent 知识响应无效', 502);
-    const matches = value.assets.filter((a: any) => a.sourceProjectId === scope.projectId && (!frozen || a.version === frozen.knowledgeVersion));
-    knowledge = { status: matches.length ? 'available' : frozen ? 'frozen-version-unavailable' : 'not-built', origin: talentOrigin, selectedVersion: frozen?.knowledgeVersion ?? null, assets: matches };
+    // Published Talents artifacts for this project, read from the shared data directory.
+    const assets = await projectKnowledge(scope.projectId);
+    knowledge = { status: assets.length ? 'available' : 'not-built', origin: talentOrigin, selectedVersion: frozen?.knowledgeVersion ?? null, assets };
   } catch (error) { knowledge = { status: 'unavailable', origin: talentOrigin, selectedVersion: frozen?.knowledgeVersion ?? null, assets: [], error: (error as Error).message }; }
   const agreement = card && scope.taskId ? { id: scope.taskId, title: data.blueprint.scenario.slice, background: data.blueprint.scenario.parent_requirement, criteria: data.blueprint.acceptance_criteria, revision: 'demo-r1' } : task ? { id: task.id, title: task.title, background: task.goal, scope: task.scope, criteria: task.criteria, revision: data.teamsProject.sourceCommit } : { id: scope.projectId, title: card ? state.workspace.project.name : teams ? data.teamsProject.project.name : created!.name, background: card ? state.workspace.project.description : teams ? data.teamsProject.project.description : created!.description, criteria: [], revision: 'project-preparation' };
   const basis = { scope, mode: frozen ? 'frozen' : 'preparation', contextId: frozen?.id ?? null, frozenAt: frozen?.createdAt ?? null, agreement, node: node ?? null, assets, materials, references, skills,

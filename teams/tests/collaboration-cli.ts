@@ -10,7 +10,7 @@ import { Store } from '../server/store.js';
 
 const dir = await mkdtemp(join(tmpdir(), 'teams-collaboration-'));
 const origin = 'http://127.0.0.1:45977', talent = 'http://127.0.0.1:45987';
-const env = { ...process.env, DEMO_PORT: '45977', DEMO_TALENT_PORT: '45987', DEMO_STATE_DIR: join(dir, 'teams'), DEMO_TALENT_STATE_DIR: join(dir, 'talent'), DEMO_NATIVE_DISABLED: '1' };
+const env = { ...process.env, DEMO_PORT: '45977', DEMO_TALENT_PORT: '45987', DEMO_STATE_DIR: join(dir, 'teams'), DEMO_SHARED_DIR: join(dir, 'shared'), DEMO_NATIVE_DISABLED: '1' };
 const children = ['server/index.ts', 'server/talent.ts'].map(file => spawn(process.execPath, ['--import', 'tsx', file], { env, stdio: ['ignore', 'pipe', 'pipe'] }));
 let logs = ''; for (const child of children) { child.stdout!.on('data', d => logs += d); child.stderr!.on('data', d => logs += d); }
 const get = async (base: string, path: string) => { const r = await fetch(base + path); assert.equal(r.status, 200, await r.clone().text()); return r.json(); };
