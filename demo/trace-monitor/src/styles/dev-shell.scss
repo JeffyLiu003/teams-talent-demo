@@ -1,0 +1,174 @@
+/* ============================================================
+   Trace Monitor (Vue) — dev 预览外壳样式（仅本地开发使用）
+   ------------------------------------------------------------
+   · 本文件不会进入组件库产物（lib 构建只引 styles/index.scss）
+   · 这里才允许出现全局重置（html/body/#app）、全局滚动条、
+     以及 el-table / el-pagination 等「dev 列表页专用」的 EP 覆写
+   · 设计 token 与组件库同源，在 :root 展开，供外壳与页面使用
+   ============================================================ */
+
+@use "./tokens" as *;
+
+:root {
+  @include tm-tokens;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  min-height: 100vh;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--bg-canvas);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--accent-soft-strong);
+}
+
+/* 滚动条 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
+  background-clip: content-box;
+  border: 2px solid transparent;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 应用外壳 */
+.tm-app {
+  min-height: 100vh;
+  background: var(--bg-canvas);
+}
+
+/* 页面 */
+.tm-page {
+  animation: tmFadeUp 0.28s ease both;
+}
+
+@keyframes tmFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 面板 */
+.tm-panel {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+/* 表格统一收窄（dev 列表页专用） */
+.el-table {
+  font-size: 12.5px;
+  --el-table-header-bg-color: var(--bg-subtle);
+  --el-table-header-text-color: var(--ink-weak);
+  --el-table-border-color: var(--border-subtle);
+  --el-table-row-hover-bg-color: var(--bg-surface-hover);
+}
+.el-table th.el-table__cell {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 11px 12px;
+  white-space: nowrap;
+}
+.el-table td.el-table__cell {
+  padding: 10px 12px;
+  color: var(--ink);
+}
+.el-table .el-table__row {
+  cursor: pointer;
+}
+
+/* 分页 */
+.el-pagination {
+  --el-pagination-hover-color: var(--accent);
+  --el-pagination-active-color: var(--accent-strong);
+}
+
+/* 输入 / 下拉 */
+.el-input__wrapper,
+.el-select__wrapper {
+  border-radius: var(--radius-sm);
+}
+.el-input__wrapper:hover,
+.el-input__wrapper.is-focus,
+.el-select__wrapper:hover,
+.el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+/* 按钮 */
+.el-button {
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+}
+
+/* 弹层 */
+.el-dropdown__popper,
+.el-select__popper {
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-pop) !important;
+}
+
+/* 表格内联数值 / 代码 */
+.tm-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.tm-code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: transparent;
+  color: var(--ink-mid);
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+  .tm-brand-name {
+    display: none;
+  }
+  .tm-topbar-status {
+    display: none;
+  }
+}

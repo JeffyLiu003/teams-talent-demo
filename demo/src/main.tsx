@@ -23,6 +23,7 @@ import { Resources } from './pages/resources.js';
 import { Tools } from './pages/tools.js';
 import { Trace } from './pages/trace.js';
 import { TeamWork } from './pages/team-work.js';
+import { TraceMonitor } from './pages/trace-monitor.js';
 import { Organization } from './pages/organization.js';
 import { Team } from './pages/team.js';
 import { Knowledge, TalentSessions, Evolution } from './pages/talent.js';
@@ -31,7 +32,7 @@ import { currentSystemContext, systemRuntime, talentLink, teamsLink } from './sy
 import './style.css';
 const css = document.createElement('style'); css.textContent = designSystemCss + frameworkCss; document.head.prepend(css);
 const isTalent = systemRuntime().app === 'talent';
-const titles: Record<string, string> = { home: '工作台', projects: '项目', team:'团队', resources: '资源市场', subscriptions: '我的订阅', publications: '我的发布', agent: 'Agent 管理', connections: '企业连接', organization: '企业连接', 'team-work': '团队作业与追溯', trace: '需求执行记录', knowledge: '项目知识', sessions: '轨迹分析与知识挖掘', evolution: '能力演进', account: '个人设置', settings: '个人设置' };
+const titles: Record<string, string> = { home: '工作台', projects: '项目', team:'团队', resources: '资源市场', subscriptions: '我的订阅', publications: '我的发布', agent: 'Agent 管理', connections: '企业连接', organization: '企业连接', 'team-work': '团队作业与追溯', 'trace-monitor': '开发会话轨迹', trace: '需求执行记录', knowledge: '项目知识', sessions: '轨迹分析与知识挖掘', evolution: '能力演进', account: '个人设置', settings: '个人设置' };
 const route = () => { const raw = location.hash.replace(/^#\/?/, '') || (isTalent ? 'knowledge' : 'home'); const [path, query] = raw.split('?'); return { path, params: new URLSearchParams(query) }; };
 const channel = new BroadcastChannel('teams-talent-carddemo');
 function App() {
@@ -105,6 +106,7 @@ function App() {
   else if (current.path === 'agent') content = <Tools />;
   else if (['connections', 'organization'].includes(current.path)) content = <Organization key={current.path + current.params.toString()} />;
   else if (current.path === 'team-work') content = <TeamWork />;
+  else if (current.path === 'trace-monitor') content = <TraceMonitor />;
   else if (current.path === 'trace') content = <Trace initial={current.params.get('evidence') ?? undefined} />;
   else if (['account', 'settings'].includes(current.path)) content = <div className="page-stack"><Heading title={titles[current.path]} description="查看当前角色与项目权限，维护本地工作区。" /><FrameworkCard title="项目权限"><Descriptions bordered column={1} items={[{ key: 'owner', label: '林悦 · 项目 Owner', children: '团队运营、组织能力、项目知识准备、共享发布、需求分配、业务验收、能力演进' }, { key: 'member', label: '陈晨 · 项目成员', children: '需求材料与上下文准备、能力采用、开发检查、成果提交' }, { key: 'demo', label: '当前角色', children: '可切换当前工作角色；身份认证尚未接入。' }]} /><Button href="#/projects?tab=settings">项目成员与角色</Button></FrameworkCard>
     <FrameworkCard title="工作区维护"><p>重置会将本地项目及资产关联、需求材料、团队与成员配置、连接设置、资源发布与订阅、任务交付状态恢复为初始值；新建项目和后续记录会被清除。</p><p className="muted">源码、原始资料和本机工具不受影响；重置后需重新构建项目知识与演进结果。</p>{role === 'owner' ? <Popconfirm title="重置整个工作区？" description="将清除新建项目、补充材料、成员配置、发布订阅及交付记录，并恢复初始工作区。此操作无法撤销。" okText="确认重置" cancelText="取消" onConfirm={resetDemo} disabled={busy} okButtonProps={{ danger: true, loading: busy, disabled: busy, 'aria-label': '确认重置工作区' }} cancelButtonProps={{ disabled: busy, 'aria-label': '取消重置' }}><Button danger aria-label="重置工作区" icon={<ReloadOutlined />} loading={busy} disabled={busy}>重置工作区</Button></Popconfirm> : <p className="muted">仅项目 Owner 可重置工作区；当前成员没有执行权限。</p>}</FrameworkCard>
@@ -125,7 +127,7 @@ function App() {
             <Select className="compact-role-switch" aria-label="切换角色" size="small" value={role} onChange={value=>{const url=new URL(location.href);url.searchParams.set('demo-role',value);history.replaceState(null,'',url);localStorage.setItem('carddemo-role',value);setRole(value);}} popupMatchSelectWidth={210} options={[{value:'owner',label:'林悦 · 项目 Owner'},{value:'member',label:'陈晨 · 项目成员'}]}/>
           </div>
         </header>
-          <div className={'page-scroll' + (projectName ? ' project-page-scroll' : '')} key={isTalent + current.path}>{error && <Alert className="global-alert" type="error" showIcon title={displayText(error)} closable onClose={() => setError('')} />}{notice && <Alert className="global-alert" type="success" showIcon title={displayText(notice)} closable onClose={() => setNotice('')} />}{isTalent && data.talent?.project.projection.status === 'pending' && <Alert type="warning" title="Talent 成果等待回传 Teams" description={data.talent.project.projection.error} action={<Button loading={busy} onClick={()=>{const project=data.talent!.project;void(project.projection.action==='analysis.run'?update('analysis.run',{scope:project.analysis.scope}):perform(project.projection.action as Action));}}>重试回传</Button>} />}{state.campaignId !== campaign.id && <Alert type="warning" title="工作区规则版本已更新" description="当前保存记录属于旧规则，请由 Owner 在 Teams 个人设置中重置工作区后继续。" action={<Button href={isTalent ? teamsLink('account') : '#/account'}>前往个人设置</Button>} />}{content}<footer className="page-foot"><span>{isTalent ? data.talent?.context.name+' · Talent 独立知识服务' : createdProject ? createdProject.name+' · 项目' : importedProject ? 'iCode Teams · 项目' : 'MKT-001 · Teams × iCode × Talent'}</span></footer></div>
+          <div className={'page-scroll' + (projectName ? ' project-page-scroll' : '') + (current.path === 'trace-monitor' ? ' trace-page-scroll' : '')} key={isTalent + current.path}>{error && <Alert className="global-alert" type="error" showIcon title={displayText(error)} closable onClose={() => setError('')} />}{notice && <Alert className="global-alert" type="success" showIcon title={displayText(notice)} closable onClose={() => setNotice('')} />}{isTalent && data.talent?.project.projection.status === 'pending' && <Alert type="warning" title="Talent 成果等待回传 Teams" description={data.talent.project.projection.error} action={<Button loading={busy} onClick={()=>{const project=data.talent!.project;void(project.projection.action==='analysis.run'?update('analysis.run',{scope:project.analysis.scope}):perform(project.projection.action as Action));}}>重试回传</Button>} />}{state.campaignId !== campaign.id && <Alert type="warning" title="工作区规则版本已更新" description="当前保存记录属于旧规则，请由 Owner 在 Teams 个人设置中重置工作区后继续。" action={<Button href={isTalent ? teamsLink('account') : '#/account'}>前往个人设置</Button>} />}{content}<footer className="page-foot"><span>{isTalent ? data.talent?.context.name+' · Talent 独立知识服务' : createdProject ? createdProject.name+' · 项目' : importedProject ? 'iCode Teams · 项目' : 'MKT-001 · Teams × iCode × Talent'}</span></footer></div>
         </main></div>
     </div>
     <Drawer width={880} open={!!detail} onClose={() => setDetail(null)} title={detail?.title}><pre className="evidence-console drawer-console">{detail?.content}</pre></Drawer>

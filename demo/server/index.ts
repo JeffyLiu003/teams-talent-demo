@@ -18,6 +18,7 @@ import { toolsStatus, writeContext, foundationSkill, launch } from './native.js'
 import { createSourcePluginCatalog } from '../src/source-plugins.js';
 import type { WorkspaceAction } from '../src/workspace.js';
 import { headers, bodyJson, staticFile, readFixtures } from './http-shared.js';
+import { isTraceApi, proxyTrace, startTraceService, stopTraceService } from './trace-service.js';
 import { talentActions, talentContexts, selectTalentContext, projectionApplied, type TalentAction } from './talent-integration.js';
 import { ProjectWorkService } from './project-work.js';
 import { collaborationContext, collaborationOperation, collaborationWrite } from './collaboration-service.js';
@@ -141,6 +142,7 @@ const server = createServer(async (request, response) => {
       throw new DomainError('接口不存在', 404);
     }
     if (request.method === 'GET' && await staticFile(path, 'teams', response)) return;
+    if (request.method === 'GET' && isTraceApi(path)) { await proxyTrace(path, url.search, response); return; }
     json(404, { error: '页面不存在' });
   } catch (error) {
     const status = error instanceof DomainError ? error.status : 500;
@@ -152,5 +154,9 @@ server.listen(port, '127.0.0.1', async () => {
   await mkdir(runtimeDir, { recursive: true });
   console.log('Teams: ' + origin + '/teams');
   console.log('Talent 独立入口: ' + talentOrigin + '/talent');
+  startTraceService().then(
+    () => console.log('Trace 查询服务: /trace-monitor/'),
+    error => console.error('Trace 查询服务未启动：' + (error instanceof Error ? error.message : String(error))),
+  );
 });
-for (const signal of ['SIGTERM', 'SIGINT'] as const) process.on(signal, () => { server.close(() => process.exit(0)); });
+for (const signal of ['SIGTERM', 'SIGINT'] as const) process.on(signal, () => { stopTraceService(); server.close(() => process.exit(0)); });
