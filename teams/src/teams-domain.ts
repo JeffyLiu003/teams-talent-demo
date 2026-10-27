@@ -24,8 +24,8 @@ export function teamProjects(state: DemoState) {
 }
 function assignedIds(state: DemoState, projectId: string) {
   const ids = (state.workspace.genericTasks ?? []).filter(task => task.projectId === projectId && task.assigneeId).map(task => task.assigneeId!);
-  ids.push(...(state.workspace.deliveryRequirements ?? []).filter(task => task.projectId === projectId).map(task => task.assigneeId));
-  if (projectId === 'carddemo' && state.assigned) ids.push(state.assigneeId === undefined ? 'member' : state.assigneeId!);
+  ids.push(...(state.workspace.deliveryRequirements ?? []).filter(task => task.projectId === projectId && task.assigneeId).map(task => task.assigneeId));
+  if (projectId === 'carddemo' && state.assigned && !state.workspace.deliveryRequirements?.some(task=>task.projectId===projectId&&task.id==='DEMO-MKT-001')) ids.push(state.assigneeId === undefined ? 'member' : state.assigneeId!);
   return new Set(ids);
 }
 export function updateTeam(state: DemoState, role: Role, action: TeamAction, input: Record<string, unknown>, at: string) {
@@ -44,7 +44,7 @@ export function updateTeam(state: DemoState, role: Role, action: TeamAction, inp
   if (action === 'team.project.assign') {
     const projectId = clean(input.projectId, '项目标识', 100), source = projectTeam(state, projectId);
     requireTeamOwner(state, role, source.id); need(input.fromTeamId === source.id, '项目所属团队已变化，请刷新后重新确认'); need(source.id !== teamId, '项目已属于此团队');
-    need([...assignedIds(state, projectId)].every(id => team.members.some(member => member.id === id && member.role === 'member' && member.status === 'active')), '请先将项目已有交付人加入目标团队，再关联项目');
+    need([...assignedIds(state, projectId)].every(id => team.members.some(member => member.id === id && member.status === 'active')), '请先将项目已有交付人加入目标团队，再关联项目');
     if (projectId === 'carddemo') state.workspace.projectTeamId = teamId;
     else { const project = state.workspace.projects!.find(item => item.id === projectId)!; project.teamId = teamId; project.updatedAt = at; }
     return '调整项目所属团队';
@@ -77,5 +77,5 @@ export function validateTeams(state: DemoState) {
   }
   need(!Object.hasOwn(state.workspace, 'projectTeamId') || typeof state.workspace.projectTeamId === 'string', '项目团队归属无效');
   projectTeam(state, 'carddemo'); for (const project of state.workspace.projects ?? []) projectTeam(state, project.id);
-  for (const project of teamProjects(state)) need([...assignedIds(state, project.id)].every(id => projectMembers(state, project.id).some(member => member.id === id && member.status === 'active' && member.role === 'member')), '项目交付人与所属团队不一致');
+  for (const project of teamProjects(state)) need([...assignedIds(state, project.id)].every(id => projectMembers(state, project.id).some(member => member.id === id && member.status === 'active')), '项目交付人与所属团队不一致');
 }

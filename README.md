@@ -7,7 +7,7 @@
 | iCode Teams | `teams/` | http://127.0.0.1:45970/teams | 团队协作：项目、需求、交付、验收、会话共享 |
 | iCode Talents | `talents/` | http://127.0.0.1:45980/talents | 知识挖掘：来源、知识任务、产物审阅与发布、开发者应用 |
 
-演示需求：信用卡消费返现，针对白金卡客户未来 3 个月的消费，额外增加 0.5% 的消费返现（DEMO-MKT-001，项目「信用卡营销交付」）。
+演示需求：信用卡消费返现，针对白金卡客户未来 3 个月的消费，额外增加 0.5% 的消费返现（DEMO-MKT-001，项目「Credit Card」）。
 
 ## 启动
 
@@ -29,7 +29,7 @@ npm run dev        # 构建并同时启动两边，Ctrl+C 一起停止
 python3 -m pip install -r teams/trace-server/requirements.txt
 ```
 
-Python 不是 `python3`（Windows 为 `python`）时，用 `DEMO_TRACE_PYTHON` 指定。缺少 Python 或依赖时只有该页面不可用，其余功能不受影响。
+Python 不是 `python3`（Windows 为 `python`）时，用 `DEMO_TRACE_PYTHON` 指定。缺少 Python 或依赖时轨迹页面不可用，要求开启 trace 的 iCode 新作业会显示诊断。
 
 服务仅监听本机。Teams 的配置见 [快速启动](teams/docs/quick-start.md)，Talents 见 [talents/README.md](talents/README.md)。
 
@@ -49,7 +49,7 @@ Talents ── shared/data/talents/knowledge.json + files/ ──▶ Teams
 - 成员、项目、代码仓和设计文档以 Teams 为准，在 Talents 中只读；Talents 只登记本地文档来源。
 - Talents 管理员端对应 Teams Owner（挖掘、审阅、发布），开发者端对应 Teams 成员（应用知识）。
 - Talents 为项目发布过知识后，Teams 交付流程中的「项目知识」即视为已就绪；Teams「项目知识」页展示已发布产物并可预览原文。
-- 独立需求的输入由 Teams 组装：需求与 Skill 来自 Teams，加上 Talents 已发布的项目知识（未发布时为空）。
+- 任务输入由 Teams 按当前节点组装：需求与真实 Skill 包来自 Teams，加上 Talents 已发布的项目知识（未发布时为空），已采用版本保持固定。
 - 轨迹诊断与 Skill 改进（能力演进）在 Talents 中完成，Teams 只负责共享交付会话。
 
 ## 演示主线
@@ -57,7 +57,7 @@ Talents ── shared/data/talents/knowledge.json + files/ ──▶ Teams
 1. Teams：Owner 查看项目知识（Talents 已发布 v1）。
 2. Talents 管理员端：文档集新增白金卡规则 → 审阅业务知识 v2 草稿 → 让 iCode 修正 BR-CASH-02 的期间边界 → 发布。
 3. Teams：项目知识显示 v2；成员准备上下文、开发、检查失败 → 修复 → 提交，Owner 验收后，Teams 自动归集交付会话并共享给 Talents。
-4. Talents：用交付会话做轨迹诊断 → 审阅并发布 Skill 改进。
+4. Talents：用当前已有共享会话做轨迹诊断（新任务会话导出后的自动读取尚未接入） → 审阅并发布 Skill 改进。
 5. Talents 开发者端：应用诊断和更新后的业务知识。
 
 ## 开发边界

@@ -254,7 +254,7 @@
       "sha256": "8f9685019c3f7b66a210d9bfe400c5e47f943d14e0046dc26fe3faeb56b4c5c9",
       "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
       "sourceSha256": "8f9685019c3f7b66a210d9bfe400c5e47f943d14e0046dc26fe3faeb56b4c5c9",
-      "targetSha256": "546fde27c4f48d60f81c36c281bd66ffe628e7f2006d0630ff0f3291842da50d",
+      "targetSha256": "b926c95898a386d2ee428e10cd0c74535b0c50e4cb41eb52df2840f620fe1712",
       "mode": "layout-adapter",
       "adaptation": "Adapts RealGraphCanvas Antd Button header/status/participant hierarchy, compact 124–140px by 94px cards, 6px corners and muted thin arrows. Uses local task state and measured edge anchors; adds scoped automatic knowledge/collection nodes and receipts. Not an exact copy or the original graph engine."
     },

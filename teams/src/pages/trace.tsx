@@ -1,3 +1,6 @@
+import { preferredDeliveryTask, projectDeliveryTasks } from '../project-delivery-tasks.js';
+import { requirementStageLabels } from '../delivery-requirements.js';
+import { displayRequirementId } from '../display-text.js';
 import { TaskSessions } from '../components/task-sessions.js';
 import { displayText } from '../display-text.js';
 import { TeamsPageIntro } from '../components/teams-reuse.js';
@@ -20,31 +23,35 @@ export function Trace({ initial }: { initial?: string }) {
   const { data, state, role } = useDemo();
   const [selected, setSelected] = useState(initial === 'security' ? 'security' : data.evidence.some(item => item.id === initial) ? initial! : 'E1');
   const [tab, setTab] = useState<'collaboration' | 'history'>(initial ? 'history' : 'collaboration');
-  const automation = taskAutomation(state, mainTask), collection = automation?.collection;
-  const sessions = collectTaskSessions(state, mainTask);
-  const collectionStatus = collection ? collectionLabels[collection.status] : state.stage === 'accepted' ? '待归集' : '待验收';
+  const params = new URLSearchParams(location.hash.split('?')[1] ?? ''), projectId = params.get('project') ?? 'carddemo';
+  const tasks = projectDeliveryTasks(state, projectId, role), requested = params.get('task');
+  const entry = requested ? tasks.find(item => item.id === requested) : preferredDeliveryTask(tasks, role), task = entry?.record;
+  if (!task) return <Empty description="当前范围没有可查看的任务执行记录" />;
+  const scope = { projectId: task.projectId, taskId: task.id }, isMain = scope.projectId === 'carddemo' && scope.taskId === 'DEMO-MKT-001';
+  const automation = taskAutomation(state, scope), collection = automation?.collection;
+  const sessions = collectTaskSessions(state, scope);
+  const collectionStatus = collection ? collectionLabels[collection.status] : task.stage === 'accepted' ? '待归集' : '待验收';
   const reporting = collection?.reporting;
   const talentStatus = reporting?.status === 'reported' ? '已共享' : reporting?.status === 'failed' ? '共享未完成' : reporting?.status === 'uploading' ? '正在共享' : '尚未共享';
   const activity = [
-    ...state.workspace.progress.map(item => ({ id: 'progress-' + item.id, text: item.text, at: item.at, source: '手工进度', color: 'purple', actor: '陈晨' })),
-    ...(state.workspace.collaboration?.events ?? []).filter(item => item.projectId === mainTask.projectId && item.taskId === mainTask.taskId).map(item => ({ id: 'event-' + item.id, text: item.summary, at: item.at, source: 'Teams CLI · ' + phaseLabels[item.phase], color: 'green', actor: item.role === 'owner' ? '林悦' : '陈晨' })),
+    ...(state.workspace.collaboration?.events ?? []).filter(item => item.projectId === scope.projectId && item.taskId === scope.taskId).map(item => ({ id: 'event-' + item.id, text: item.summary, at: item.at, source: 'Teams CLI · ' + phaseLabels[item.phase], color: 'green', actor: item.role === 'owner' ? '林悦' : '陈晨' })),
   ].sort((a, b) => a.at.localeCompare(b.at));
   const evidence = data.evidence.find(item => item.id === selected);
   const selectEvidence = (id: string) => { setSelected(id); setTab('history'); };
-  return <div className="page-stack trace-page">
-    <TeamsPageIntro actions={role === 'owner' ? <Space wrap><Button href="#/team-work">返回团队作业</Button><Button href={talentLink('sessions')}>分析交付记录 <ArrowRightOutlined /></Button></Space> : <Button href="#/projects?tab=delivery">返回我的交付</Button>}>MKT-001 · 白金卡消费返现</TeamsPageIntro>
-    <FrameworkCard title="本次交付关联" action={<Tag color={stageLabels[state.stage].includes('待') ? 'gold' : 'green'}>{stageLabels[state.stage]}</Tag>}>
+  return <div className="page-stack trace-page" data-trace-task={task.id}>
+    <TeamsPageIntro actions={role === 'owner' ? <Space wrap><Button href="#/team-work">返回团队作业</Button><Button href={talentLink('sessions')}>分析交付记录 <ArrowRightOutlined /></Button></Space> : <Button href={'#/' + entry!.route}>返回我的交付</Button>}>{displayRequirementId(task.id)} · {task.title}</TeamsPageIntro>
+    <FrameworkCard title="本次交付关联" action={<Tag color={requirementStageLabels[task.stage].includes('待') ? 'gold' : 'green'}>{requirementStageLabels[task.stage]}</Tag>}>
       <Descriptions size="small" column={2} items={[
-        { key: 'project', label: '项目', children: state.workspace.project.name }, { key: 'task', label: '需求 / 交付', children: 'MKT-001 / DELIVERY-MKT-001' },
-        { key: 'context', label: '采用上下文', children: state.context?.id ?? '待准备' }, { key: 'sessions', label: '关联会话', children: sessions.length + ' 个' },
+        { key: 'project', label: '项目', children: projectId === 'carddemo' ? state.workspace.project.name : state.workspace.projects?.find(project => project.id === projectId)?.name ?? projectId }, { key: 'task', label: '需求 / 交付', children: displayRequirementId(task.id) },
+        { key: 'context', label: '采用上下文', children: task.preparedAt ? '已采用 · ' + new Date(task.preparedAt).toLocaleString('zh-CN') : '待澄清采用' }, { key: 'sessions', label: '关联会话', children: sessions.length + ' 个' },
         { key: 'collection', label: '验收后归集', children: collectionStatus }, { key: 'talent', label: 'Talents 共享', children: talentStatus },
       ]} />
-      <Space wrap><Button href="#/projects?tab=delivery">打开需求交付</Button></Space>
+      <Space wrap><Button href={'#/' + entry!.route}>打开需求交付</Button></Space>
       <p className="muted">本次关联以任务会话、Teams CLI 回传和自动化回执为准；历史材料在独立页签中展示。</p>
     </FrameworkCard>
-    <Tabs activeKey={tab} onChange={value => setTab(value as 'collaboration' | 'history')} items={[
+    <Tabs activeKey={isMain ? tab : 'collaboration'} onChange={value => setTab(value as 'collaboration' | 'history')} items={[
       { key: 'collaboration', label: '本次协作', children: <div className="page-stack">
-        <div className="trace-current-grid"><TaskSessions readonly /><FrameworkCard title="自动化与归集" action={<Tag>任务自动化</Tag>}>
+        <div className="trace-current-grid"><TaskSessions readonly scope={scope} /><FrameworkCard title="自动化与归集" action={<Tag>任务自动化</Tag>}>
           <Descriptions column={1} size="small" items={[
             { key: 'knowledge', label: '知识导入', children: automation?.knowledge ? knowledgeLabels[automation.knowledge.status] : '未触发' },
             { key: 'collection', label: '验收后归集', children: collectionStatus },
@@ -59,12 +66,11 @@ export function Trace({ initial }: { initial?: string }) {
         <FrameworkCard title="本次协作记录" action={<Tag>{activity.length} 条记录</Tag>}>
           {activity.length ? <Timeline items={activity.map(item => ({ key: item.id, color: item.color, title: <Space wrap><Tag color={item.color}>{item.source}</Tag><strong>{displayText(item.text)}</strong></Space>, content: <small className="muted">{item.actor} · {new Date(item.at).toLocaleString('zh-CN', { hour12: false })}</small> }))} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="尚无本次手工进度或 CLI 回传" />}
         </FrameworkCard>
-        {!!state.audit.length && <FrameworkCard title="Teams 与 Talents 工作流" action={<Tag>工作区操作</Tag>}><Timeline items={state.audit.map(item => ({ key: item.id, color: item.system === 'Talent' ? 'blue' : 'purple', title: <Space wrap><strong>{displayText(item.action)}</strong><Tag>{item.system === 'Talent' ? 'Talents' : item.system}</Tag><small>{item.role === 'owner' ? '林悦 · Owner' : '陈晨 · 成员'}</small></Space>, content: <><p>{displayText(item.detail)}</p><small className="muted">{new Date(item.at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })}</small></> }))} /></FrameworkCard>}
       </div> },
-      { key: 'history', label: '历史材料', children: <div className="page-stack">
+      ...(isMain ? [{ key: 'history', label: '历史材料', children: <div className="page-stack">
         <section className="trace-material-summary"><div><span className="trace-section-label">历史材料</span><h3>资格校验 → 修复 → 复测</h3><p>普通卡客户不应获得白金卡专属返现，修复后核对全部规则。材料用于回看问题与处理，不代表本次需求已执行。</p></div><Space wrap><Button onClick={() => selectEvidence('E3')}>首次检查</Button><Button onClick={() => selectEvidence('E4')}>修复说明</Button><Button onClick={() => selectEvidence('E5')}>复测结果</Button></Space><Tag color="gold">安全验证待完成</Tag></section>
         <div className="trace-layout"><FrameworkCard title="材料目录" action={<Origin kind="historical" />}><p className="muted">既有交付材料与静态分析，和本次协作分开阅读。</p><div className="evidence-nav">{data.evidence.map(item => <button key={item.id} aria-pressed={selected === item.id} className={selected === item.id ? 'selected' : ''} onClick={() => selectEvidence(item.id)}><span>{item.id}</span><strong>{item.title}</strong><small>{evidenceNotes[item.id] ?? '交付材料'}</small></button>)}<button aria-pressed={selected === 'security'} className={selected === 'security' ? 'selected' : ''} onClick={() => selectEvidence('security')}><span>安全</span><strong>未完成事项</strong><small>静态分析</small></button></div></FrameworkCard><FrameworkCard title={evidence?.title ?? '待验证事项'} action={<Origin kind={selected === 'security' ? 'static' : 'historical'} />}>{evidence ? <pre className="evidence-console">{evidence.body}</pre> : <div className="page-stack">{data.blueprint.gaps.slice(0, 2).map(gap => <div className="finding" key={gap.name}><Tag color="gold">待验证</Tag><h3>{gap.name}</h3><p>{gap.fact}</p><p className="muted">{gap.limit}</p></div>)}</div>}</FrameworkCard></div>
-      </div> },
+      </div> }] : []),
     ]} />
   </div>;
 }

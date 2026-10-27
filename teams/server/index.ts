@@ -1,3 +1,8 @@
+import { readTalentNodeInputs } from './talent-node-client.js';
+import { checkedNode } from './talent-node-inputs.js';
+import { projectMembers } from '../src/teams-domain.js';
+import { createTaskSessionStream } from './task-session-stream.js';
+import type { TaskSessionStreamQuery } from '../src/task-session-stream.js';
 import { createDeliveryRequirement, deliveryRequirement, acceptDeliveryRequirement, returnDeliveryRequirement, requireDeliveryMember } from '../src/delivery-requirements.js';
 import { queueTaskCollection } from '../src/task-automation.js';
 import { TaskAutomationService } from './task-automation.js';
@@ -28,6 +33,7 @@ const store = new Store(); await store.init();
 const token = randomBytes(24).toString('hex');
 const fixtures = await readFixtures();
 const work = new ProjectWorkService(() => store.state, fixtures);
+const taskSessionStream = createTaskSessionStream(runtimeDir);
 const sourceCatalog = createSourcePluginCatalog(fixtures);
 let exporting: Promise<unknown> = Promise.resolve();
 /** Exports run one after another so an older snapshot never overwrites a newer one. */
@@ -65,6 +71,17 @@ const server = createServer(async (request, response) => {
     if (request.method === 'GET' && path === '/api/health') { json(200, { app: 'teams-talent-carddemo', service: 'teams', workspaceRoot: root, stateRoot: runtimeDir, version: '0.2.0', pid: process.pid, origin, talentOrigin }); return; }
     if (request.method === 'GET' && path === '/api/bootstrap') { await syncKnowledge(); json(200, { token, state: store.state, data: fixtures }); return; }
     if (request.method === 'GET' && path === '/api/state') { await syncKnowledge(); json(200, store.state); return; }
+    if (request.method === 'GET' && path === '/api/task-node-inputs') {
+      const projectId=url.searchParams.get('projectId')??'',taskId=url.searchParams.get('taskId')??'',role=url.searchParams.get('role');
+      if(!['owner','member'].includes(role??''))throw new DomainError('请选择角色',400);
+      if(projectId!=='teams'&&!projectMembers(store.state,projectId).some(member=>member.id===role&&member.status==='active'))throw new DomainError('无权读取此项目',403);
+      json(200,await readTalentNodeInputs(store.state,fixtures,{projectId,taskId,nodeId:checkedNode(url.searchParams.get('nodeId')??'')}));return;
+    }
+    if (request.method === 'GET' && path === '/api/task-session-stream') {
+      const {role,...query}=Object.fromEntries(url.searchParams);
+      if(role!=='owner'&&role!=='member')throw new DomainError('请选择角色',400);
+      json(200,await taskSessionStream(store.state,role,query as unknown as TaskSessionStreamQuery));return;
+    }
     if (request.method === 'GET' && path === '/api/talents/knowledge') { json(200, { talentsOrigin: talentOrigin, artifacts: await projectKnowledge(url.searchParams.get('project') ?? 'carddemo') }); return; }
     if (request.method === 'GET' && path === '/api/talents/file') { json(200, await readTalentsFile(url.searchParams.get('artifact') ?? '', Number(url.searchParams.get('version')), url.searchParams.get('path') ?? '')); return; }
     if (request.method === 'GET' && path === '/api/project-work') {
@@ -72,7 +89,12 @@ const server = createServer(async (request, response) => {
       if (role !== 'owner' && role !== 'member') throw new DomainError('请选择角色', 400);
       json(200, await work.plan(role, target as any)); return;
     }
-    if (request.method === 'GET' && path === '/api/collaboration/context') { json(200, await collaborationContext(store.state, fixtures, Object.fromEntries(url.searchParams))); return; }
+    if (request.method === 'GET' && path === '/api/collaboration/context') {
+      const role=url.searchParams.get('role')??'member',projectId=url.searchParams.get('projectId')??'';
+      if(!['owner','member'].includes(role))throw new DomainError('请选择角色',400);
+      if(projectId!=='teams'&&!projectMembers(store.state,projectId).some(member=>member.id===role&&member.status==='active'))throw new DomainError('无权读取此项目',403);
+      json(200, await collaborationContext(store.state, fixtures, Object.fromEntries(url.searchParams))); return;
+    }
     if (request.method === 'GET' && path === '/api/collaboration/operation') { json(200, collaborationOperation(store.state, url.searchParams.get('operationId') ?? '')); return; }
     if (request.method === 'GET' && path === '/api/resource-content') {
       const {role,resourceId,version,sha256}=Object.fromEntries(url.searchParams);
@@ -157,12 +179,12 @@ const server = createServer(async (request, response) => {
     json(status, { error: error instanceof Error ? error.message : '请求失败' });
   }
 });
-server.on('error', error => { console.error(error.message); process.exitCode = 1; });
+server.on('error', error => { console.error(error.message); process.exitCode = 1; stopTraceService(); });
 server.listen(port, '127.0.0.1', async () => {
   await mkdir(runtimeDir, { recursive: true });
   console.log('Teams: ' + origin + '/teams');
   console.log('Talents: ' + talentOrigin + '/talents（独立启动）');
-  startTraceService().then(
+  if(process.env.DEMO_NATIVE_DISABLED!=='1')startTraceService().then(
     () => console.log('Trace 查询服务: /trace-monitor/'),
     error => console.error('Trace 查询服务未启动：' + (error instanceof Error ? error.message : String(error))),
   );

@@ -12,8 +12,9 @@ context get 可用 --project / --task / --node；--output FILE 保存完整 JSON
 写操作：--operation-id ID；input 包含 expectedRevision、runId、sessionId（未知时 null）。
 inputs adopt：basisDigest、readReferences（实际阅读的引用 ID）。
 progress add：adoptionId、phase=started|progress|blocked、summary、blocker（阻塞时）、evidence[]。
-result submit：adoptionId、summary、至少一条 evidence[{kind:reference|local-file,value,description}]。
-成果报告只记录成员贡献；Owner 验收和质量门槛保持原流程。
+result submit：adoptionId、summary、completedCriteria[]、evidence[{kind:reference|local-file,value,description,artifact,version,codeVersion?,source:actual|preset}]。
+context.nodeContract 返回本节点输入、交付物类型与标准ID；上游引用ID/版本原样采用。prepare采用不代表澄清完成，需提交PRD。verify checks按artifact关联功能/Review/安全报告，同批失败不能放行。
+成果报告只记录交付人的贡献；Owner 本人交付也必须经过人工验收和质量门槛。
 operation get：--operation-id ID。--receipt-dir DIR 指定本地请求和回执目录。
 开发/验证进度携带 sessionId 会自动关联任务；Owner 验收通过后自动归集，无需再次上报。
 读取上下文不会冻结或采用；写失败保留原请求并返回非零退出码。`;
@@ -34,7 +35,7 @@ try {
   for (const [flag,key] of [['project','projectId'],['task','taskId'],['node','nodeId'],['tab','tab']]) if (options[flag]) { if (input[key] !== undefined) throw new Error(key + ' 重复'); input[key] = options[flag]; }
   let result;
   if (command === 'context get' || command === 'status') {
-    const query = new URLSearchParams(); for (const key of ['projectId','taskId','nodeId','tab']) if (input[key] !== undefined) query.set(key,input[key]);
+    const query = new URLSearchParams({role:options.role??'member'}); for (const key of ['projectId','taskId','nodeId','tab']) if (input[key] !== undefined) query.set(key,input[key]);
     if (!input.projectId) throw new Error('读取上下文必须指定 projectId，任务上下文同时指定 taskId 和 nodeId');
     result = await request('/api/collaboration/context?' + query);
   } else if (command === 'operation get') {

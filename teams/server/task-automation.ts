@@ -32,8 +32,8 @@ export class TaskAutomationService {
       const acceptedAt=task?.acceptedAt??[...state.audit].reverse().find(item=>item.action==='通过功能验收')?.at;
       if(!acceptedAt)throw new Error('缺少验收时间，未发送会话');
       const inputDigest=task?.inputDigest??createHash('sha256').update(JSON.stringify(state.context)).digest('hex');
-      const sessionDocuments=task?.workDirectory?await nativeTaskSessionDocuments(runtimeDir,scope,record.sessions):undefined;
-      return exportTaskSessions(state, {...scope,deliveryId:record.id,idempotencyKey:record.id,acceptedAt,inputDigest,sessions:record.sessions,...(sessionDocuments?{sessionDocuments}:{})});
+      const sessionDocuments=task&&(task.workDirectory||task.id==='DEMO-MKT-001')?await nativeTaskSessionDocuments(runtimeDir,scope,record.sessions,{id:record.id,acceptedAt}):undefined;
+      return exportTaskSessions(state,{...scope,deliveryId:record.id,idempotencyKey:record.id,acceptedAt,inputDigest,sessions:record.sessions,...(sessionDocuments?{sessionDocuments}:{})});
     },
   }, private changed: () => Promise<unknown> = async () => {}) {}
   private run(key: string, operation: () => Promise<DemoState>) {
@@ -47,10 +47,10 @@ export class TaskAutomationService {
   }
   prepare(role: Role, scope: TaskScope, retry = false) {
     requireWritableTask(scope,this.store.state);
-    if (role !== 'member') throw new DomainError('知识导入在任务成员进入需求准备时触发', 403);
+
     const task=deliveryRequirement(this.store.state,scope.projectId,scope.taskId);
     if (!task && !this.store.state.assigned) throw new DomainError('需求尚未分配，知识导入等待任务开始');
-    if(task)requireDeliveryMember(this.store.state,task,role);else requireCurrentTaskMember(this.store.state);
+    if(task)requireDeliveryMember(this.store.state,task,role);else {if(role!=='member')throw new DomainError('仅当前交付人可以读取任务输入',403);requireCurrentTaskMember(this.store.state);}
     const key = 'knowledge:' + scope.projectId + '/' + scope.taskId;
     return this.run(key, async () => {
       const existing = taskAutomation(this.store.state, scope)?.knowledge;
