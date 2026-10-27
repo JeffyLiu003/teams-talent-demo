@@ -1,3 +1,5 @@
+import { projectMembers, projectTeam } from '../teams-domain.js';
+import { ProjectTaskManagement } from '../components/project-task-management.js';
 import { displayProjectDescription } from '../display-text.js';
 import { useState } from 'react';
 import { Button, Descriptions, Form, Input, Modal, Space, Tabs, Tag } from 'antd';
@@ -14,11 +16,11 @@ export function ProjectContent() {
   const { state, data, role, navigate } = useDemo();
   return <ProjectContentTemplate projectId="carddemo" name={state.workspace.project.name} description={displayProjectDescription(state.workspace.project.description)} origin={<Origin kind="simulated" />}
     information={[
-      { key: 'team', label: '所属团队', children: state.workspace.team.name }, { key: 'owner', label: '项目 Owner', children: '林悦' },
+      { key: 'team', label: '所属团队', children: projectTeam(state, 'carddemo').name }, { key: 'owner', label: '项目 Owner', children: '林悦' },
       { key: 'repository', label: '主仓', span: 2, children: <Mono>{state.workspace.project.repository}</Mono> },
       { key: 'directory', label: '本机目录', span: 2, children: 'carddemo-java-1025 · 通过顶部 iCode 作业入口核验本机路径' },
     ]}
-    members={<><Descriptions size="small" column={1} items={[{ key: 'owner', label: '林悦 · 项目 Owner', children: '项目资产与知识、需求分配、质量能力、验收及演进' }, { key: 'member', label: '陈晨 · 项目成员', children: '需求上下文、开发、验证、交付与会话上报' }]} /><Button onClick={() => navigate('team')}>查看团队成员</Button></>}
+    members={<><Descriptions size="small" column={1} items={[{ key: 'owner', label: '林悦 · 项目 Owner', children: '项目资产与知识、需求分配、质量能力、验收及演进' }, { key: 'member', label: (projectMembers(state, 'carddemo').filter(member => member.status === 'active' && member.role === 'member').map(member => member.name).join('、') || '尚无成员') + ' · 项目成员', children: '需求上下文、开发、验证、交付与会话关联' }]} /><Button onClick={() => navigate('team?team=' + projectTeam(state, 'carddemo').id)}>查看团队成员</Button></>}
     assets={<ProjectAssets projectId="carddemo" />}
     knowledge={<ProjectKnowledge projectId="carddemo" />}
     requirements={<><RequirementMaterials /><div className="card-actions"><Button type="primary" onClick={() => navigate('projects?tab=delivery&node=prepare')}>进入需求准备</Button></div></>}
@@ -44,14 +46,7 @@ export function RequirementMaterials() {
   </>;
 }
 
-export function ProjectManagement() {
-  const { state, role, navigate, showEvidence } = useDemo();
-  return <div className="page-stack"><Tabs defaultActiveKey="tasks" items={[
-    { key: 'sources', label: '信息收集', children: <FrameworkCard title="需求来源与补充材料"><RequirementMaterials /></FrameworkCard> },
-    { key: 'discussion', label: '任务讨论', children: <FrameworkCard title="本次采用的需求约定"><p>针对白金卡客户未来 3 个月的消费，额外增加 0.5% 的消费返现。</p><Descriptions column={1} items={[{ key: 'scope', label: '范围', children: '仅白金卡客户 · 未来 3 个月 · 额外 0.5% 消费返现' }, { key: 'baseline', label: '待确认细则', children: '活动日期、周期起算、消费范围、是否报名、消费门槛、返现上限及结算方式均待确认。' }]} /><Button onClick={() => showEvidence('E1')}>查看需求说明</Button><p className="muted">验收按本次采用的规则进行，未确认细则保留待办。</p></FrameworkCard> },
-    { key: 'tasks', label: '任务列表', children: <FrameworkCard title="信用卡消费返现" action={<Tag color={state.stage === 'accepted' ? 'green' : 'purple'}>{stageLabels[state.stage]}</Tag>}><Descriptions size="small" column={2} items={[{ key: 'id', label: '任务', children: 'MKT-001' }, { key: 'owner', label: '负责人', children: '陈晨 · 项目成员' }, { key: 'confirmer', label: '确认人', children: '林悦 · 项目 Owner' }, { key: 'release', label: '交付范围', children: '信用卡营销 · v0.1' }]} /><p>针对白金卡客户未来 3 个月的消费，额外增加 0.5% 的消费返现。</p><Space wrap>{role === 'owner' && <ActionButton action="assign" role="owner" disabled={state.assigned}>{state.assigned ? '需求已分配给陈晨' : '确认需求并分配给成员'}</ActionButton>}<Button type="primary" onClick={() => navigate('projects?tab=delivery&node=prepare')}>进入任务交付</Button><Button onClick={() => navigate('trace')}>查看任务依据</Button></Space></FrameworkCard> },
-  ]} /></div>;
-}
+export function ProjectManagement() { return <ProjectTaskManagement projectId="carddemo" />; }
 
 export function ProjectRelease() {
   const { state, navigate } = useDemo();
@@ -62,5 +57,5 @@ export function ProjectSettings() {
   const { state, role, update, busy, navigate } = useDemo();
   return <div className="page-stack"><FrameworkCard title="项目基础信息"><Form key={state.workspace.project.name + state.workspace.project.repository} layout="vertical" initialValues={{ ...state.workspace.project, description: displayProjectDescription(state.workspace.project.description) }} disabled={role !== 'owner'} onFinish={value => update('project.update', value)}>
     <Form.Item name="name" label="项目名称" rules={[{ required: true, whitespace: true }]}><Input maxLength={80} /></Form.Item><Form.Item name="description" label="项目说明" rules={[{ required: true, whitespace: true }]}><Input.TextArea rows={3} maxLength={1000} /></Form.Item><Form.Item name="repository" label="主仓地址或路径" rules={[{ required: true, whitespace: true }]}><Input maxLength={200} /></Form.Item>{role === 'owner' && <Button type="primary" htmlType="submit" loading={busy}>保存项目信息</Button>}
-  </Form></FrameworkCard><FrameworkCard title="项目成员与职责" action={<Origin kind="simulated" />}><Descriptions size="small" items={[{ key: 'team', label: '所属团队', children: state.workspace.team.name }, { key: 'stage', label: '项目阶段', children: stageLabels[state.stage] }]} /><Descriptions bordered column={1} items={[{ key: 'owner', label: '林悦 · 项目 Owner', children: '项目资产与知识、需求分配、质量能力、验收及演进' }, { key: 'member', label: '陈晨 · 项目成员', children: '需求上下文、开发、验证、交付与会话上报' }]} /><Button onClick={() => navigate('team')}>查看团队成员</Button></FrameworkCard></div>;
+  </Form></FrameworkCard><FrameworkCard title="项目成员与职责" action={<Origin kind="simulated" />}><Descriptions size="small" items={[{ key: 'team', label: '所属团队', children: projectTeam(state, 'carddemo').name }, { key: 'stage', label: '项目阶段', children: stageLabels[state.stage] }]} /><Descriptions bordered column={1} items={[{ key: 'owner', label: '林悦 · 项目 Owner', children: '项目资产与知识、需求分配、质量能力、验收及演进' }, { key: 'member', label: (projectMembers(state, 'carddemo').filter(member => member.status === 'active' && member.role === 'member').map(member => member.name).join('、') || '尚无成员') + ' · 项目成员', children: '需求上下文、开发、验证、交付与会话关联' }]} /><Button onClick={() => navigate('team?team=' + projectTeam(state, 'carddemo').id)}>查看团队成员</Button></FrameworkCard></div>;
 }

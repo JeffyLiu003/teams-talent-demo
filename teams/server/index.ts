@@ -1,3 +1,6 @@
+import { createDeliveryRequirement, deliveryRequirement, acceptDeliveryRequirement, returnDeliveryRequirement, requireDeliveryMember } from '../src/delivery-requirements.js';
+import { queueTaskCollection } from '../src/task-automation.js';
+import { TaskAutomationService } from './task-automation.js';
 import { resourcePublicationHistory } from '../src/resource-sharing.js';
 import { SkillApplicationService } from './skill-application.js';
 import { nativeSkillEnvironment, readInstalledNativeSkill } from './native-skill-reader.js';
@@ -17,6 +20,7 @@ import type { WorkspaceAction } from '../src/workspace.js';
 import { headers, bodyJson, staticFile, readFixtures } from './http-shared.js';
 import { exportTeamsSnapshot, knowledgeVersion, projectKnowledge, readTalentsFile } from './shared-data.js';
 import { transition } from '../src/domain.js';
+import { isTraceApi, proxyTrace, startTraceService, stopTraceService } from './trace-service.js';
 import { ProjectWorkService } from './project-work.js';
 import { collaborationContext, collaborationOperation, collaborationWrite } from './collaboration-service.js';
 const store = new Store(); await store.init();
@@ -35,6 +39,7 @@ async function syncKnowledge() {
   } catch (error) { console.error('同步 Talents 项目知识失败：' + (error as Error).message); }
 }
 await exportSnapshot();
+const taskAutomationService = new TaskAutomationService(store, fixtures, undefined, exportSnapshot);
 const skillApplications = new SkillApplicationService({
   package: (role,scope) => getPublishedSkillPackage(store.state,role,scope.resourceId,scope.version,scope.sha256),
   async directory(role,projectId) {
@@ -89,7 +94,32 @@ const server = createServer(async (request, response) => {
       if (!body || !['owner', 'member'].includes(body.role)) throw new DomainError('请选择角色', 400);
       if (path === '/api/action' && body.action === 'knowledge') throw new DomainError('项目知识由 Talents 发布后自动同步', 400);
       if (path === '/api/action' && ['candidate', 'evaluate', 'release', 'adopt'].includes(body.action)) throw new DomainError('能力演进已迁移到 Talents', 400);
-      if (path === '/api/action') { json(200, await store.apply(body.revision, body.action as Action, body.role as Role, { reason: body.reason })); return; }
+      if (path === '/api/action') {
+        const state = await store.apply(body.revision, body.action as Action, body.role as Role, { reason: body.reason, assigneeId: body.assigneeId });
+        json(200, state);
+        if (body.action === 'accept') void taskAutomationService.collect().catch(error => console.error('验收已保存，自动归集未完成：' + error.message));
+        return;
+      }
+      if(path==='/api/delivery-requirements') {
+        const at=new Date().toISOString();
+        const saved=await store.mutate(body.revision,current=>{
+          const next=structuredClone(current);let detail='';
+          if(body.action==='create'){const task=createDeliveryRequirement(next,body.role,body.input,at);if(task.skillIds.some(id=>!fixtures.skillCatalog.some((item:{id:string})=>item.id===id)))throw new DomainError('所选Skill未登记');detail=task.id+' · '+task.title;}
+          else {const task=deliveryRequirement(next,body.projectId,body.taskId);if(!task)throw new DomainError('交付需求不存在',404);
+            if(body.action==='accept'){acceptDeliveryRequirement(next,body.role,task,at);queueTaskCollection(next,{projectId:task.projectId,taskId:task.id},at);}
+            else if(body.action==='return')returnDeliveryRequirement(body.role,task,body.reason,at);
+            else throw new DomainError('未知需求操作');detail=task.id+' · '+body.action;}
+          next.revision++;next.audit.push({id:next.revision,at,role:body.role,system:'Teams',action:body.action==='create'?'创建交付需求':body.action==='accept'?'Owner验收通过':'Owner退回补充',detail,origin:'simulated'});return next;
+        });json(200,saved);
+        if(body.action==='accept')void taskAutomationService.collect({projectId:body.projectId,taskId:body.taskId}).catch(error=>console.error('需求验收已保存，自动收集未完成：'+error.message));return;
+      }
+      if (path === '/api/task-automation') {
+        const scope = { projectId: body.projectId, taskId: body.taskId };
+        if (body.step === 'knowledge') json(200, await taskAutomationService.prepare(body.role, scope, body.retry === true));
+        else if (body.step === 'collection' && body.role === 'owner') json(200, await taskAutomationService.collect(scope, body.retry === true));
+        else throw new DomainError('自动步骤或角色无效',403);
+        return;
+      }
       if(path==='/api/workspace'){
         if (body.kind === 'analysis.run') throw new DomainError('轨迹分析已迁移到 Talents', 400);
         if(!body.payload || typeof body.payload!=='object' || Array.isArray(body.payload))throw new DomainError('工作区请求格式无效',400);
@@ -118,6 +148,7 @@ const server = createServer(async (request, response) => {
       throw new DomainError('接口不存在', 404);
     }
     if (request.method === 'GET' && await staticFile(path, 'teams', response)) return;
+    if (request.method === 'GET' && isTraceApi(path)) { await proxyTrace(path, url.search, response); return; }
     json(404, { error: '页面不存在' });
   } catch (error) {
     const status = error instanceof DomainError ? error.status : 500;
@@ -129,5 +160,9 @@ server.listen(port, '127.0.0.1', async () => {
   await mkdir(runtimeDir, { recursive: true });
   console.log('Teams: ' + origin + '/teams');
   console.log('Talents: ' + talentOrigin + '/talents（独立启动）');
+  startTraceService().then(
+    () => console.log('Trace 查询服务: /trace-monitor/'),
+    error => console.error('Trace 查询服务未启动：' + (error instanceof Error ? error.message : String(error))),
+  );
 });
-for (const signal of ['SIGTERM', 'SIGINT'] as const) process.on(signal, () => { server.close(() => process.exit(0)); });
+for (const signal of ['SIGTERM', 'SIGINT'] as const) process.on(signal, () => { stopTraceService(); server.close(() => process.exit(0)); });

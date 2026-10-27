@@ -34,7 +34,7 @@ async function post(base: string, path: string, body: Record<string, unknown>, e
   const response = await fetch(base + path, { method: 'POST', signal: AbortSignal.timeout(5000), headers: { Origin: base, 'Content-Type': 'application/json', 'X-Demo-Token': token }, body: JSON.stringify({ revision: (await state()).revision, role: 'owner', projectId: 'carddemo', ...body }) });
   const value = await response.json(); assert.equal(response.status, expected, JSON.stringify(value)); return value;
 }
-const action = (name: string, role = 'owner', expected = 200) => post(teams, '/api/action', { action: name, role }, expected);
+const action = (name: string, role = 'owner', expected = 200) => post(teams, '/api/action', { action: name, role, ...(name === 'assign' ? { assigneeId: 'member' } : {}) }, expected);
 /** Stands in for the Talents service: publishes one artifact into the shared data directory. */
 async function publishFromTalents(version: number) {
   const artifact: PublishedArtifact = { id: 'a-biz', projectId: 'carddemo', name: '信用卡营销返现业务知识', description: '白金卡返现规则', capability: 'doc-extract', capabilityName: '业务知识提取', category: 'doc', kind: 'files', version, publishedAt: '2026-10-27T10:00:00.000Z', note: '新增白金卡规则', delivery: 'local', files: [{ path: 'doc-knowledge/业务规则目录.md', title: '业务规则目录', type: 'markdown' }] };
@@ -100,9 +100,9 @@ try {
   const ledger = await state(); assert.equal(ledger.transactions.length, 1); assert.equal(ledger.transactions[0].reward, 0.6); assert.equal(ledger.balance, 2670.15);
   await action('purchase', 'owner', 409); assert.deepEqual(await state(), ledger);
   await action('deduplicate'); await action('uat'); await action('accept');
-  await post(teams, '/api/workspace', { kind: 'session.report', role: 'member', payload: {} });
+  await post(teams, '/api/workspace', { kind: 'session.report', role: 'member', payload: {} }, 409);
   await delay(200);
-  assert.equal((await snapshot()).sessions[0].id, 'WORK-PLATINUM-001');
+  assert.equal((await state()).workspace.sessionReported, false);
   await publishFromTalents(2);
   const completed = await state(); assert.equal(completed.stage, 'accepted'); assert.equal(completed.security, 'unverified');
   assert.equal(completed.knowledgeVersion, '信用卡营销返现业务知识 v2'); assert.deepEqual(completed.context, frozen);

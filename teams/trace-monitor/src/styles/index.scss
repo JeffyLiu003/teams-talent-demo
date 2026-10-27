@@ -1,0 +1,121 @@
+/* ============================================================
+   Trace Monitor (Vue) — 组件级样式（组件库产物使用）
+   ------------------------------------------------------------
+   · 设计 token 挂在组件根容器 .tm-scope 上（不用 :root），不污染宿主全局
+   · 集成方换肤：在自己的样式里覆写 .tm-scope { --ink: ...; --accent: ...; }
+   · 本文件不含任何元素级 / 全局重置（html、body、* 等），也不含
+     Element Plus 基础样式；宿主需自行 import EP 样式与 app.use(ElementPlus)
+   ============================================================ */
+
+@use "./tokens" as *;
+
+/* 作用域根容器：用 :where() 压低优先级（0 特异性），
+   保证集成方任何 .tm-scope { ... } 覆写都能稳定生效，不受引入顺序影响 */
+:where(.tm-scope) {
+  @include tm-tokens;
+}
+
+.tm-scope {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+/* 盒模型：仅作用于组件自身子树，不泄漏到宿主其它元素 */
+.tm-scope,
+.tm-scope *,
+.tm-scope *::before,
+.tm-scope *::after {
+  box-sizing: border-box;
+}
+
+.tm-scope::selection,
+.tm-scope *::selection {
+  background: var(--accent-soft-strong);
+}
+
+/* 滚动条：仅作用于组件自身子树 */
+.tm-scope,
+.tm-scope * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+.tm-scope::-webkit-scrollbar,
+.tm-scope *::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+.tm-scope::-webkit-scrollbar-thumb,
+.tm-scope *::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.tm-scope::-webkit-scrollbar-thumb:hover,
+.tm-scope *::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
+  background-clip: content-box;
+  border: 2px solid transparent;
+}
+.tm-scope::-webkit-scrollbar-track,
+.tm-scope *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 组件内 Element Plus 元素局部对齐（弹层类 popper 会被 teleport 到 body，不在此处理） */
+.tm-scope .el-button {
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+}
+
+/* 组件内共享类 */
+.tm-scope .tm-panel {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+@keyframes tmFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.tm-scope.tm-page,
+.tm-scope .tm-page {
+  animation: tmFadeUp 0.28s ease both;
+}
+
+.tm-scope .tm-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.tm-scope code {
+  font-family: var(--font-mono);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: inherit;
+}
+.tm-scope .tm-code {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: transparent;
+  color: var(--ink-mid);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}

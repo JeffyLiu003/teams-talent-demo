@@ -35,6 +35,17 @@ function sessions(state: DemoState): SharedSession[] {
   const card = (value: Omit<SharedSession, 'projectId' | 'memberName' | 'cwd'>): SharedSession =>
     ({ ...value, projectId: 'carddemo', memberName: members.get(value.memberId) ?? value.memberId, cwd: repositoryPath(state.workspace.project.repository) });
   const shared = teamSessions.sessions.map(card);
+  for (const record of state.workspace.taskAutomation ?? []) {
+    if (record.collection?.reporting?.status !== 'reported') continue;
+    const task = state.workspace.deliveryRequirements?.find(task => task.projectId === record.projectId && task.id === record.taskId);
+    for (const session of record.collection.sessions) {
+      shared.unshift({ id: session.tool + ':' + session.sessionId + ':' + record.taskId,
+        projectId: record.projectId, requirementId: record.taskId, title: task?.title ?? '白金卡消费返现需求',
+        memberId: task?.assigneeId ?? state.assigneeId ?? 'member', memberName: members.get(task?.assigneeId ?? state.assigneeId ?? 'member') ?? '项目成员',
+        updatedAt: localMinute(session.lastAt), turns: 0, agent: session.tool, model: '未提供',
+        cwd: task?.workDirectory ?? repositoryPath(state.workspace.project.repository), summary: session.nodeIds.join('、') });
+    }
+  }
   const delivery = teamSessions.delivery;
   if (state.workspace.sessionReported) shared.unshift(card({ ...delivery, updatedAt: localMinute(state.workspace.reportAt ?? new Date().toISOString()) }));
   return shared;

@@ -1,3 +1,9 @@
+import { projectMembers } from '../src/teams-domain.js';
+const projectMemberName=(state:DemoState,projectId:string,id:string)=>projectMembers(state,projectId).find(member=>member.id===id)?.name ?? id;
+import { deliveryRequirement, requireDeliveryMember, applyRequirementProgress, type RequirementNode } from '../src/delivery-requirements.js';
+import type { TalentTaskInputs } from '../src/talent-contract.js';
+import { mainTask, taskAutomation } from '../src/task-automation.js';
+import { requireCurrentTaskMember, taskAssigneeId, taskAssigneeName } from '../src/task-assignment.js';
 import { selectedSkillBindings } from '../src/resource-sharing.js';
 import { loadNativeSkillPackage, loadSourceSkillPackage } from './skill-packages.js';
 import { createHash, randomUUID } from 'node:crypto';
@@ -10,6 +16,7 @@ import { userSkillExamples } from '../src/project-skill-examples.js';
 import { createSourcePluginCatalog } from '../src/source-plugins.js';
 import { legacyAssetSourceIds } from '../src/project-asset-links.js';
 import { root, talentOrigin } from './config.js';
+import { sharedTaskInputs } from './talent-intake.js';
 import { projectKnowledge } from './shared-data.js';
 import type { Store } from './store.js';
 
@@ -35,19 +42,20 @@ export async function collaborationContext(state: DemoState, data: Presentation,
   const scope = checkedCollaborationScope(input), card = scope.projectId === 'carddemo', teams = scope.projectId === 'teams';
   const created = state.workspace.projects?.find(p => p.id === scope.projectId);
   need(card || teams || created, '项目不存在', 404);
+  const live = deliveryRequirement(state,scope.projectId,scope.taskId);
   const task = teams && scope.taskId ? data.teamsProject.tasks.find(t => t.id === scope.taskId) : undefined;
-  if (scope.taskId) need(card ? scope.taskId === 'DEMO-MKT-001' : Boolean(task), '任务不属于所选项目', 404);
-  const node = scope.nodeId ? card ? cardNodes[scope.nodeId as keyof typeof cardNodes] : task?.nodes.find(n => n.id === scope.nodeId) : undefined;
+  if (scope.taskId) need(Boolean(live) || (card ? scope.taskId === 'DEMO-MKT-001' : Boolean(task)), '任务不属于所选项目', 404);
+  const node = scope.nodeId ? card || live ? cardNodes[scope.nodeId as keyof typeof cardNodes] : task?.nodes.find(n => n.id === scope.nodeId) : undefined;
   if (scope.nodeId) need(node, '节点不属于所选任务', 404);
-  const frozen = card && !!scope.taskId ? state.context : null;
-  const selectedSkills = card ? frozen?.selectedSkills ?? state.workspace.selectedSkills : [];
-  const materials = card ? frozen?.materials ?? state.workspace.materials : [];
+  const frozen = card && !!scope.taskId && !live ? state.context : null;
+  const selectedSkills = live ? live.skillIds : card ? frozen?.selectedSkills ?? state.workspace.selectedSkills : [];
+  const materials = live ? [] : card ? frozen?.materials ?? state.workspace.materials : [];
   const assets = card ? frozen?.assets ?? state.workspace.project.assets : created?.assets ?? [];
   const catalog = createSourcePluginCatalog(data);
   const raw = teams ? catalog.list({ sourceProjectId: 'teams' }).filter(a => a.kind === 'repository' || a.kind === 'document') : assets.flatMap(asset => legacyAssetSourceIds(asset).flatMap(id => { const found = catalog.get(id); return found ? [found] : []; }));
   const references = [...new Map(raw.map(a => [a.id, a])).values()].map(asset => ({ id: asset.id, title: asset.title, kind: asset.kind, version: asset.version ?? 'imported-snapshot', origin: asset.origin, references: asset.references.map(ref => ({ ...ref, content: catalog.readReference(ref) ?? null, loadedByAgent: false })) }));
   const bindings = frozen?.skillBindings ?? (!frozen ? selectedSkillBindings(state, 'member') : []);
-  const skills = await Promise.all(selectedSkills.map(async id => {
+  let skills: {id:string;scope:string;version:string;path:string|null;content:string|null;availability:string;loadedByAgent:boolean;sha256?:string|null;contentSha256?:string|null;files?:{path:string;sha256:string;executable:boolean}[];error?:string}[] = await Promise.all(selectedSkills.map(async id => {
     const user = userSkillExamples.find(s => s.id === id), project = data.skills.find(s => s.name === id);
     if (user) return {id,scope:'user',version:id==='teams-collaboration'?'demo-cli-v1':'example-v1',path:id==='teams-collaboration'?collaborationSkillPath:null,content:id==='teams-collaboration'?await readFile(collaborationSkillPath,'utf8'):user.content,availability:id==='teams-collaboration'?'demo-local-cli':'example-only',loadedByAgent:false};
     const binding = bindings.find(item=>item.id===id), expectedVersion = binding?.version ?? (frozen && id==='dev-frontend-ui' ? frozen.skillVersion : project?.version);
@@ -61,20 +69,33 @@ export async function collaborationContext(state: DemoState, data: Presentation,
       return {id,scope:binding?.source??'project',version:expectedVersion??'unknown',sha256:binding?.sha256??null,contentSha256:binding?.contentSha256??null,path:null,content:null,availability:frozen?'frozen-version-unavailable':'source-version-unavailable',error:(error as Error).message,loadedByAgent:false};
     }
   }));
+  let talentInputs:TalentTaskInputs | null = live?.talentInputsSnapshot ?? null;
   let knowledge: { status: string; origin: string; selectedVersion: string | null; assets: unknown[]; error?: string };
+  if (live) {
+    try {
+      talentInputs ??= await sharedTaskInputs(state, scope.projectId, live.id);
+      if(talentInputs.projectId!==scope.projectId||talentInputs.taskId!==live.id||!Array.isArray(talentInputs.skills)||!Array.isArray(talentInputs.knowledge.assets))throw new Error('Talent 输入范围或结构无效');
+      knowledge={status:talentInputs.knowledge.assets.length?'available':'not-built',origin:talentOrigin,selectedVersion:talentInputs.knowledge.version??null,assets:talentInputs.knowledge.assets};
+      skills=talentInputs.skills.map(item=>({id:item.id,scope:'project',version:item.version,sha256:item.sha256,contentSha256:item.contentSha256,path:null,content:item.content,files:[],availability:'teams-registered-package',loadedByAgent:false}));
+    }catch(error){knowledge={status:'unavailable',origin:talentOrigin,selectedVersion:null,assets:[],error:(error as Error).message};skills=[];}
+  } else {
   try {
     // Published Talents artifacts for this project, read from the shared data directory.
     const published = await projectKnowledge(scope.projectId);
     const assets = frozen ? published.filter(artifact => `${artifact.name} v${artifact.version}` === frozen.knowledgeVersion) : published;
     knowledge = { status: assets.length ? 'available' : frozen ? 'frozen-version-unavailable' : 'not-built', origin: talentOrigin, selectedVersion: frozen?.knowledgeVersion ?? null, assets };
   } catch (error) { knowledge = { status: 'unavailable', origin: talentOrigin, selectedVersion: frozen?.knowledgeVersion ?? null, assets: [], error: (error as Error).message }; }
-  const agreement = card && scope.taskId ? { id: scope.taskId, title: data.blueprint.scenario.slice, background: data.blueprint.scenario.parent_requirement, criteria: data.blueprint.acceptance_criteria, revision: 'demo-r1' } : task ? { id: task.id, title: task.title, background: task.goal, scope: task.scope, criteria: task.criteria, revision: data.teamsProject.sourceCommit } : { id: scope.projectId, title: card ? state.workspace.project.name : teams ? data.teamsProject.project.name : created!.name, background: card ? state.workspace.project.description : teams ? data.teamsProject.project.description : created!.description, criteria: [], revision: 'project-preparation' };
-  const basis = { scope, mode: frozen ? 'frozen' : 'preparation', contextId: frozen?.id ?? null, frozenAt: frozen?.createdAt ?? null, agreement, node: node ?? null, assets, materials, references, skills,
+  }
+  const agreement = live ? {id:live.id,title:live.title,assignee:{id:live.assigneeId,name:projectMemberName(state,live.projectId,live.assigneeId)},background:live.description,criteria:[],revision:live.inputDigest??'requirement-v1'} : card && scope.taskId ? { id: scope.taskId, title: data.blueprint.scenario.slice, assignee: { id: taskAssigneeId(state), name: taskAssigneeName(state) }, background: data.blueprint.scenario.parent_requirement, criteria: data.blueprint.acceptance_criteria, revision: 'demo-r1' } : task ? { id: task.id, title: task.title, background: task.goal, scope: task.scope, criteria: task.criteria, revision: data.teamsProject.sourceCommit } : { id: scope.projectId, title: card ? state.workspace.project.name : teams ? data.teamsProject.project.name : created!.name, background: card ? state.workspace.project.description : teams ? data.teamsProject.project.description : created!.description, criteria: [], revision: 'project-preparation' };
+  const basis = { scope, mode: frozen || live?.preparedAt ? 'frozen' : 'preparation', contextId: live?.preparedAt ? 'CTX-'+live.id : frozen?.id ?? null, frozenAt: live?.preparedAt ?? frozen?.createdAt ?? null, agreement, node: node ?? null, assets, materials, references, skills,
     projectSkills: teams ? data.teamsProject.project.skills : [],
     agent: { name: 'iCode', configuration: card ? { codeAgentVersion: frozen?.agentVersion ?? state.adoptedAgent, instructions: (frozen?.agentVersion ?? state.adoptedAgent) === 'r2' ? '读取项目上下文 → 分析与实施 → 检查实际测试退出码和报告 → 同步问题及证据 → 提交待确认成果。报告缺失保持待验证。' : '读取项目上下文 → 分析与实施 → 运行项目检查 → 提交成果与验证依据。', origin: 'Teams Code Agent 定义', model: '沿用原生 iCode 配置；此上下文未读取模型或凭据' } : { status: 'native-configuration-selected-at-launch' }, loadedByAgent: false }, knowledge };
   const basisDigest = hash(basis);
   return { contract: 'teams-demo-collaboration-v1', revision: state.revision, basisDigest, ...basis,
-    stage: card ? state.stage : task?.status ?? 'no-task',
+    talentInputs,
+    automaticPreparation: scope.taskId ? taskAutomation(state, {projectId:scope.projectId,taskId:scope.taskId})?.knowledge ?? null : null,
+    inputSources: { knowledge: 'Teams 需求与 Talents 已发布知识', skills: 'Teams 项目与固定订阅版本', talentSkillLoading: 'not-connected' },
+    stage: live ? live.stage : card ? state.stage : task?.status ?? 'no-task',
     adoptedBasis: (state.workspace.collaboration?.adoptions ?? []).filter(a => a.projectId === scope.projectId && a.taskId === scope.taskId && a.nodeId === scope.nodeId),
     events: (state.workspace.collaboration?.events ?? []).filter(e => e.projectId === scope.projectId && (!scope.taskId || e.taskId === scope.taskId) && (!scope.nodeId || e.nodeId === scope.nodeId)),
     availableActions: scope.taskId && scope.nodeId && scope.nodeId !== 'accept' ? ['inputs.adopt', 'progress.add', 'result.submit'] : ['context.get'],
@@ -85,7 +106,8 @@ export function collaborationOperation(state: DemoState, operationId: string) {
   need(receipt, '操作回执不存在；保留原操作 ID 和载荷核对', 404); return { ok: true, receipt };
 }
 export async function collaborationWrite(store: Store, data: Presentation, body: Record<string, any>) {
-  need(['inputs.adopt', 'progress.add', 'result.submit', 'session.report'].includes(body.kind), '不支持的协作写操作');
+  if (body.kind === 'session.report') throw new DomainError('会话随开发或验证进度关联；验收通过后自动归集，无需再次上报', 409);
+  need(['inputs.adopt', 'progress.add', 'result.submit'].includes(body.kind), '不支持的协作写操作');
   need(body.role === 'member', 'CLI 贡献写入仅供项目成员；Owner 确认须通过验收流程', 403);
   const operationId = string(body.operationId, 'operationId', 100), p = body.input;
   need(p && typeof p === 'object' && !Array.isArray(p), 'input 必须为对象');
@@ -98,12 +120,15 @@ export async function collaborationWrite(store: Store, data: Presentation, body:
   if (existing) { need(existing.requestDigest === requestDigest, '同一 operationId 的载荷不同', 409); return { ok: true, replayed: true, receipt: existing }; }
   const context = await collaborationContext(store.state, data, scope);
   need(scope.nodeId !== 'accept', '验收节点不可通过 CLI 提交或确认', 403);
-  if (scope.projectId === 'carddemo') {
+  const live=deliveryRequirement(store.state,scope.projectId,scope.taskId);
+  if(live){requireDeliveryMember(store.state,live,body.role);need(scope.nodeId==='prepare'||live.preparedAt,'请先在准备节点采用输入',409);need(!['awaiting-acceptance','accepted'].includes(live.stage),'需求已进入Owner验收',409);need(sessionId,'实际工作回传必须携带原生会话标识');}
+  else if (scope.projectId === 'carddemo') {
+    requireCurrentTaskMember(store.state);
     need(store.state.assigned, '请先由 Owner 确认并分配需求', 409);
     need(scope.nodeId === 'prepare' || store.state.context, '开发与验证须先冻结需求上下文', 409);
-    need(body.kind === 'session.report' || !['submitted', 'accepted'].includes(store.state.stage), '当前交付已提交或已验收；请通过原交付流程处理反馈', 409);
+    need(!['submitted', 'accepted'].includes(store.state.stage), '当前交付已提交或已验收；请通过原交付流程处理反馈', 409);
   } else {
-    need(body.kind === 'session.report' || !['已验收', '待验收'].includes(context.stage), '当前任务已进入验收；保留原确认流程', 409);
+    need(!['已验收', '待验收'].includes(context.stage), '当前任务已进入验收；保留原确认流程', 409);
   }
   const at = new Date().toISOString(); let replayed = false;
   const state = await store.transact(current => {
@@ -114,18 +139,12 @@ export async function collaborationWrite(store: Store, data: Presentation, body:
     const next = structuredClone(current), ledger = next.workspace.collaboration ??= { adoptions: [], events: [], operations: [] };
     const revision = next.revision + 1;
     let adoptionId: string, eventId: string | undefined;
-    if (body.kind === 'session.report') {
-      need(scope.projectId === 'carddemo' && ['submitted', 'accepted'].includes(current.stage), '会话追溯关联须先完成 CardDemo 交付提交', 409);
-      need(current.workspace.foundation.uploadEnabled && sessionId, '会话上报需启用能力并提供真实会话 ID', 409);
-      need(!current.workspace.sessionReported, '会话已关联；请核对既有回执', 409);
-      adoptionId = string(p.adoptionId, 'adoptionId');
-      const adoption = ledger.adoptions.find(a => a.id === adoptionId);
-      need(adoption && adoption.projectId === scope.projectId && adoption.taskId === scope.taskId && adoption.nodeId === scope.nodeId && adoption.runId === runId && adoption.sessionId === sessionId && adoption.role === body.role, '会话关联与采用记录范围不符', 409);
-      next.workspace.sessionReported = true; next.workspace.reportAt = at;
-    } else if (body.kind === 'inputs.adopt') {
+    if (body.kind === 'inputs.adopt') {
       need(p.basisDigest === context.basisDigest, '采用依据已变化，请读取当前上下文', 409);
       const allowed = [...context.references.map(r => r.id), ...context.materials.map(m => m.id), ...context.skills.map(s => s.id), ...context.knowledge.assets.map((a: any) => a.id)];
       need(Array.isArray(p.readReferences) && p.readReferences.every((id: unknown) => typeof id === 'string' && allowed.includes(id)), 'readReferences 只能列出当前上下文内实际阅读的引用');
+      const selected=deliveryRequirement(next,scope.projectId,scope.taskId);
+      if(selected&&scope.nodeId==='prepare'&&!selected.preparedAt){need(context.talentInputs && context.knowledge.status==='available'&&context.skills.length>0,'Talent知识与Skill尚未就绪',409);selected.talentInputsSnapshot=context.talentInputs;selected.preparedAt=at;selected.inputDigest=context.basisDigest;selected.nodes.prepare={status:'complete',updatedAt:at,summary:'iCode明确采用需求、知识与Skill输入'};selected.updatedAt=at;}
       adoptionId = randomUUID();
       ledger.adoptions.push({ ...scope, id: adoptionId, role: body.role, runId, sessionId, basisDigest: context.basisDigest, readReferences: [...new Set(p.readReferences as string[])], at, revision });
     } else {
@@ -140,6 +159,9 @@ export async function collaborationWrite(store: Store, data: Presentation, body:
       const evidence: CollaborationEvidence[] = p.evidence.map((e: any) => { need(e && ['reference', 'local-file'].includes(e.kind), '证据类型无效'); return { kind: e.kind, value: string(e.value, '证据引用', 2000), description: string(e.description, '证据说明', 1000) }; });
       if (phase === 'result') need(evidence.length > 0, '成果报告需要至少一条可核对引用；本地文件只作为本机引用');
       eventId = randomUUID();
+      const selected=deliveryRequirement(next,scope.projectId,scope.taskId);
+      if(selected)applyRequirementProgress(selected,{nodeId:scope.nodeId as RequirementNode,phase,summary,sessionId,checks:p.checks},at);
+      if (!selected && scope.projectId === 'carddemo' && scope.nodeId === 'develop' && next.stage === 'assigned' && next.context) next.stage = 'developing';
       ledger.events.push({ ...scope, id: eventId, operationId, role: body.role, runId, sessionId, adoptionId, phase, summary, blocker, evidence, at, revision });
     }
     const receipt: CollaborationReceipt = { ...scope, operationId, requestDigest, revision, kind: body.kind, adoptionId, ...(eventId ? { eventId } : {}), at, status: 'saved' };

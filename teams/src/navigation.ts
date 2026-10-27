@@ -15,6 +15,7 @@ export function teamsPages(role: Role): PageDefinition[] {
   return role === 'member' ? common : [...common.slice(0, 4),
     { id: 'connections', route: 'connections', title: '企业连接', groupId: 'team', icon: 'appstore' },
     { id: 'team-work', route: 'team-work', title: '团队作业与追溯', groupId: 'team', icon: 'insights' },
+    { id: 'trace-monitor', route: 'trace-monitor', title: '开发会话轨迹', groupId: 'team', icon: 'insights' },
     ...common.slice(4)];
 }
-export const isOwnerPage = (path: string) => ['connections', 'organization', 'team-work'].includes(path);
+export const isOwnerPage = (path: string) => ['connections', 'organization', 'team-work', 'trace-monitor'].includes(path);

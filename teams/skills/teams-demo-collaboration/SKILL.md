@@ -19,14 +19,25 @@ Windows PowerShell 中，优先复制启动材料给出的 `& 'Node绝对路径'
 
 读取输出中的范围、约定与验收标准、节点工作要求、版本、关联正文和缺失项。`mode=preparation` 表示当前准备信息，`mode=frozen` 表示冻结版本。获取文件不等于已阅读或采用。Talent 不可用、冻结知识版本缺失、Skill 只有示例正文等限制会显式返回；先报告影响，不用其他版本替代。
 
-阅读实际需要的材料后，用 `inputs adopt --operation-id OP --input-file REQUEST.json` 明确采用。JSON 字段为 `projectId, taskId, nodeId, runId, sessionId, expectedRevision, basisDigest, readReferences`；版本和 digest 使用刚读取的值，readReferences 只列实际阅读的引用 ID，允许如实为空。保留返回的 adoptionId 与 revision。
+阅读实际需要的材料后，用 `inputs adopt --operation-id OP --input-file REQUEST.json` 明确采用。JSON 字段为 `projectId, taskId, nodeId, runId, sessionId, expectedRevision, basisDigest, readReferences`；若 context 返回的 `scope.tab` 存在，也须原样保留 `tab`，读与写的 scope 必须完全一致；版本和 digest 使用刚读取的值，readReferences 只列实际阅读的引用 ID，允许如实为空。保留返回的 adoptionId 与 revision。
 
 开始实际工作时，以及有意义的里程碑、阻塞和收尾时，运行 `progress add` 或 `result submit`。不要按时间高频刷状态。输入保留同一 scope、runId、sessionId、adoptionId 和当前 expectedRevision：
 
 - `progress add`：`phase` 为 started / progress / blocked，`summary` 写实际进展，阻塞时填 `blocker`，`evidence` 为证据引用数组。解除阻塞时明确说明原因并发 progress，最新回报决定当前协作阻塞提示。
 - `result submit`：提供 summary 及至少一个 `evidence`，每项为 `{kind:"reference"|"local-file",value,description}`。本地路径只是一条本机引用，未上传团队存储；引用声明尚未由远端 provider 验真。成员成果报告保持待确认，质量检查和 Owner 验收仍走原流程。
-- `session report`：仅支持已提交交付的 CardDemo 历史会话追溯关联，需已知 sessionId；开发中的普通进度已经携带 session/run，不能把追溯关联当作 Talent 会话上传成功。
+- 开发/验证进度携带 `sessionId` 时，Teams 自动关联本项目、本任务、当前节点。Owner 验收通过后自动汇总去重；不要在提交后另行执行会话上报。数据归集不代表 Talent 已接收或完成分析。
 
 每次写入使用一个稳定 operationId。CLI 发送前保存完整请求，成功后保存服务回执；默认目录为 demo `.runtime/cli-receipts`，可用 `--receipt-dir` 指定。非零退出码或失败回执必须向会话明确报告。超时/响应丢失时先 `operation get --operation-id OP`；需要重试时保持原 ID 和完整原载荷。revision 冲突时重新读取并判断如何协调，不能换 ID 绕过冲突。相同 ID 不同载荷会被拒绝。
 
-当前角色只用于本机流程校验，不代表企业认证。不要通过 CLI 改验收、测试或安全字段。启动提示提供这份文件和读取命令；模型是否实际读取由会话执行确认，不能声称自动加载或自动完成同步。
+当前角色只用于本机流程校验，不代表企业认证。不要通过 CLI 改 Owner 验收或旧需求的测试、安全字段。独立需求的检查结果按下方明确的 checks 合同回传。启动提示提供这份文件和读取命令；模型是否实际读取由会话执行确认，不能声称自动加载或自动完成同步。
+
+## 独立需求交付任务
+
+若上下文中的需求 ID 是独立任务（例如 `MKT-E2E-001`），必须沿此任务身份回传，不能替换为其他需求 ID。每条写入携带原生会话提供的真实 `sessionId` 与本次 `runId`，不能编造或复用历史会话。启动材料提供 `native-session.json` 时，等待并读取该文件，它由原生进程观察器记录，不是业务完成回执。
+
+1. 在 `prepare` 节点读取 `context get`，实际核对 Talent 返回的知识与 Skill 正文，然后 `inputs adopt`；只列出实际读过的 `readReferences`。该操作保存本任务输入版本并完成准备，不代表开发完成。
+2. 切换 `develop` 后重新读取上下文并采用当前节点依据；通过 `progress add` 回传 `started`、`progress` 或 `blocked`。真实实施代码变更、执行检查后，用 `result submit` 提交至少一条真实文件/成果引用。开发结果保存后进入验证。
+3. 在 `verify` 节点重新读取与采用，检查回传可以携带 `checks` 数组，每项为 `{ "status": "passed"或"failed", "source": "actual"或"preset", "summary": "实际执行或预置检查的具体范围与结果" }`。允许的预置检查必须写 `preset`；真实命令执行结果写 `actual`，不能混淆。失败后回传阻塞/修复说明，复检通过后 `result submit`。必须有通过的检查结果和成果引用，才能进入待 Owner 验收。
+4. 停在待 Owner 验收，不得调用 Owner 验收接口或冒充 Owner。验收通过后的会话归集与 Talent 上报由 Teams 自动触发，接收回执与验收状态分开保存。
+
+每次写前使用最新 `revision`；节点变更需重新 `context get`、`inputs adopt`，不能把上一节点的采用记录跨节点使用。遇到明确失败先读取错误及最新上下文，不通过页面或直接改状态文件补成成功。

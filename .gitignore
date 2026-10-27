@@ -2,6 +2,7 @@ node_modules/
 dist/
 .runtime/
 .talent-runtime/
+teams/trace-server/trace_data/
 test-results/
 target/
 __pycache__/

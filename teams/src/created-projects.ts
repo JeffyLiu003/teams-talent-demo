@@ -10,7 +10,7 @@ export interface CreatedProjectFields {
 }
 export interface CreatedProject extends CreatedProjectFields {
   id: string;
-  teamId: 'carddemo';
+  teamId: string;
   owner: 'owner';
   createdAt: string;
   updatedAt: string;
@@ -38,7 +38,7 @@ export function validateCreatedProjects(value: unknown): asserts value is Create
     if (!project || typeof project !== 'object') throw new Error('新增项目记录损坏；未自动覆盖');
     createdProjectId(project.id); createdProjectFields(project);
     if (Object.hasOwn(project, 'assets')) validateProjectAssets(project.assets);
-    if (ids.has(project.id) || project.teamId !== 'carddemo' || project.owner !== 'owner' || typeof project.createdAt !== 'string' || !Number.isFinite(Date.parse(project.createdAt)) || typeof project.updatedAt !== 'string' || !Number.isFinite(Date.parse(project.updatedAt))) throw new Error('新增项目记录损坏；未自动覆盖');
+    if (ids.has(project.id) || typeof project.teamId !== 'string' || !project.teamId || project.owner !== 'owner' || typeof project.createdAt !== 'string' || !Number.isFinite(Date.parse(project.createdAt)) || typeof project.updatedAt !== 'string' || !Number.isFinite(Date.parse(project.updatedAt))) throw new Error('新增项目记录损坏；未自动覆盖');
     ids.add(project.id);
   }
 }

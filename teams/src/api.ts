@@ -45,7 +45,7 @@ export async function bootstrap() {
 }
 export const getState = () => tracedJson<DemoState>('teams', '/api/state');
 export const getTools = () => tracedJson<NativeStatus>('teams', '/api/tools');
-export const act = (state: DemoState, role: Role, action: Action, reason?: string) => tracedJson<DemoState>('teams', '/api/action', { method: 'POST', body: JSON.stringify({ revision: state.revision, action, reason, ...currentSystemContext(), role }) });
+export const act = (state: DemoState, role: Role, action: Action, reason?: string, assigneeId?: string) => tracedJson<DemoState>('teams', '/api/action', { method: 'POST', body: JSON.stringify({ revision: state.revision, action, reason, assigneeId, ...currentSystemContext(), role }) });
 export const updateWorkspace = (state: DemoState, role: Role, kind: WorkspaceAction, payload: Record<string,unknown>) => tracedJson<DemoState>('teams', '/api/workspace', { method: 'POST', body: JSON.stringify({ revision:state.revision, kind, payload, ...currentSystemContext(), role }) });
 export const reset = (state: DemoState, role: Role) => tracedJson<DemoState>('teams', '/api/reset', { method: 'POST', body: JSON.stringify({ revision: state.revision, role }) });
 export const native = <T = any>(role: Role, action: string, data: Record<string, unknown> = {}) => tracedJson<T>('teams', '/api/native/' + action, { method: 'POST', body: JSON.stringify({ role, ...data }) });
@@ -60,3 +60,7 @@ export const getSkillApplication = (role: Role, scope: import('./skill-applicati
 export const applySkillApplication = (role: Role, input: import('./skill-application.js').SkillApplicationScope & { planToken: string; requestId: string }) => native<import('./skill-application.js').SkillApplicationReceipt>(role, 'skill-apply', { ...input });
 
 export const getResourceContent = (role: Role, scope: {resourceId:string;version:string;sha256:string}) => tracedJson<{version:string;sha256:string;contentSha256:string;content:string}>('teams', '/api/resource-content?' + new URLSearchParams({ role, ...scope }));
+
+export const triggerTaskAutomation = (role: Role, scope: import('./task-automation.js').TaskScope, step: 'knowledge' | 'collection', retry = false) => tracedJson<DemoState>('teams', '/api/task-automation', { method: 'POST', body: JSON.stringify({ role, ...scope, step, retry }) });
+
+export const deliveryRequirementAction=(state:DemoState,role:Role,input:Record<string,unknown>)=>tracedJson<DemoState>('teams','/api/delivery-requirements',{method:'POST',body:JSON.stringify({revision:state.revision,role,...input})});

@@ -1,10 +1,10 @@
 import { displayText } from '../display-text.js';
 import { useState } from 'react';
 import { Button, Collapse, Drawer, Empty, Input, Modal, Space, Switch, Tabs, Tag } from 'antd';
-import { BookOutlined, BranchesOutlined, BugOutlined, ExperimentOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useDemo } from '../context.js';
 import { FrameworkCard } from '../vendor/teams/components/page-layout.js';
 import { EnterpriseSourceData } from '../components/enterprise-source-data.js';
+import { enterpriseBrands, EnterprisePlatformBrand } from '../components/enterprise-platform-brand.js';
 import { Origin } from '../components/common.js';
 import { TeamsPageIntro } from '../components/teams-reuse.js';
 import { externalPlatforms, externalPlatformDefault } from '../external-platforms.js';
@@ -13,8 +13,7 @@ import '../operations.css';
 import '../enterprise-connections.css';
 
 type Connection = WorkspaceState['connections'][number];
-type PlatformRow = Connection & { pluginId: string; platform: string; summary: string; dataTypes: readonly string[] };
-const platformIcons = { repository: <BranchesOutlined />, requirements: <FileTextOutlined />, defects: <BugOutlined />, 'design-library': <BookOutlined />, 'test-assets': <ExperimentOutlined /> };
+type PlatformRow = Connection & { pluginId: keyof typeof enterpriseBrands; platform: string; summary: string; dataTypes: readonly string[] };
 const configurationTabs = [{ key: 'quality', label: '质量与安全' }, { key: 'services', label: '模型与工具服务' }];
 /** The upstream enterprise-connection route currently supplies CapabilityState.
  * Keep its route vocabulary and port the existing resource-card/header/meta/footer
@@ -28,14 +27,14 @@ export function Organization() {
   const [editing, setEditing] = useState<Connection | null>(null), [description, setDescription] = useState(''), [enabled, setEnabled] = useState(true);
   const [query, setQuery] = useState('');
   const rows: PlatformRow[] = externalPlatforms.map(source => ({ ...externalPlatformDefault(source.id)!, ...state.workspace.connections.find(item => item.id === ('connectionId' in source ? source.connectionId : source.id)), pluginId: source.id, platform: source.name, summary: source.description, dataTypes: source.dataTypes }));
-  const filteredRows = rows.filter(item => [item.platform, item.summary, item.description, ...item.dataTypes].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
+  const filteredRows = rows.filter(item => [item.platform, enterpriseBrands[item.pluginId].name, item.summary, item.description, ...item.dataTypes].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
   const configs = state.workspace.connections.filter(item => configurationTab === 'quality' ? item.kind === 'quality' : configurationTab === 'services' ? ['model','tool'].includes(item.kind) : item.kind === 'talent');
   const edit = (item: Connection) => { setEditing(item); setDescription(displayText(item.description)); setEnabled(item.enabled); };
   return <div className="page-stack enterprise-connections">
     <TeamsPageIntro actions={<Space wrap><Button size="small" onClick={() => setConfigurationOpen(true)}>高级能力设置</Button></Space>}>汇总外部资产与数据，在项目交付中关联使用。</TeamsPageIntro>
     <div className="connection-search"><Input.Search aria-label="搜索企业连接" placeholder="搜索平台或数据类型" allowClear value={query} onChange={event => setQuery(event.target.value)} /><span className="ui-note">{filteredRows.length} 个连接</span></div>
     <section className="enterprise-plugin-grid" aria-label="外部平台连接">{filteredRows.map(item => <article key={item.id} data-platform={item.pluginId} className="resource-card enterprise-plugin-card">
-      <div className="resource-heading"><span className="resource-icon" aria-hidden>{platformIcons[item.pluginId as keyof typeof platformIcons]}</span><div><h3>{item.platform}</h3><p>{item.summary}</p></div></div>
+      <div className="resource-heading"><EnterprisePlatformBrand id={item.pluginId} /><div><h3>{item.platform}</h3><div className="enterprise-platform-name">{enterpriseBrands[item.pluginId].name}</div><p>{item.summary}</p></div></div>
       <div className="enterprise-plugin-data"><span className="ui-note">提供数据</span><Space size={4} wrap>{item.dataTypes.map(type => <Tag key={type}>{type}</Tag>)}</Space></div>
       <div className="enterprise-plugin-scope"><span className="ui-note">访问范围 · {state.workspace.team.name}</span>{item.description !== item.summary && <p>{displayText(item.description)}</p>}</div>
       <footer><Tag color={item.enabled ? 'blue' : undefined}>{item.enabled ? '已配置' : '未启用'}</Tag><Space size={4} wrap>{role === 'owner' && <Button size="small" aria-label={'配置' + item.platform} onClick={() => edit({ ...item, name: item.platform })}>配置</Button>}<Button size="small" aria-label={'查看' + item.platform + '数据'} onClick={() => setSourcePlatform(externalPlatforms.find(platform => platform.id === item.pluginId)!)}>查看数据</Button><Button type="text" size="small" disabled={!item.enabled} onClick={() => navigate('projects?tab=content')}>在项目中使用</Button></Space></footer>

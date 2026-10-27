@@ -93,7 +93,16 @@ export async function nativeWorkDefaults() {
   const preference = await terminalPreferences.context();
   return { agent: role.id, agentLabel: role.displayName, model: matches[0].id, modelLabel: matches[0].name, terminal: { id: preference.selectedTerminal, name: preference.terminalName, error: preference.terminalError } };
 }
-export async function startNativeWork(input: { directory: string; agent: string; model: string; sessionId?: string; instruction: string; terminal: string }) {
+export async function startNativeWork(input: { directory: string; agent: string; model: string; sessionId?: string; instruction: string; terminal: string; task?: { runId: string; path: string; scope: { projectId: string; taskId: string; nodeId: string } } }) {
+  if (input.task) {
+    if (input.sessionId || !/^[0-9a-f-]{36}$/i.test(input.task.runId)) throw new Error('自动任务仅支持明确的新会话请求');
+    const output = join(runtimeDir, 'work-contexts', input.task.runId + '.native');
+    await mkdir(output, { recursive: true });
+    const manifest = join(output, 'manifest.json');
+    await atomicJson(manifest, { version: 1, runId: input.task.runId, scope: input.task.scope, executable: binary, directory: input.directory, agent: input.agent, model: input.model, taskFile: input.task.path, taskSha256: createHash('sha256').update(await readFile(input.task.path)).digest('hex') });
+    const terminal = await terminalPreferences.selected(input.terminal);
+    return terminalLauncher.launch({ executable: process.execPath, directory: input.directory, args: [join(root, 'scripts/native/run-project-task.mjs'), manifest], instruction: 'iCode 将读取本次任务文件并执行；运行记录：' + output, terminal: terminal.id });
+  }
   const args = ['-C', input.directory, '--agent', input.agent, '--model', input.model, ...(input.sessionId ? ['--session', input.sessionId] : [])];
   const terminal = await terminalPreferences.selected(input.terminal);
   return terminalLauncher.launch({ executable: binary, directory: input.directory, args, instruction: input.instruction, terminal: terminal.id });

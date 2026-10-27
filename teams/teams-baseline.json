@@ -92,9 +92,9 @@
       "sha256": "be7fa9e81f5c640552cba3804e0a2cdcf509f2a3799f029877b744216080f461",
       "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
       "sourceSha256": "be7fa9e81f5c640552cba3804e0a2cdcf509f2a3799f029877b744216080f461",
-      "targetSha256": "cee791676b30b61b39873421f483b7efe352a875efc1871e6cdc992c6f30e24a",
+      "targetSha256": "3a90f5f61f5906a98a24d3f61a4d85a8f8072f22d68aae59c1b223a31f2fcdf2",
       "mode": "react-presentation-port",
-      "adaptation": "Ports left group list, pending invitation and member detail display. Demo team roles and fixed identities retain demo semantics."
+      "adaptation": "Ports the original group list and member detail layout. Local multi-team creation, scoped invitations and explicit project ownership use fixed Owner/member identities; imported Teams snapshots remain read-only."
     },
     {
       "source": "framework/client/ui/src/styles.ts",
@@ -122,9 +122,9 @@
       "sha256": "fb4fcbdf295d2eae81965a51cdf2faae54f46c375412fe5de4606f92fb405716",
       "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
       "sourceSha256": "fb4fcbdf295d2eae81965a51cdf2faae54f46c375412fe5de4606f92fb405716",
-      "targetSha256": "5d82421d202637f646d1140a21466af2f1371c988e1edbee9e6c13f357cc6d11",
+      "targetSha256": "953a3fa2bb1359a2e25c3f21ccab3f76cff794d6bbf7e42d37125140793c9a1f",
       "mode": "entry-reference-and-demo-extension",
-      "adaptation": "Upstream connections is a pending capability placeholder. Demo external platform connections reuse existing resource-card/header/meta/footer structure; each source has independent configuration and status. Read-only source-data drawer uses the demo source-plugin provider and retains existing local reference contents.",
+      "adaptation": "Upstream connections is a pending capability placeholder. External platform cards reuse the existing resource-card/header/meta/footer structure, with independent configuration and status. The read-only source drawer preserves local references. Local official brand assets identify GitHub, Jira, ZenTao, Confluence and TestRail; Talent retains its own mark. Brand provenance is recorded in src/assets/enterprise-brands/sources.json.",
       "supportingSources": [
         {
           "source": "business/domain/agent-resources/src/client/ui/index.ts",
@@ -234,7 +234,7 @@
       "sha256": "21bfc884621ef17ba5cdd4e8b0dfb9896a1e9b631ec431b576a91a42ddffe5e2",
       "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
       "sourceSha256": "21bfc884621ef17ba5cdd4e8b0dfb9896a1e9b631ec431b576a91a42ddffe5e2",
-      "targetSha256": "943d2d2a7e058b309cdf983734162f4ab9413cc2948bb9ebff310ddeaf211afe",
+      "targetSha256": "488911dc8e78b85f3b454af820e5fc8b317c9acb9bb4a28f1d647ec22671a55f",
       "mode": "style-adapter",
       "adaptation": "Scoped responsive connection plugin cards based on existing resource grid/card hierarchy and shared Teams design tokens."
     },
@@ -247,6 +247,26 @@
       "targetSha256": "71b051936a504d8ae88cbcf63aa666808e2a6c0dae35ee707afd472c62a4fa4c",
       "mode": "extracted-component-adapter",
       "adaptation": "Extracted ConfirmWork fixed request identity, pending guard, original-request retry and presentation. Host-specific startBoundWork/UiMountContext replaced with typed demo native adapter; children provide scoped project context and verified directory/session choices. No claim of production native hook or work association protocol."
+    },
+    {
+      "source": "business/domain/team-collaboration/src/client/ui/project-real-graph.tsx",
+      "target": "src/components/task-delivery-flow.tsx",
+      "sha256": "8f9685019c3f7b66a210d9bfe400c5e47f943d14e0046dc26fe3faeb56b4c5c9",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "8f9685019c3f7b66a210d9bfe400c5e47f943d14e0046dc26fe3faeb56b4c5c9",
+      "targetSha256": "546fde27c4f48d60f81c36c281bd66ffe628e7f2006d0630ff0f3291842da50d",
+      "mode": "layout-adapter",
+      "adaptation": "Adapts RealGraphCanvas Antd Button header/status/participant hierarchy, compact 124–140px by 94px cards, 6px corners and muted thin arrows. Uses local task state and measured edge anchors; adds scoped automatic knowledge/collection nodes and receipts. Not an exact copy or the original graph engine."
+    },
+    {
+      "source": "business/domain/team-collaboration/src/client/ui/project-real-graph.tsx",
+      "target": "src/task-delivery-flow.css",
+      "sha256": "8f9685019c3f7b66a210d9bfe400c5e47f943d14e0046dc26fe3faeb56b4c5c9",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "8f9685019c3f7b66a210d9bfe400c5e47f943d14e0046dc26fe3faeb56b4c5c9",
+      "targetSha256": "77e8d9da64d0fc6c5f1e18a6710bfd558d8cd0aae114ae57045bac8aae6bf2d9",
+      "mode": "layout-adapter",
+      "adaptation": "Adapts RealGraphCanvas Antd Button header/status/participant hierarchy, compact 124–140px by 94px cards, 6px corners and muted thin arrows. Uses local task state and measured edge anchors; adds scoped automatic knowledge/collection nodes and receipts. Not an exact copy or the original graph engine."
     }
   ],
   "schemaVersion": 2,
