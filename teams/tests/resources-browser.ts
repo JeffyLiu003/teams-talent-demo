@@ -15,7 +15,7 @@ const dir = await mkdtemp(join(tmpdir(), 'resource-ui-')), output = 'test-result
 await mkdir(output, { recursive: true });
 const seed = initialState(); seed.workspace.acquiredResources = ['audit-evidence'];
 await writeFile(join(dir, 'state.json'), JSON.stringify(seed));
-const server = spawn(process.execPath, ['--import', 'tsx', 'server/index.ts'], { env: { ...process.env, DEMO_PORT: '46176', DEMO_TALENT_PORT: '46186', DEMO_STATE_DIR: dir, DEMO_SHARED_DIR: join(dir, 'shared'), DEMO_NATIVE_DISABLED: '1' }, stdio: ['ignore', 'pipe', 'pipe'] });
+const server = spawn(process.execPath, ['--import', 'tsx', 'server/index.ts'], { env: { ...process.env, DEMO_PORT: '46176', DEMO_TALENT_PORT: '46186', DEMO_STATE_DIR: dir, DEMO_SHARED_DIR: join(dir, 'shared'), DEMO_SHARED_SEED_DIR: join(dir, 'no-seed'), DEMO_NATIVE_DISABLED: '1' }, stdio: ['ignore', 'pipe', 'pipe'] });
 let logs = ''; server.stdout.on('data', value => logs += value); server.stderr.on('data', value => logs += value);
 let browser;
 try {

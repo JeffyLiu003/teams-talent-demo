@@ -6,40 +6,56 @@ import { mkdir, mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
-const origin='http://127.0.0.1:45971',talentOrigin='http://127.0.0.1:45981', dir=await mkdtemp(join(tmpdir(),'teams-demo-e2e-'));
-const serviceEnv={...process.env,DEMO_PORT:'45971',DEMO_TALENT_PORT:'45981',DEMO_STATE_DIR:dir,DEMO_SHARED_DIR:join(dir, 'shared'),DEMO_NATIVE_DISABLED:'1'};
-const servers=['server/index.ts','server/talent.ts'].map(entry=>spawn(process.execPath,['--import','tsx',entry],{env:serviceEnv,stdio:['ignore','pipe','pipe']}));
+import { sharedPaths, type PublishedArtifact, type TalentsKnowledge, type TeamsSnapshot } from '../../shared/contracts.js';
+// Talents is not started: its port only appears in links, and publishing is simulated through the shared data directory.
+const origin='http://127.0.0.1:45971',talentOrigin='http://127.0.0.1:45981', dir=await mkdtemp(join(tmpdir(),'teams-demo-e2e-')),shared=join(dir,'shared');
+const serviceEnv={...process.env,DEMO_PORT:'45971',DEMO_TALENT_PORT:'45981',DEMO_STATE_DIR:dir,DEMO_SHARED_DIR:shared,DEMO_SHARED_SEED_DIR:join(dir,'no-seed'),DEMO_NATIVE_DISABLED:'1'};
+const servers=['server/index.ts'].map(entry=>spawn(process.execPath,['--import','tsx',entry],{env:serviceEnv,stdio:['ignore','pipe','pipe']}));
+/** Stands in for the Talents service: publishes one markdown artifact for carddemo into the shared data directory. */
+const publishFromTalents=async(version:number)=>{
+  const artifact:PublishedArtifact={id:'a-biz',projectId:'carddemo',name:'信用卡营销返现业务知识',description:'白金卡返现规则',capability:'doc-extract',capabilityName:'业务知识提取',category:'doc',kind:'files',version,publishedAt:'2026-10-27T10:00:00.000Z',note:'新增白金卡规则',delivery:'local',files:[{path:'doc-knowledge/业务规则目录.md',title:'业务规则目录',type:'markdown'}]};
+  const knowledge:TalentsKnowledge={schemaVersion:1,exportedAt:new Date().toISOString(),artifacts:[artifact]};
+  await mkdir(join(shared,'talents','files','a-biz','v'+version,'doc-knowledge'),{recursive:true});
+  await writeFile(join(shared,sharedPaths.talentsFile('a-biz',version,'doc-knowledge/业务规则目录.md')),'# 业务规则目录 v'+version+'\n\n| 规则 | 说明 |\n| --- | --- |\n| R-01 | 白金卡额外返现 0.5% |\n');
+  await writeFile(join(shared,sharedPaths.talentsKnowledge),JSON.stringify(knowledge));
+};
+const snapshot=async():Promise<TeamsSnapshot>=>JSON.parse(await readFile(join(shared,sharedPaths.teamsSnapshot),'utf8'));
 let logs='';for(const server of servers){server.stdout!.on('data',c=>logs+=c);server.stderr!.on('data',c=>logs+=c);}
 const output='test-results';await mkdir(output,{recursive:true});
 let browser;let currentPage:Page|undefined;
 try{
   let ready=false;
-  for(let n=0;n<100;n++){try{if((await fetch(origin+'/api/health')).ok&&(await fetch(talentOrigin+'/api/health')).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,100));}
+  for(let n=0;n<100;n++){try{if((await fetch(origin+'/api/health')).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,100));}
   assert.ok(ready,'server did not start: '+logs);
   const bootstrap=await(await fetch(origin+'/api/bootstrap')).json() as any;
   const state=async()=>await(await fetch(origin+'/api/state')).json() as any;
-  const knowledgeAssets=async()=>{const response=await fetch(talentOrigin+'/api/knowledge/assets');assert.equal(response.status,200);return response.json() as Promise<any>;};
-  const emptyKnowledge=await knowledgeAssets();assert.deepEqual(emptyKnowledge.assets,[]);assert.deepEqual(emptyKnowledge.projects.map((project:any)=>project.id).sort(),['carddemo','teams']);assert.ok(emptyKnowledge.projects.every((project:any)=>project.status==='not-built'));
+  const knowledgeAssets=async(project:string)=>{const response=await fetch(origin+'/api/talents/knowledge?project='+project);assert.equal(response.status,200);return response.json() as Promise<any>;};
+  for(const project of ['carddemo','teams'])assert.deepEqual((await knowledgeAssets(project)).artifacts,[]);assert.equal(bootstrap.state.knowledge,false);
+  assert.deepEqual((await snapshot()).projects.map(project=>project.id),['carddemo','teams'],'Teams exports its projects to the shared directory on startup');
   const headers={'content-type':'application/json','x-demo-token':bootstrap.token,origin};
   let denied=await fetch(origin+'/api/action',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({role:'owner',action:'assign',revision:0})});assert.equal(denied.status,403);
   denied=await fetch(origin+'/api/workspace',{method:'POST',headers,body:JSON.stringify({role:'member',kind:'resource.publish',payload:{id:'dev-frontend-ui'},revision:0})});assert.equal(denied.status,403);
   denied=await fetch(origin+'/api/workspace',{method:'POST',headers,body:JSON.stringify({role:'owner',kind:'resource.publish-all',payload:{},revision:-1})});assert.equal(denied.status,409);
   await assert.rejects(readFile(join(dir,'skill-packages',bootstrap.data.skillCatalog[0].sha256+'.json')),error=>(error as NodeJS.ErrnoException).code==='ENOENT');
+  denied=await fetch(origin+'/api/action',{method:'POST',headers,body:JSON.stringify({role:'owner',action:'knowledge',projectId:'carddemo',revision:0})});assert.equal(denied.status,400,'project knowledge is only built by Talents publishing');
+  for(const action of ['candidate','evaluate','release','adopt']){denied=await fetch(origin+'/api/action',{method:'POST',headers,body:JSON.stringify({role:'owner',action,projectId:'carddemo',revision:0})});assert.ok(denied.status>=400&&denied.status<500,action+' moved to Talents: '+denied.status);}
+  denied=await fetch(origin+'/api/workspace',{method:'POST',headers,body:JSON.stringify({role:'owner',kind:'analysis.run',payload:{scope:'project'},revision:0})});assert.ok(denied.status>=400&&denied.status<500,'analysis.run moved to Talents: '+denied.status);
+  assert.equal((await state()).revision,0,'rejected Talent actions do not change Teams state');
   denied=await fetch(origin+'/api/native/skill-apply',{method:'POST',headers,body:JSON.stringify({role:'member'})});assert.equal(denied.status,403);assert.match(await denied.text(),/未开放原生用户目录写入/);
   browser=await chromium.launch({channel:'chrome',headless:true});
   const page=await browser.newPage({viewport:{width:1440,height:1000}});currentPage=page;page.setDefaultTimeout(8000);
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   let currentRole:'owner'|'member'='owner';
-  const visit=async(path:string)=>{const url=new URL(path,path.startsWith('/talent')?talentOrigin:origin);url.searchParams.set('demo-role',currentRole);await page.goto(url.toString());await page.getByRole('combobox', { name: '切换角色' }).waitFor();};
+  await page.route(talentOrigin+'/**',route=>route.fulfill({status:200,contentType:'text/html; charset=utf-8',body:'<!doctype html><title>Talents stub</title><p>Talents</p>'}));
+  const visit=async(path:string)=>{const url=new URL(path,origin);url.searchParams.set('demo-role',currentRole);await page.goto(url.toString());await page.getByRole('combobox', { name: '切换角色' }).waitFor();};
   const save=async(kind:string,button:Locator)=>{
-    const [response]=await Promise.all([page.waitForResponse(r=>r.url()===(kind==='analysis.run'?talentOrigin:origin)+'/api/workspace'&&r.request().postDataJSON().kind===kind),button.click()]);
-    assert.equal(response.status(),200,await response.text());if(kind==='analysis.run')assert.equal(response.request().postDataJSON().projectId,'carddemo');await page.waitForTimeout(120);
+    const [response]=await Promise.all([page.waitForResponse(r=>r.url()===origin+'/api/workspace'&&r.request().postDataJSON().kind===kind),button.click()]);
+    assert.equal(response.status(),200,await response.text());await page.waitForTimeout(120);
   };
   const click=async(action:string)=>{
-    if(action==='knowledge'){const panel=page.locator('.owner-project-panel');if(await panel.isVisible()){await panel.locator('.ant-drawer-close').click();await panel.waitFor({state:'hidden'});}await page.getByRole('button',{name:'知识成果',exact:true}).click();}
     console.log('action',action);const button=page.locator('button[data-action="'+action+'"]');
-    const [response]=await Promise.all([page.waitForResponse(r=>r.url()===(['knowledge','candidate','evaluate','release'].includes(action)?talentOrigin:origin)+'/api/action'&&r.request().postDataJSON().action===action),button.click()]);
-    assert.equal(response.status(),200,await response.text());if(['knowledge','candidate','evaluate','release'].includes(action))assert.equal(response.request().postDataJSON().projectId,'carddemo');await page.waitForTimeout(150);
+    const [response]=await Promise.all([page.waitForResponse(r=>r.url()===origin+'/api/action'&&r.request().postDataJSON().action===action),button.click()]);
+    assert.equal(response.status(),200,await response.text());await page.waitForTimeout(150);
   };
   const role=async(value:'owner'|'member')=>{
     currentRole=value;
@@ -85,28 +101,40 @@ try{
   await save('member.invite',page.getByRole('button',{name:'创建邀请'}));await save('member.approve',page.getByRole('button',{name:'接受邀请'}));
   assert.equal((await state()).workspace.team.members.find((m:any)=>m.name==='周宁').status,'active');await page.locator('.group-members').getByText('周宁',{exact:true}).waitFor();await page.screenshot({path:output+'/teams-team.png',fullPage:true});
   await visit('/teams#/connections');
-  assert.equal(await page.locator('.enterprise-connections .enterprise-plugin-card').count(),6);
+  assert.equal(await page.locator('.enterprise-connections .enterprise-plugin-card').count(),5);
   for(const type of ['需求','设计','问题单','缺陷','代码','测试用例'])await page.locator('.enterprise-connections .enterprise-plugin-data').getByText(type,{exact:true}).waitFor();
   assert.equal(await page.locator('.enterprise-connections .metrics-row').count(),0);
-  for(const text of ['知识整合','会话记录','验收记录','发布记录'])assert.equal(await page.locator('.enterprise-connections').getByText(text,{exact:true}).count(),0);
+  for(const text of ['知识整合','会话记录','验收记录','发布记录','业务知识（Talent）'])assert.equal(await page.locator('.enterprise-connections').getByText(text,{exact:true}).count(),0);
   await page.getByRole('button',{name:'配置测试资产平台',exact:true}).click();await page.getByText('高级：数据范围说明',{exact:true}).click();await page.getByRole('textbox',{name:'数据范围说明',exact:true}).fill('白金卡返现业务测试用例库。');
   await save('connection.update',page.getByRole('button',{name:'保存配置',exact:true}));
   assert.equal((await state()).workspace.connections.find((c:any)=>c.id==='test-assets').description,'白金卡返现业务测试用例库。');
-  await page.getByRole('button',{name:'其他能力配置',exact:true}).click();
-  await page.getByRole('switch',{name:'启用代码 Review',exact:true}).waitFor();await page.getByRole('tab',{name:'Talent 接入',exact:true}).click();
-  assert.equal(await page.getByRole('switch',{name:'启用Talent 知识与演进',exact:true}).getAttribute('aria-checked'),'true');
+  await page.getByRole('button',{name:'高级能力设置',exact:true}).click();
+  await page.getByRole('switch',{name:'启用代码 Review',exact:true}).waitFor();assert.deepEqual(await page.locator('.ant-drawer .ant-tabs-tab').allTextContents(),['质量与安全','模型与工具服务'],'Talent connection is no longer configured in Teams');
   await page.locator('.ant-drawer-close').click();await page.screenshot({path:output+'/teams-connections.png',fullPage:true});
   await visit('/teams#/organization?tab=quality');await page.getByRole('switch',{name:'启用代码 Review',exact:true}).waitFor();await page.locator('.ant-drawer-close').click();
   await role('member');await page.getByText('此页面面向项目 Owner').waitFor();assert.deepEqual(await nav(),['工作台','项目','团队','Agent 管理','资源市场','我的订阅','我的发布','Talent'].sort());
   await visit('/teams#/team-work');await page.getByText('此页面面向项目 Owner').waitFor();
   await visit('/teams#/home');assert.equal(await page.getByTestId('team-usage-metrics').count(),0);await page.getByText('我的执行与反馈',{exact:true}).waitFor();await page.screenshot({path:output+'/teams-member-home.png',fullPage:true});
-  await page.locator('.framework-sidebar').getByRole('link',{name:'Talent',exact:true}).click();await page.waitForURL(url=>url.origin===talentOrigin);assert.equal(new URL(page.url()).searchParams.get('demo-role'),'member');
-  await visit('/talent#/evolution');await page.getByText('会话分析与能力演进由项目 Owner 管理',{exact:true}).waitFor();
-  await role('owner');await visit('/teams#/projects?tab=content');
+  await page.locator('.framework-sidebar').getByRole('link',{name:'Talent',exact:true}).click();await page.waitForURL(url=>url.origin===talentOrigin);
+  let talentsUrl=new URL(page.url());assert.equal(talentsUrl.pathname,'/talents');assert.equal(talentsUrl.searchParams.get('role'),'member');assert.equal(talentsUrl.hash,'#/dev-knowledge?project=carddemo');
+  await page.goBack();await page.getByRole('combobox',{name:'切换角色'}).waitFor();await role('owner');await visit('/teams#/projects?tab=content');
   await page.getByRole('button',{name:'项目资料',exact:true}).click();await page.getByRole('button',{name:'关联项目资产'}).click();await page.getByRole('tab',{name:'手工引用',exact:true}).click();await page.getByLabel('资产名称',{exact:true}).fill('白金卡返现补充规则');await page.getByLabel('来源地址或路径',{exact:true}).fill('demo://marketing/rules');
-  await save('asset.add',page.getByRole('button',{name:'保存资产引用'}));assert.equal((await state()).workspace.project.assets.length,5);
-  await click('knowledge');const builtKnowledge=await knowledgeAssets();assert.equal(builtKnowledge.projects.find((project:any)=>project.id==='carddemo').status,'ready');assert.equal(builtKnowledge.projects.find((project:any)=>project.id==='teams').status,'not-built');assert.ok(builtKnowledge.assets.length>0);assert.ok(builtKnowledge.assets.every((asset:any)=>asset.kind==='knowledge'&&asset.sourceProjectId==='carddemo'));await page.screenshot({path:output+'/teams-project-content.png',fullPage:true});
-  await visit('/talent#/knowledge');await page.screenshot({path:output+'/talent-knowledge.png',fullPage:true});
+  await save('asset.add',page.getByRole('button',{name:'保存资产引用'}));assert.equal((await state()).workspace.project.assets.length,6);
+  await page.locator('.owner-project-panel .ant-drawer-close').click();await page.locator('.owner-project-panel').waitFor({state:'hidden'});
+  assert.equal(await page.locator('button[data-action="knowledge"]').count(),0,'Teams no longer starts knowledge integration');
+  await page.getByRole('button',{name:'查看知识',exact:true}).click();const knowledgeCard=page.locator('.project-knowledge-drawer .project-knowledge');
+  await knowledgeCard.getByText('Talents 尚未为此项目发布知识',{exact:true}).waitFor();
+  talentsUrl=new URL((await knowledgeCard.getByRole('link',{name:'在 Talents 挖掘知识'}).getAttribute('href'))!);assert.equal(talentsUrl.origin,talentOrigin);assert.equal(talentsUrl.searchParams.get('role'),'owner');assert.equal(talentsUrl.hash,'#/review?project=carddemo');
+  await publishFromTalents(1);await page.reload();await page.getByRole('combobox',{name:'切换角色'}).waitFor();
+  const built=await state();assert.equal(built.knowledge,true);assert.equal(built.knowledgeVersion,'信用卡营销返现业务知识 v1');assert.equal(built.audit.at(-1).detail,'Talents 已发布项目知识：信用卡营销返现业务知识 v1');
+  assert.equal((await knowledgeAssets('carddemo')).artifacts.length,1);assert.deepEqual((await knowledgeAssets('teams')).artifacts,[]);
+  await page.locator('[data-knowledge-summary="carddemo"]').getByText('已发布 1 项',{exact:true}).waitFor();await page.getByRole('button',{name:'查看知识',exact:true}).click();
+  const artifact=knowledgeCard.locator('[data-artifact="a-biz"]');await artifact.getByText('信用卡营销返现业务知识',{exact:true}).waitFor();assert.ok((await artifact.innerText()).includes('业务知识提取 · v1'));
+  await page.screenshot({path:output+'/teams-project-content.png',fullPage:true});
+  await artifact.getByRole('button',{name:/查\s*看/}).click();const artifactDrawer=page.locator('.talents-artifact-drawer');
+  await artifactDrawer.locator('.talents-markdown h1').getByText('业务规则目录 v1',{exact:true}).waitFor();await artifactDrawer.locator('.talents-markdown table td').getByText('白金卡额外返现 0.5%',{exact:true}).waitFor();
+  await page.waitForTimeout(350);await page.screenshot({path:output+'/teams-knowledge-artifact.png',fullPage:true});
+  await artifactDrawer.locator('.ant-drawer-close').click();await artifactDrawer.waitFor({state:'hidden'});await page.locator('.project-knowledge-drawer .ant-drawer-close').click();await page.locator('.project-knowledge-drawer').waitFor({state:'hidden'});
   await visit('/teams#/resources');await page.locator('.resource-card').first().waitFor();
   assert.equal(await page.getByText('项目能力待发布',{exact:true}).count(),0);
   assert.equal(await page.locator('.resource-card').filter({hasText:'Code Agent'}).getByRole('button',{name:'在需求中选用',exact:true}).isEnabled(),true);
@@ -149,12 +177,12 @@ try{
   for(const action of ['purchase','deduplicate','uat'])await click(action);
   await page.screenshot({path:output+'/teams-acceptance.png',fullPage:true});await click('accept');
   assert.equal((await cli(['session','report','--operation-id',randomUUID(),'--input',JSON.stringify({...scope,runId,sessionId,adoptionId:adopted.receipt.adoptionId,expectedRevision:(await state()).revision})])).ok,true);await visit('/teams#/trace');await page.screenshot({path:output+'/teams-trace.png',fullPage:true});
-  await visit('/talent#/sessions');await page.getByText('项目多个需求',{exact:true}).click();await save('analysis.run',page.getByRole('button',{name:'开始轨迹分析'}));
-  assert.equal((await state()).workspace.analysis.scope,'project');await page.screenshot({path:output+'/talent-analysis.png',fullPage:true});
-  await visit('/talent#/evolution');await click('candidate');await click('evaluate');await page.getByRole('tab',{name:'Agent 配置候选'}).click();await page.screenshot({path:output+'/talent-evolution.png',fullPage:true});
-  await click('release');await page.getByRole('link',{name:'在 Teams 中采用',exact:false}).click();await page.waitForURL(url=>url.origin===origin);assert.ok(new URL(page.url()).hash.includes('project=carddemo'));await click('adopt');
-  const final=await state();assert.equal(final.published,false);assert.equal(final.workspace.resourcePublications.length,2);assert.equal(final.stage,'accepted');assert.equal(final.evolution,'adopted');assert.equal(final.context.skillVersion,'1.0.0');assert.equal(final.security,'unverified');assert.equal(final.transactions.length,1);assert.equal(final.workspace.sessionReported,true);assert.equal(final.workspace.collaboration.events.length,1);
-  await page.reload();await page.getByRole('button',{name:'项目已采用新版'}).waitFor();
+  talentsUrl=new URL((await page.getByRole('link',{name:/分析交付记录/}).getAttribute('href'))!);assert.equal(talentsUrl.origin,talentOrigin);assert.equal(talentsUrl.hash,'#/tasks?project=carddemo');
+  for(let n=0;n<20&&(await snapshot()).sessions[0]?.id!=='WORK-PLATINUM-001';n++)await page.waitForTimeout(100);
+  assert.equal((await snapshot()).sessions[0].id,'WORK-PLATINUM-001','reported delivery session is shared with Talents');
+  await publishFromTalents(2);await visit('/teams#/projects?tab=content');await page.locator('[data-knowledge-summary="carddemo"]').getByText('已发布 1 项',{exact:true}).waitFor();
+  await page.getByRole('button',{name:'查看知识',exact:true}).click();await knowledgeCard.locator('[data-artifact="a-biz"]').getByText(/v2 · 发布于/).waitFor();await page.locator('.project-knowledge-drawer .ant-drawer-close').click();await page.locator('.project-knowledge-drawer').waitFor({state:'hidden'});
+  const final=await state();assert.equal(final.published,false);assert.equal(final.workspace.resourcePublications.length,2);assert.equal(final.stage,'accepted');assert.equal(final.evolution,'none');assert.equal(final.workspace.analysis.status,'idle');assert.equal(final.knowledgeVersion,'信用卡营销返现业务知识 v2');assert.equal(final.context.knowledgeVersion,'信用卡营销返现业务知识 v1');assert.equal(final.context.skillVersion,'1.0.0');assert.equal(final.security,'unverified');assert.equal(final.transactions.length,1);assert.equal(final.workspace.sessionReported,true);assert.equal(final.workspace.collaboration.events.length,1);
   await visit('/teams#/agent');await page.locator('#agent-management [data-title]').filter({hasText:'iCode'}).waitFor();
   await page.waitForFunction(()=>!(document.querySelector('#agent-management [data-refresh]') as HTMLButtonElement).disabled);
   assert.equal(await page.locator('#agent-management [data-config-entry]').count(),6);
@@ -168,12 +196,12 @@ try{
   await visit('/teams#/trace');await page.getByRole('button',{name:/E3.*首次规则检查/}).click();assert.ok((await page.locator('.trace-layout .evidence-console').textContent())?.includes('普通卡'));
   await page.getByRole('button',{name:'切换到深色模式'}).click();await page.waitForTimeout(300);await page.screenshot({path:output+'/teams-trace-dark.png',fullPage:true});
   const layouts:any[]=[];
-  for(const width of [1440,1024,768])for(const route of ['/teams#/home','/teams#/projects?tab=delivery&node=prepare','/talent#/sessions','/teams#/projects?project=teams&tab=delivery','/teams#/connections','/teams#/resources','/teams#/subscriptions','/teams#/publications']){
+  for(const width of [1440,1024,768])for(const route of ['/teams#/home','/teams#/projects?tab=delivery&node=prepare','/teams#/trace','/teams#/projects?project=teams&tab=delivery','/teams#/connections','/teams#/resources','/teams#/subscriptions','/teams#/publications']){
     await page.setViewportSize({width,height:1000});await visit(route);
     layouts.push({route,...await page.evaluate(()=>({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,ok:document.documentElement.scrollWidth<=innerWidth}))});
   }
   assert.ok(layouts.every(x=>x.ok),JSON.stringify(layouts));assert.deepEqual(errors,[]);
-  await writeFile(output+'/browser-results.json',JSON.stringify({passed:true,cases:['1 项目知识准备','2 需求开发准备','3 开发与进度同步','4 质量检查与验收','5 会话上报与追溯','6 Talent分析与能力演进','7 团队运营展示'],systems:{teams:origin,talent:talentOrigin},flow:'project assets → knowledge → unpublished member context → individual resource sharing/subscription → iCode CLI progress → quality → Owner acceptance → CLI session report → Talent analysis/evolution → Teams adoption',finalState:final,layouts,pageErrors:errors},null,2));
+  await writeFile(output+'/browser-results.json',JSON.stringify({passed:true,cases:['1 项目知识准备','2 需求开发准备','3 开发与进度同步','4 质量检查与验收','5 会话上报与追溯','6 Talents 知识发布同步','7 团队运营展示'],systems:{teams:origin,talentsLinks:talentOrigin,sharedDir:'simulated Talents publish'},flow:'project assets → Talents publish (shared dir) → knowledge card/drawer → unpublished member context → individual resource sharing/subscription → iCode CLI progress → quality → Owner acceptance → CLI session report → shared snapshot → newer Talents publish keeps frozen context',finalState:final,layouts,pageErrors:errors},null,2));
   console.log('PASS: v2 full workflow, role menus, team management, resource acquisition, native context, local CLI, evidence, OpenCode sample, responsive layouts');
 }catch(e){
   await currentPage?.screenshot({path:output+'/failure.png',fullPage:true});

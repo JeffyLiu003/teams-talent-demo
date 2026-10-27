@@ -1,35 +1,39 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
-import { initialState, transition } from '../src/domain.js';
+import { initialState } from '../src/domain.js';
+import { sharedPaths, type TalentsKnowledge } from '../../shared/contracts.js';
 
-const dir = await mkdtemp(join(tmpdir(), 'owner-overview-')), origin = 'http://127.0.0.1:45975';
-let seeded = initialState();
-for (const [action, role] of [['knowledge', 'owner']] as const) seeded = transition(seeded, action, role);
-await writeFile(join(dir, 'state.json'), JSON.stringify(seeded));
-const env = { ...process.env, DEMO_PORT: '45975', DEMO_TALENT_PORT: '45985', DEMO_STATE_DIR: dir, DEMO_SHARED_DIR: join(dir, 'shared'), DEMO_NATIVE_DISABLED: '1' };
-const processes = ['server/index.ts', 'server/talent.ts'].map(file => spawn(process.execPath, ['--import', 'tsx', file], { env, stdio: ['ignore', 'pipe', 'pipe'] }));
+const dir = await mkdtemp(join(tmpdir(), 'owner-overview-')), origin = 'http://127.0.0.1:45975', shared = join(dir, 'shared');
+await writeFile(join(dir, 'state.json'), JSON.stringify(initialState()));
+// Stands in for Talents: CardDemo knowledge is already published in the shared data directory, so Teams marks project knowledge built on first read.
+await mkdir(join(shared, 'talents', 'files', 'a-biz', 'v1', 'doc-knowledge'), { recursive: true });
+await writeFile(join(shared, sharedPaths.talentsFile('a-biz', 1, 'doc-knowledge/业务规则目录.md')), '# 业务规则目录');
+await writeFile(join(shared, sharedPaths.talentsKnowledge), JSON.stringify({ schemaVersion: 1, exportedAt: new Date().toISOString(), artifacts: [{ id: 'a-biz', projectId: 'carddemo', name: '信用卡营销返现业务知识', description: '白金卡返现规则', capability: 'doc-extract', capabilityName: '业务知识提取', category: 'doc', kind: 'files', version: 1, publishedAt: '2026-10-27T10:00:00.000Z', note: '', delivery: 'local', files: [{ path: 'doc-knowledge/业务规则目录.md', title: '业务规则目录', type: 'markdown' }] }] } satisfies TalentsKnowledge));
+const env = { ...process.env, DEMO_PORT: '45975', DEMO_TALENT_PORT: '45985', DEMO_STATE_DIR: dir, DEMO_SHARED_DIR: shared, DEMO_SHARED_SEED_DIR: join(dir, 'no-seed'), DEMO_NATIVE_DISABLED: '1' };
+const processes = ['server/index.ts'].map(file => spawn(process.execPath, ['--import', 'tsx', file], { env, stdio: ['ignore', 'pipe', 'pipe'] }));
 let logs = ''; for (const process of processes) { process.stdout.on('data', value => logs += value); process.stderr.on('data', value => logs += value); }
 let browser;
 try {
-  let ready = false; for (let attempt = 0; attempt < 100; attempt++) { try { if ((await fetch(origin + '/api/health')).ok && (await fetch('http://127.0.0.1:45985/api/health')).ok) { ready = true; break; } } catch {} await new Promise(resolve => setTimeout(resolve, 100)); } assert.ok(ready, logs);
+  let ready = false; for (let attempt = 0; attempt < 100; attempt++) { try { if ((await fetch(origin + '/api/health')).ok) { ready = true; break; } } catch {} await new Promise(resolve => setTimeout(resolve, 100)); } assert.ok(ready, logs);
   const { token } = await (await fetch(origin + '/api/bootstrap')).json() as any;
   const state = async () => await (await fetch(origin + '/api/state')).json() as any;
+  assert.equal((await state()).knowledgeVersion, '信用卡营销返现业务知识 v1', 'knowledge published by Talents is synced before the delivery flow');
   const post = async (path: string, body: Record<string, unknown>) => { const response = await fetch(origin + path, { method: 'POST', headers: { origin, 'content-type': 'application/json', 'x-demo-token': token }, body: JSON.stringify({ revision: (await state()).revision, role: 'owner', ...body }) }); assert.equal(response.status, 200, await response.clone().text()); return response.json(); };
   browser = await chromium.launch({ channel: 'chrome', headless: true }); const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } }); page.setDefaultTimeout(8000);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   const visit = async (project: string) => { await page.goto('about:blank'); await page.goto(origin + '/teams#/projects?project=' + project + '&tab=content'); await page.locator('.project-owner-overview').waitFor(); };
   const metrics = async () => await page.locator('[data-metric]').evaluateAll(elements => Object.fromEntries(elements.map(element => [element.getAttribute('data-metric'), Number(element.querySelector('strong')?.textContent)])));
-  await visit('carddemo'); assert.deepEqual(await metrics(), { all: 5, pending: 1, active: 2, acceptance: 1, delivered: 1, issues: 7, open: 4, closed: 2, unconfirmed: 1, blocking: 2 });
+  await visit('carddemo'); await page.locator('[data-knowledge-summary="carddemo"]').getByText('已发布 1 项', { exact: true }).waitFor(); assert.deepEqual(await metrics(), { all: 5, pending: 1, active: 2, acceptance: 1, delivered: 1, issues: 7, open: 4, closed: 1, unconfirmed: 2, blocking: 2 });
   assert.equal(await page.getByRole('button', { name: '关联项目资产', exact: true }).count(), 0, 'asset table starts in secondary project materials');
   assert.equal(await page.locator('[data-overview-group="requirements"] [data-metric]').count(), 5); assert.equal(await page.locator('[data-overview-group="issues"] [data-metric]').count(), 5);
   const expectedFilters: Record<string, string[]> = {
     all: ['DEMO-MKT-001', 'MKT-002', 'MKT-003', 'MKT-004', 'MKT-005'], pending: ['DEMO-MKT-001'], active: ['MKT-002', 'MKT-003'], acceptance: ['MKT-004'], delivered: ['MKT-005'],
-    issues: ['CARD-BUG-001', 'CARD-BUG-002', 'CARD-BUG-003', 'CARD-BUG-004', 'CARD-BUG-005', 'CARD-BUG-006', 'CARD-BUG-007'], open: ['CARD-BUG-003', 'CARD-BUG-004', 'CARD-BUG-005', 'CARD-BUG-006'], closed: ['CARD-BUG-001', 'CARD-BUG-007'], unconfirmed: ['CARD-BUG-002'], blocking: ['CARD-BUG-003', 'CARD-BUG-004'],
+    issues: ['CARD-BUG-001', 'CARD-BUG-002', 'CARD-BUG-003', 'CARD-BUG-004', 'CARD-BUG-005', 'CARD-BUG-006', 'CARD-BUG-007'], open: ['CARD-BUG-003', 'CARD-BUG-004', 'CARD-BUG-005', 'CARD-BUG-006'], closed: ['CARD-BUG-007'], unconfirmed: ['CARD-BUG-001', 'CARD-BUG-002'], blocking: ['CARD-BUG-003', 'CARD-BUG-004'],
   };
   for (const [filter, ids] of Object.entries(expectedFilters)) {
     const issues = ['issues', 'open', 'closed', 'unconfirmed', 'blocking'].includes(filter);
@@ -62,7 +66,7 @@ try {
   await visit('teams'); await page.getByRole('button', { name: '待确认讨论标准：团队配置的适用范围', exact: true }).click(); await page.getByRole('heading', { name: 'R19 · 团队配置的适用范围', exact: true }).waitFor();
   await visit('teams'); await page.getByRole('button', { name: '项目资料', exact: true }).click(); await page.getByRole('button', { name: '查看 AGENTS.md', exact: true }).click(); await page.locator('.drawer-console').getByText('项目导览', { exact: false }).waitFor();
   await page.locator('.ant-drawer').filter({ has: page.locator('.drawer-console') }).locator('.ant-drawer-close').click(); await page.locator('.drawer-console').waitFor({ state: 'hidden' }); await page.locator('.owner-project-panel .ant-drawer-close').click(); await page.locator('.owner-project-panel').waitFor({ state: 'hidden' });
-  await page.getByRole('button', { name: '知识成果', exact: true }).click(); await page.locator('.project-knowledge').getByText('尚未生成项目知识', { exact: true }).waitFor(); await page.locator('.project-knowledge-drawer .ant-drawer-close').click(); await page.locator('.project-knowledge-drawer').waitFor({ state: 'hidden' });
+  await page.getByRole('button', { name: '查看知识', exact: true }).click(); await page.locator('.project-knowledge').getByText('Talents 尚未为此项目发布知识', { exact: true }).waitFor(); assert.equal(await page.locator('[data-artifact]').count(), 0, 'CardDemo knowledge is not shown in the Teams project'); await page.locator('.project-knowledge-drawer .ant-drawer-close').click(); await page.locator('.project-knowledge-drawer').waitFor({ state: 'hidden' });
   await page.getByRole('button', { name: '查看 Skill', exact: true }).click(); await page.getByRole('tab', { name: '项目 Skill · 3', exact: true }).waitFor(); await page.getByRole('tab', { name: '用户 Skill · 4', exact: true }).click(); await page.getByRole('button', { name: '查看 Skill：Teams 协作', exact: true }).waitFor(); await page.locator('.owner-project-panel .ant-drawer-close').click(); await page.locator('.owner-project-panel').waitFor({ state: 'hidden' });
   const id = randomUUID(); await post('/api/workspace', { kind: 'project.create', payload: { id, name: '概览空项目', description: '', remoteUrl: 'mock://project', repositoryIdentity: 'project' } }); await visit(id);
   assert.ok(Object.values(await metrics()).every(value => value === 0)); await page.getByRole('button', { name: '关联项目数据', exact: true }).click(); await page.getByRole('button', { name: '关联项目资产', exact: true }).waitFor();
