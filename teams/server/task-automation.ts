@@ -95,9 +95,9 @@ export class TaskAutomationService {
   }
   private async upload(scope:TaskScope){
     if(!this.dependencies.report)return this.store.state;
-    await this.save(scope,state=>{taskAutomation(state,scope)!.collection!.reporting={status:'uploading',reason:'正在共享本任务会话至 Talents'};},'验收后会话上报 · 发送','owner');
-    try{const receipt=await this.dependencies.report(this.store.state,scope);return this.save(scope,state=>{taskAutomation(state,scope)!.collection!.reporting={status:'reported',reason:'会话已写入共享目录，Talents 可读取',receipt};},'验收后会话上报 · 已接收','owner');}
-    catch(error){return this.save(scope,state=>{taskAutomation(state,scope)!.collection!.reporting={status:'failed',reason:(error as Error).message};},'验收后会话上报 · 未完成','owner');}
+    await this.save(scope,state=>{taskAutomation(state,scope)!.collection!.reporting={status:'uploading',reason:'正在共享本任务会话至 Talents'};},'验收后会话共享 · 开始','owner');
+    try{const receipt=await this.dependencies.report(this.store.state,scope);return this.save(scope,state=>{taskAutomation(state,scope)!.collection!.reporting={status:'reported',reason:'会话已写入共享目录，Talents 可读取',receipt};},'验收后会话共享 · 已写入','owner');}
+    catch(error){return this.save(scope,state=>{taskAutomation(state,scope)!.collection!.reporting={status:'failed',reason:(error as Error).message};},'验收后会话共享 · 未完成','owner');}
   }
 
 }

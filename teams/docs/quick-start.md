@@ -11,7 +11,7 @@ Teams：http://127.0.0.1:45970/teams。Ctrl+C 停止。状态保存在忽略目�
 
 「开发会话轨迹」页面内嵌 trace-monitor，并由 Teams 拉起 Python 的 trace-server（默认端口 8012）。仓库根目录的 `npm run setup` 与启动脚本会安装 trace-monitor 依赖；单独在 teams 目录运行时，先执行 `npm ci --prefix trace-monitor`。Python 依赖需手动安装一次：`python3 -m pip install -r trace-server/requirements.txt`；解释器不是 `python3`（Windows 为 `python`）时用 DEMO_TRACE_PYTHON 指定。缺少这些依赖时只有该页面不可用。
 
-Windows 可运行仓库 start-demo.cmd；macOS 可运行仓库启动/停止 command 文件。原生工具可选，不是网页运行的前提。配置自己的可执行文件时使用 DEMO_ICODE_BINARY 或 DEMO_OPENCODE_BINARY，不在仓库提交密钥。
+Windows 可运行仓库 start-demo.cmd；macOS 可运行仓库启动/停止 command 文件。原生工具可选，不是网页运行的前提。未设置 `DEMO_ICODE_BINARY` 时会依次查找官方安装位置（Windows `%LOCALAPPDATA%\chrys\bin\icode.exe`，macOS/Linux `~/.local/bin/icode`）和仓库开发包；显式路径仍优先。Agent 管理的「引擎定位」展示原生入口、版本、配置目录与会话根。配置自己的可执行文件时使用 DEMO_ICODE_BINARY 或 DEMO_OPENCODE_BINARY，不在仓库提交密钥。
 
 ## 操作顺序
 

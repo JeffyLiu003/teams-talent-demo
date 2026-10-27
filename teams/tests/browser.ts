@@ -114,7 +114,7 @@ try{
   await visit('/teams#/organization?tab=quality');await page.getByRole('switch',{name:'启用代码 Review',exact:true}).waitFor();await page.locator('.ant-drawer-close').click();
   await role('member');await page.getByText('此页面面向项目 Owner').waitFor();assert.deepEqual(await nav(),['工作台','项目','团队','Agent 管理','资源市场','我的订阅','我的发布','Talents'].sort());
   await visit('/teams#/team-work');await page.getByText('此页面面向项目 Owner').waitFor();
-  await visit('/teams#/home');assert.equal(await page.getByTestId('team-usage-metrics').count(),0);await page.getByText('我的执行与反馈',{exact:true}).waitFor();await page.screenshot({path:output+'/teams-member-home.png',fullPage:true});
+  await visit('/teams#/home');assert.equal(await page.getByTestId('team-usage-metrics').count(),0);await page.getByText('我的任务概况',{exact:true}).waitFor();await page.screenshot({path:output+'/teams-member-home.png',fullPage:true});
   await page.locator('.framework-sidebar').getByRole('link',{name:'Talents',exact:true}).click();await page.waitForURL(url=>url.origin===talentOrigin);
   let talentsUrl=new URL(page.url());assert.equal(talentsUrl.pathname,'/talents');assert.equal(talentsUrl.searchParams.get('role'),'member');assert.equal(talentsUrl.hash,'#/dev-knowledge?project=carddemo');
   await page.goBack();await page.getByRole('combobox',{name:'切换角色'}).waitFor();await role('owner');await visit('/teams#/projects?tab=content');
@@ -195,7 +195,7 @@ try{
   await page.getByRole('button',{name:'关闭配置',exact:true}).click();await page.getByRole('button',{name:'实例管理',exact:true}).click();await page.getByText('OpenCode 原生 HTTP 接入',{exact:true}).waitFor();await page.getByRole('button',{name:'关闭实例管理',exact:true}).click();
   assert.equal(await page.getByRole('tab',{name:'基础协作能力',exact:true}).count(),0);assert.equal(await page.getByRole('switch',{name:'启用进度同步',exact:true}).count(),0);
   assert.deepEqual(await state(),final,'read-only Agent configuration and sample inspection must preserve all seven-case workflow state');
-  await visit('/teams#/trace');await page.getByRole('button',{name:/E3.*首次规则检查/}).click();assert.ok((await page.locator('.trace-layout .evidence-console').textContent())?.includes('普通卡'));
+  await visit('/teams#/trace');await page.getByRole('tab',{name:'历史材料',exact:true}).click();await page.getByRole('button',{name:/E3.*首次规则检查/}).click();assert.ok((await page.locator('.trace-layout .evidence-console').textContent())?.includes('普通卡'));
   await page.getByRole('button',{name:'切换到深色模式'}).click();await page.waitForTimeout(300);await page.screenshot({path:output+'/teams-trace-dark.png',fullPage:true});
   const layouts:any[]=[];
   for(const width of [1440,1024,768])for(const route of ['/teams#/home','/teams#/projects?tab=delivery&node=prepare','/teams#/trace','/teams#/projects?project=teams&tab=delivery','/teams#/connections','/teams#/resources','/teams#/subscriptions','/teams#/publications']){

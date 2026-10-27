@@ -7,7 +7,7 @@ import { access, readFile, mkdir, writeFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import { binary, workspace, runtimeDir, codeRoot, root, origin } from './config.js';
+import { binary, workspace, runtimeDir, codeRoot, root, origin, icodeBinarySource, icodeBinaryNotes } from './config.js';
 import { atomicJson, atomicText } from './store.js';
 import type { DemoState } from '../src/domain.js';
 const execute = promisify(execFile);
@@ -20,11 +20,30 @@ async function openCodePath() {
   return findExecutable(process.env.DEMO_OPENCODE_BINARY ?? 'opencode');
 }
 export async function toolsStatus() {
-  const iCodeInstalled = await installed(binary), opencode = await openCodePath();
-  const version = iCodeInstalled ? (await execute(binary, ['--version'], { timeout: 15000 })).stdout.trim() : null;
-  const unsupportedReason = process.platform === 'win32' && opencode && !/\.exe$/i.test(opencode) ? '检测到 OpenCode .cmd/.bat；自动启动需设置 DEMO_OPENCODE_BINARY 为 opencode.exe 的绝对路径。' : undefined;
-  const openVersion = opencode && !unsupportedReason ? (await execute(opencode, ['--version'], { timeout: 15000 })).stdout.trim() : null;
-  return { ...await terminalPreferences.context(), icode: { installed: iCodeInstalled, path: binary, version, workspace, sessionId: '', sessionAvailable: false, active: null }, opencode: { installed: !!opencode && !unsupportedReason, path: opencode, version: openVersion, unsupportedReason }, verification: null };
+  let installedICode = false, installError: string | undefined;
+  try { installedICode = await installed(binary); }
+  catch (error) { installError = 'iCode 探测失败：' + (error as Error).message; }
+  let version: string | null = null, versionError: string | undefined;
+  if (installedICode) {
+    try { version = (await execute(binary, ['--version'], { timeout: 15000 })).stdout.trim(); }
+    catch (error) { versionError = 'iCode 版本探测失败：' + (error as Error).message; }
+  }
+  let opencode: string | null = null, openError: string | undefined;
+  try { opencode = await openCodePath(); }
+  catch (error) { openError = 'OpenCode 探测失败：' + (error as Error).message; }
+  const unsupportedReason = openError ?? (process.platform === 'win32' && opencode && !/\.exe$/i.test(opencode) ? '检测到 OpenCode .cmd/.bat；自动启动需设置 DEMO_OPENCODE_BINARY 为 opencode.exe 的绝对路径。' : undefined);
+  let openVersion: string | null = null;
+  if (opencode && !unsupportedReason) {
+    try { openVersion = (await execute(opencode, ['--version'], { timeout: 15000 })).stdout.trim(); }
+    catch (error) { openError = 'OpenCode 版本探测失败：' + (error as Error).message; }
+  }
+  const notes = [...icodeBinaryNotes, ...(installError ? [installError] : []), ...(versionError ? [versionError] : [])];
+  return {
+    ...await terminalPreferences.context(),
+    icode: { installed: installedICode, path: binary, version, workspace, sessionId: '', sessionAvailable: false, active: null, source: icodeBinarySource, notes },
+    opencode: { installed: !!opencode && !unsupportedReason, path: opencode, version: openVersion, unsupportedReason, notes: openError ? [openError] : [] },
+    verification: null,
+  };
 }
 export async function foundationSkill() {
   const path = join(root, 'skills/teams-demo-collaboration/SKILL.md');
