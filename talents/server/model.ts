@@ -1,4 +1,4 @@
-// Shapes of the Talents state. The front-end (public/js) owns most of the fields' behaviour,
+// Shapes of the Talents state. The page (src/) owns most of the fields' behaviour,
 // so only what the server reads is typed precisely; the rest is passed through.
 
 export interface Commit { sha: string; message: string; time: string }

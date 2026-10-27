@@ -5,7 +5,7 @@
 ```bash
 cd talents
 npm install
-npm run dev        # 重新生成 public/js/content.js 并启动，打开 http://127.0.0.1:45980/talents
+npm run dev        # 构建页面（dist/）并启动，打开 http://127.0.0.1:45980/talents
 ```
 
 设计说明见 [DESIGN.md](DESIGN.md)。
@@ -55,7 +55,7 @@ Talents 自己的状态（任务、产物、修订、发布、开发者应用记
 
 ## 演示脚本（约 15 分钟）
 
-顶栏可以在“管理员端”和“开发者端”之间切换，模拟两台电脑上的两个入口；“返回 iCode Teams”回到 Teams 中的项目。
+顶栏右侧可以在“管理员端”和“开发者端”之间切换，模拟两台电脑上的两个入口；顶栏左侧的系统切换选“iCode Teams”回到 Teams 中的项目。
 
 **管理员端（林悦）**
 
@@ -80,16 +80,15 @@ Talents 自己的状态（任务、产物、修订、发布、开发者应用记
    - 用“⋯”菜单演示修改范围和撤销。
 6. **本地索引**：为本机的代码仓建立索引，并应用到 iCode。
 
-演示结束后，点顶栏右侧“⋯”中的“重置数据”，恢复初始状态（Teams 的数据不受影响）。
+演示结束后，点顶栏右侧的“重置数据”，恢复初始状态（Teams 的数据不受影响）。
 
 ## 目录
 
 | 路径 | 内容 |
 |---|---|
 | `server/` | 服务：`index.ts` 接口与静态页面，`teams-data.ts` 读取并映射 Teams 快照，`export.ts` 发布知识到共享目录，`store.ts` 状态存储，`seed.ts` 初始数据 |
-| `public/` | 页面（原生 JS）。`js/knowledge.js` 处理产物版本、对比和应用改动，`js/pages/` 下每个文件对应一个页面 |
+| `src/` | 页面（React + TypeScript + Ant Design，外壳与 iCode Teams 一致）。`pages/` 下每个文件对应一个页面；`demo/` 是演示用的模拟逻辑（任务运行、产物生成、iCode 筛选会话、产物版本与应用改动）；`vendor/teams/` 原样复制自 `teams/src/vendor/teams` |
 | `content/` | 产物与 Skill 的原文（业务知识、开发范式、轨迹诊断报告、配套 Skill） |
-| `public/js/content.js` | 由 `content/` 生成（`npm run build`），页面预览产物时使用 |
-| `tools/` | `bundle-content.mjs` 生成 `content.js`；`seed-shared.ts` 生成 `shared/seed/talents/` |
-| `tests/` | `npm test`：Teams 数据映射、状态保存、知识导出 |
-| `public/vendor/marked.umd.js` | Markdown 渲染（marked v18.0.11） |
+| `dist/` | 构建出的页面（`npm run build`），服务在 `/talents/` 提供 |
+| `tools/` | `build.mjs` 构建页面；`bundle-content.mjs` 把 `content/` 打包为 `src/generated/content.json` 供页面预览产物；`seed-shared.ts` 生成 `shared/seed/talents/` |
+| `tests/` | `npm test`：Teams 数据映射、状态保存、知识导出；`npm run test:e2e`：浏览器冒烟测试（需要 Google Chrome） |

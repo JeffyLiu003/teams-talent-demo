@@ -15,5 +15,6 @@ export const sharedDir = resolve(process.env.DEMO_SHARED_DIR ?? join(repositoryR
 /** Committed copies of the shared files, read when the writer has not run yet. */
 export const seedDir = join(repositoryRoot, 'shared', 'seed');
 export const contentDir = join(root, 'content');
-export const publicDir = join(root, 'public');
+/** The built page (npm run build). */
+export const publicDir = join(root, 'dist');
 if (!Number.isSafeInteger(port) || !Number.isSafeInteger(teamsPort) || port < 1024 || port > 65535 || teamsPort < 1024 || teamsPort > 65535 || port === teamsPort) throw new Error('Teams 与 Talents 需要有效且不同的本机端口');

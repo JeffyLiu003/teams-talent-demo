@@ -5,7 +5,7 @@
 `main` 现在的结构：
 
 - `teams/`：原 `demo/` 改名后去掉 Talent 部分。页面、交付流程和状态结构基本不变。
-- `talents/`：独立的 Talents 项目，前端为原生 JS，服务端为 Node + TS。
+- `talents/`：独立的 Talents 项目，前端为 React + TS + Ant Design（外壳与 Teams 一致），服务端为 Node + TS。
 - `shared/`：两个项目交换数据的格式（`contracts.ts`）和初始数据（`seed/`）。
 
 ## 一、合并步骤

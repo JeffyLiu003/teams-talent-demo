@@ -9,7 +9,7 @@ import { contentDir } from './config.ts';
 import { fileLabel, fileType, minerIndex, readContent } from './content.ts';
 import type { Artifact, TalentsState } from './model.ts';
 
-/** Text of a file as published (same rule as K.text(a, 'published', key) in public/js/knowledge.js). */
+/** Text of a file as published (same rule as text(a, 'published', key) in src/demo/knowledge.ts). */
 export function publishedText(a: Artifact, key: string, dir = contentDir): string | null {
   const p = a.published;
   if (!p) return null;

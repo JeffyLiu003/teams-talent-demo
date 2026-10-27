@@ -2,3 +2,5 @@ node_modules/
 .runtime/
 .local/
 .DS_Store
+dist/
+src/generated/

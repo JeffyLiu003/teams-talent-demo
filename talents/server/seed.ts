@@ -1,4 +1,4 @@
-// Initial Talents state (formerly public/js/data.js). Team, members, projects, code repositories,
+// Initial Talents state (formerly the static demo's js/data.js). Team, members, projects, code repositories,
 // design documents and shared sessions are NOT here: they come from the Teams snapshot (teams-data.ts).
 // What is here is owned by Talents: capabilities, tasks, artifacts, the developer's machine, the local
 // document source, and Talents' own metadata about Teams sources (document versions, commits, PRs).

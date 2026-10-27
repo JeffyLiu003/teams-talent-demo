@@ -1,4 +1,4 @@
-// Artifact and Skill text lives in talents/content/ (the same files public/js/content.js bundles).
+// Artifact and Skill text lives in talents/content/ (the same files the page bundles, see tools/bundle-content.mjs).
 import { readFileSync } from 'node:fs';
 import { join, normalize, isAbsolute } from 'node:path';
 import { contentDir } from './config.ts';
@@ -22,7 +22,7 @@ export function minerFiles(specs: string[], dir = contentDir) {
   }
   return out;
 }
-/** miner/index.md restricted to the given specs (same rule as K.minerIndex in public/js/knowledge.js). */
+/** miner/index.md restricted to the given specs (same rule as minerIndex in src/demo/knowledge.ts). */
 export function minerIndex(specs: string[], dir = contentDir) {
   const text = readContent('miner/index.md', dir) ?? '';
   const rows: Record<string, string> = {};
