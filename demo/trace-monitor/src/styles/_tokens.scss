@@ -1,0 +1,61 @@
+/* ============================================================
+   Trace Monitor (Vue) — 设计 token 唯一来源（SCSS partial）
+   ------------------------------------------------------------
+   · 组件库构建：由 styles/index.scss 在 .tm-scope 上展开
+   · 组件库 dev 预览：由 styles/dev-shell.scss 在 :root 上展开
+   · 集成方换肤：覆写 .tm-scope { --ink: ...; --accent: ...; } 即可
+   ============================================================ */
+
+@mixin tm-tokens {
+  /* 与 Teams demo 设计系统对齐：浅灰画布 + 白色面板 + 紫色主色 */
+  --bg-canvas: #f7f7fa;
+  --bg-sider: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f5f2fb;
+  --bg-elevated: #ffffff;
+  --bg-subtle: #f7f7fa;
+
+  --border-subtle: #e5e5ed;
+  --border-strong: #d7d7e2;
+
+  --ink-strong: #282a35;
+  --ink: #282a35;
+  --ink-mid: #535563;
+  --ink-weak: #737580;
+  --ink-faint: #a1a1aa;
+
+  --accent: #7855ae;
+  --accent-strong: #68459e;
+  --accent-soft: rgba(120, 85, 174, 0.1);
+  --accent-soft-strong: rgba(120, 85, 174, 0.16);
+
+  --success: #0f9d83;
+  --success-soft: rgba(15, 157, 131, 0.12);
+  --danger: #d1495b;
+  --danger-soft: rgba(209, 73, 91, 0.1);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-card: 0 1px 2px rgba(40, 42, 53, 0.04), 0 4px 16px rgba(40, 42, 53, 0.05);
+  --shadow-pop: 0 6px 24px rgba(40, 42, 53, 0.1), 0 2px 6px rgba(40, 42, 53, 0.06);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono",
+    monospace;
+
+  --scrollbar: #d9d9e3;
+  --scrollbar-hover: #c4c4d1;
+
+  /* Element Plus 主色对齐 Teams 主色（随 token 继承到组件内的 EP 元素） */
+  --el-color-primary: #7855ae;
+  --el-color-primary-light-3: #9b7ec5;
+  --el-color-primary-light-5: #b8a3d6;
+  --el-color-primary-light-7: #d4c8e8;
+  --el-color-primary-light-8: #e2d9f0;
+  --el-color-primary-light-9: #f2edf8;
+  --el-color-primary-dark-2: #68459e;
+  --el-border-radius-base: 6px;
+  --el-font-size-base: 13px;
+}

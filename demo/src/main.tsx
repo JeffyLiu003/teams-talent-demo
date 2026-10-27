@@ -23,6 +23,7 @@ import { Resources } from './pages/resources.js';
 import { Tools } from './pages/tools.js';
 import { Trace } from './pages/trace.js';
 import { TeamWork } from './pages/team-work.js';
+import { TraceMonitor } from './pages/trace-monitor.js';
 import { Organization } from './pages/organization.js';
 import { Team } from './pages/team.js';
 import { Knowledge, TalentSessions, Evolution } from './pages/talent.js';
@@ -31,7 +32,7 @@ import { currentSystemContext, systemRuntime, talentLink, teamsLink } from './sy
 import './style.css';
 const css = document.createElement('style'); css.textContent = designSystemCss + frameworkCss; document.head.prepend(css);
 const isTalent = systemRuntime().app === 'talent';
-const titles: Record<string, string> = { home: '工作台', projects: '项目', team:'团队', resources: '资源市场', subscriptions: '我的订阅', publications: '我的发布', agent: 'Agent 管理', connections: '企业连接', organization: '企业连接', 'team-work': '团队作业与追溯', trace: '需求执行记录', knowledge: '项目知识', sessions: '轨迹分析与知识挖掘', evolution: '能力演进', account: '当前角色', settings: '工作区设置' };
+const titles: Record<string, string> = { home: '工作台', projects: '项目', team:'团队', resources: '资源市场', subscriptions: '我的订阅', publications: '我的发布', agent: 'Agent 管理', connections: '企业连接', organization: '企业连接', 'team-work': '团队作业与追溯', 'trace-monitor': '开发会话轨迹', trace: '需求执行记录', knowledge: '项目知识', sessions: '轨迹分析与知识挖掘', evolution: '能力演进', account: '当前角色', settings: '工作区设置' };
 const route = () => { const raw = location.hash.replace(/^#\/?/, '') || (isTalent ? 'knowledge' : 'home'); const [path, query] = raw.split('?'); return { path, params: new URLSearchParams(query) }; };
 const channel = new BroadcastChannel('teams-talent-carddemo');
 function App() {
@@ -99,6 +100,7 @@ function App() {
   else if (current.path === 'agent') content = <Tools />;
   else if (['connections', 'organization'].includes(current.path)) content = <Organization key={current.path + current.params.toString()} />;
   else if (current.path === 'team-work') content = <TeamWork />;
+  else if (current.path === 'trace-monitor') content = <TraceMonitor />;
   else if (current.path === 'trace') content = <Trace initial={current.params.get('evidence') ?? undefined} />;
   else if (['account', 'settings'].includes(current.path)) content = <><Heading title={titles[current.path]} description="Owner 与成员协作管理项目状态。" /><FrameworkCard title="项目权限"><Descriptions bordered column={1} items={[{ key: 'owner', label: '林悦 · 项目 Owner', children: '团队运营、组织能力、项目知识准备、共享发布、需求分配、业务验收、能力演进' }, { key: 'member', label: '陈晨 · 项目成员', children: '需求材料与上下文准备、能力采用、开发检查、成果提交' }, { key: 'demo', label: '当前角色', children: '可切换当前工作角色；身份认证尚未接入。' }]} /><Button href="#/projects?tab=settings">项目成员与角色</Button></FrameworkCard></>;
   else content = <Alert type="warning" title="页面不存在" action={<Button href="#/home">返回工作台</Button>} />;
@@ -118,7 +120,7 @@ function App() {
             <Popconfirm title="重置工作区？" description="将清除本地项目、材料、成员配置、订阅及交付状态，恢复初始工作区；不改动源码或本机工具。" okText="重置" cancelText="取消" onConfirm={resetDemo} disabled={isTalent||role!=='owner'||importedProject||!!createdProject}><Button type="text" size="small" aria-label="重置工作区" title="重置工作区" icon={<ReloadOutlined/>} disabled={isTalent||role!=='owner'||importedProject||!!createdProject}><span className="compact-action-label">重置工作区</span></Button></Popconfirm>
           </div>
         </header>
-          <div className={'page-scroll' + (projectName ? ' project-page-scroll' : '')} key={isTalent + current.path}>{error && <Alert className="global-alert" type="error" showIcon title={displayText(error)} closable onClose={() => setError('')} />}{notice && <Alert className="global-alert" type="success" showIcon title={displayText(notice)} closable onClose={() => setNotice('')} />}{isTalent && data.talent?.project.projection.status === 'pending' && <Alert type="warning" title="Talent 成果等待回传 Teams" description={data.talent.project.projection.error} action={<Button loading={busy} onClick={()=>{const project=data.talent!.project;void(project.projection.action==='analysis.run'?update('analysis.run',{scope:project.analysis.scope}):perform(project.projection.action as Action));}}>重试回传</Button>} />}{state.campaignId !== campaign.id && <Alert type="warning" title="工作区规则版本已更新" description="当前保存记录属于旧规则，请由 Owner 在 Teams 重置工作区后继续。" action={isTalent ? <Button href={teamsLink('settings')}>前往工作区设置</Button> : undefined} />}{content}<footer className="page-foot"><span>{isTalent ? data.talent?.context.name+' · Talent 独立知识服务' : createdProject ? createdProject.name+' · 项目' : importedProject ? 'iCode Teams · 项目' : 'MKT-001 · Teams × iCode × Talent'}</span></footer></div>
+          <div className={'page-scroll' + (projectName ? ' project-page-scroll' : '') + (current.path === 'trace-monitor' ? ' trace-page-scroll' : '')} key={isTalent + current.path}>{error && <Alert className="global-alert" type="error" showIcon title={displayText(error)} closable onClose={() => setError('')} />}{notice && <Alert className="global-alert" type="success" showIcon title={displayText(notice)} closable onClose={() => setNotice('')} />}{isTalent && data.talent?.project.projection.status === 'pending' && <Alert type="warning" title="Talent 成果等待回传 Teams" description={data.talent.project.projection.error} action={<Button loading={busy} onClick={()=>{const project=data.talent!.project;void(project.projection.action==='analysis.run'?update('analysis.run',{scope:project.analysis.scope}):perform(project.projection.action as Action));}}>重试回传</Button>} />}{state.campaignId !== campaign.id && <Alert type="warning" title="工作区规则版本已更新" description="当前保存记录属于旧规则，请由 Owner 在 Teams 重置工作区后继续。" action={isTalent ? <Button href={teamsLink('settings')}>前往工作区设置</Button> : undefined} />}{content}<footer className="page-foot"><span>{isTalent ? data.talent?.context.name+' · Talent 独立知识服务' : createdProject ? createdProject.name+' · 项目' : importedProject ? 'iCode Teams · 项目' : 'MKT-001 · Teams × iCode × Talent'}</span></footer></div>
         </main></div>
     </div>
     <Drawer width={880} open={!!detail} onClose={() => setDetail(null)} title={detail?.title}><pre className="evidence-console drawer-console">{detail?.content}</pre></Drawer>

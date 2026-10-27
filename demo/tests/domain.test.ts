@@ -34,9 +34,9 @@ test('permission and prerequisite failures do not mutate state', () => {
   assert.equal(JSON.stringify(s),before);
 });
 test('role navigation separates team management while retaining shared tool and project entry points', () => {
-  assert.deepEqual(teamsPages('owner').map(p=>p.id).sort(), ['home','projects','team','agent','resources','subscriptions','publications','connections','team-work','talent'].sort());
+  assert.deepEqual(teamsPages('owner').map(p=>p.id).sort(), ['home','projects','team','agent','resources','subscriptions','publications','connections','team-work','trace-monitor','talent'].sort());
   assert.deepEqual(teamsPages('member').map(p=>p.id).sort(), ['home','projects','team','agent','resources','subscriptions','publications','talent'].sort());
-  assert.ok(isOwnerPage('connections')); assert.ok(isOwnerPage('organization')); assert.ok(isOwnerPage('team-work'));
+  assert.ok(isOwnerPage('connections')); assert.ok(isOwnerPage('organization')); assert.ok(isOwnerPage('team-work')); assert.ok(isOwnerPage('trace-monitor'));
   assert.equal(isOwnerPage('trace'), false, 'a member must retain access to their project execution record');
 });
 test('usage counts people rather than instances and separates waiting from running', () => {
