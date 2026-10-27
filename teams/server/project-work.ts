@@ -76,7 +76,7 @@ async function inspectDirectory(directory: string, repository: string, sourceRoo
   try { reference = await realpath(sourceRoot); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
   if (reference && (canonical === reference || canonical.startsWith(reference + '/'))) throw new DomainError('此目录是只读的 Teams 参考仓；请绑定自己的可工作检出目录');
   const env = { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.toUpperCase().startsWith('GIT_'))), LC_ALL: 'C', LANG: 'C' };
-  const git = async (args: string[]) => (await execute('git', ['-C', canonical, ...args], { env, timeout: 5000, maxBuffer: 65536 })).stdout.trim();
+  const git = async (args: string[]) => (await execute('git', ['-C', canonical, ...args], { env, timeout: 5000, maxBuffer: 65536, windowsHide: true })).stdout.trim();
   if (await realpath(await git(['rev-parse', '--show-toplevel'])) !== canonical) throw new DomainError('请选择 Git checkout 或 worktree 根目录');
   if (isAbsolute(repository)) {
     if (await realpath(repository) !== canonical) throw new DomainError('当前目录与项目登记的本机代码仓不一致');

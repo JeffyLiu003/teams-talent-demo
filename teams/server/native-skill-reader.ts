@@ -20,7 +20,7 @@ export function nativePlatformEnvironment(): Promise<NativePlatformEnvironment> 
   return platformEnvironment;
 }
 async function resolveNativePlatformEnvironment(): Promise<NativePlatformEnvironment> {
-  const version=(await exec(binary,['--version'],{timeout:15000,maxBuffer:65536})).stdout.trim();
+  const version=(await exec(binary,['--version'],{timeout:15000,maxBuffer:65536,windowsHide:true})).stdout.trim();
   if(!/^\d+\.\d+\.\d+$/.test(version))throw new Error('iCode 未返回有效原生版本');
   let python=process.env.DEMO_ICODE_PYTHON;
   if(python){if(!isAbsolute(python)||!await executable(python))throw new Error('DEMO_ICODE_PYTHON 必须指向当前 iCode 安装的 Python 可执行绝对路径');}
@@ -32,7 +32,7 @@ async function resolveNativePlatformEnvironment(): Promise<NativePlatformEnviron
     if(candidates.length!==1)throw new Error('无法唯一定位当前 iCode 的原生 Python；请配置 DEMO_ICODE_PYTHON 后核验，未使用其他解析器');
     python=candidates[0];
   }
-  const environment=JSON.parse((await exec(python,['-I',script,'--environment'],{cwd:root,timeout:15000,maxBuffer:65536})).stdout);
+  const environment=JSON.parse((await exec(python,['-I',script,'--environment'],{cwd:root,timeout:15000,maxBuffer:65536,windowsHide:true})).stdout);
   if(environment.nativeVersion!==version||typeof environment.configDirectory!=='string'||!isAbsolute(environment.configDirectory))throw new Error('原生 Python 与 iCode 版本或配置目录不匹配');
   const configDirectory=await realpath(environment.configDirectory);
   const sessionRoot=typeof environment.sessionRoot==='string'&&isAbsolute(environment.sessionRoot)?environment.sessionRoot:join(configDirectory,'sessions');
@@ -46,7 +46,7 @@ export async function readInstalledNativeSkill(directory:string,pkg:NativeSkillP
   const runtime=await nativeSkillEnvironment();
   if(await realpath(directory)!==await realpath(runtime.skillsDirectory))throw new Error('应用目录与原生用户 Skill 目录不一致');
   const target=await realpath(join(directory,pkg.name));
-  const proof=await readUnchangedSkillPackage(directory,pkg,async()=>JSON.parse((await exec(runtime.python,['-I',script,target,pkg.name],{cwd:root,timeout:30000,maxBuffer:1048576})).stdout));
+  const proof=await readUnchangedSkillPackage(directory,pkg,async()=>JSON.parse((await exec(runtime.python,['-I',script,target,pkg.name],{cwd:root,timeout:30000,maxBuffer:1048576,windowsHide:true})).stdout));
   if(proof.nativeVersion!==runtime.version||proof.source!==target||proof.name!==pkg.name||proof.primarySha256!==pkg.files.find(file=>file.path==='SKILL.md')!.sha256||proof.modelCalls!==0||proof.scriptsExecuted!==0)throw new Error('原生发现与读取证据不匹配');
   const evidencePath=join(runtimeDir,'skill-applications','native-read-'+randomUUID()+'.json');await atomicJson(evidencePath,{...proof,packageSha256:pkg.sha256,version:pkg.version,verifiedAt:new Date().toISOString()});
   return {status:'discovered-and-read',source:target,nativeVersion:runtime.version,evidencePath,note:'已由当前 iCode 默认角色的实际发现链读取本机用户包与引用资源；未运行 Skill 脚本或调用模型，也未向已有会话注入或重载。'};

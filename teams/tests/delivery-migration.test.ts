@@ -1,8 +1,10 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,readFile,writeFile,rm} from 'node:fs/promises';
+import {mkdir,mkdtemp,readFile,writeFile,rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
+import {build} from 'esbuild';
+import {pathToFileURL} from 'node:url';
 import {initialState,transition} from '../src/domain.js';
 import {Store} from '../server/store.js';
 import {migrateMainDelivery} from '../server/delivery-migration.js';
@@ -35,4 +37,16 @@ test('unassigned and accepted historical main states retain meaning without inve
  const accepted=initialState();accepted.assigned=true;accepted.assigneeId='member';accepted.stage='accepted';accepted.checks='passed';accepted.audit=[{id:1,at:'2026-10-27T00:00:00Z',role:'owner',system:'Teams',action:'通过功能验收',detail:'旧验收',origin:'simulated'}];
  migrateMainDelivery(accepted);const task=deliveryRequirement(accepted,'carddemo','DEMO-MKT-001')!;
  assert.equal(task.stage,'accepted');assert.equal(task.checks[0].source,'preset');assert.equal(task.checks[0].sessionId,null);assert.match(task.nodes.develop.summary,/历史/);assert.equal(accepted.workspace.collaboration,undefined);assert.equal(accepted.workspace.taskAutomation,undefined);assert.equal(migrateMainDelivery(accepted),false);
+});
+
+test('accepted main task stays actionable without the legacy session report flag',async()=>{
+ await mkdir('test-results',{recursive:true});
+ const dir=await mkdtemp(join('test-results','home-next-step-')),outfile=join(dir,'home.mjs');
+ try{
+  await build({stdin:{contents:"export { nextStep } from './src/pages/home';",resolveDir:process.cwd(),loader:'tsx'},outfile,bundle:true,platform:'node',format:'esm',packages:'external',loader:{'.css':'empty'},jsx:'automatic',logLevel:'silent'});
+  const {nextStep}=await import(pathToFileURL(outfile).href),state=initialState();
+  state.assigned=true;state.assigneeId='member';state.stage='accepted';state.workspace.sessionReported=false;
+  const next=nextStep(state,'owner');
+  assert.equal(next.title,'查看验收和会话共享');assert.match(next.href,/task=DEMO-MKT-001/);
+ }finally{await rm(dir,{recursive:true,force:true});}
 });
