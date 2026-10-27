@@ -56,9 +56,9 @@ export const sourceAssetId = (pluginId: SourcePluginId, projectId: SourceProject
 
 const cardRequirement = sourceAssetId('requirements', 'carddemo', 'DEMO-MKT-001');
 const teamRequirement = (id: string) => sourceAssetId('requirements', 'teams', id);
-const marketingDesign = 'demo/docs/cashback-contract.md';
-const marketingIntegration = 'demo/docs/cashback-integration.md';
-const authenticationScope = 'demo/docs/security-scope.md';
+const marketingDesign = 'teams/docs/cashback-contract.md';
+const marketingIntegration = 'teams/docs/cashback-integration.md';
+const authenticationScope = 'teams/docs/security-scope.md';
 const localFile = (collection: SourceAssetReference['collection'], path: string, label: string): SourceAssetReference => ({
   collection, path, label, extent: collection === 'graph' ? 'excerpt' : 'full-file', origin: 'existing-local-file',
 });
@@ -123,7 +123,7 @@ function repositoryAssets(data: SourcePluginData): readonly SourcePluginAsset[] 
     card({
       sourceRecordId: 'carddemo-java-1025', kind: 'repository', title: '白金卡返现规则',
       summary: '当前返现规则及本地协作流程源码。', version: '当前规则版本',
-      detail: '逻辑位置：demo/src/cashback.ts 与 demo/src/domain.ts\n范围：卡片资格、期间、金额计算和工作流状态。\nJava 快照仅是保留的来源资料，不是当前规则的运行实现。',
+      detail: '逻辑位置：teams/src/cashback.ts 与 teams/src/domain.ts\n范围：卡片资格、期间、金额计算和工作流状态。\nJava 快照仅是保留的来源资料，不是当前规则的运行实现。',
       relatedRequirementIds: [cardRequirement],
     }),
     ...(data.graph ?? []).map(source => card({

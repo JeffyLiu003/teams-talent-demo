@@ -10,7 +10,7 @@ description: 在本机 Teams中开始或继续项目任务，读取所选任务�
 开始工作先运行：
 
 ```sh
-node /ABSOLUTE/PATH/TO/demo/scripts/teams-demo.mjs --endpoint http://127.0.0.1:45970 context get --project PROJECT --task TASK --node NODE --output /tmp/teams-task-context.json
+node /ABSOLUTE/PATH/TO/teams/scripts/teams-demo.mjs --endpoint http://127.0.0.1:45970 context get --project PROJECT --task TASK --node NODE --output /tmp/teams-task-context.json
 ```
 
 Windows PowerShell 中，优先复制启动材料给出的 `& 'Node绝对路径' 'CLI绝对路径' ... --input-file 'scope文件绝对路径'` 命令；scope 文件已由作业入口导出。手工读取也可使用上面的 `--project / --task / --node` 分字段形式，并将输出改为本机路径，例如 `--output "$env:TEMP/teams-task-context.json"`。写入 JSON 使用 `--input-file`，不要在 PowerShell 5.1 中通过 `--input` 内联 JSON，避免原生参数绑定剥掉双引号。文件内容使用 UTF-8；命令只获取材料，不自动采用。

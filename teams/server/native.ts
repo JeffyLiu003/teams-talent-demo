@@ -39,7 +39,7 @@ export async function writeContext(state: DemoState) {
   const path = join(runtimeDir, 'contexts', state.context.id + '-' + createHash('sha256').update(state.context.createdAt).digest('hex').slice(0, 12) + '-v3.md');
   const content = [
     '# 信用卡消费返现 · DEMO-MKT-001', '',
-    '这是当前需求的上下文材料。当前规则实现位于 demo/src/cashback.ts；请先阅读与核对，不要执行部署、发送消息或修改全局配置。', '',
+    '这是当前需求的上下文材料。当前规则实现位于 teams/src/cashback.ts；请先阅读与核对，不要执行部署、发送消息或修改全局配置。', '',
     '## 需求描述', '针对白金卡客户未来 3 个月的消费，额外增加 0.5% 的消费返现。', '',
     '## 已确认范围与待定事项', '已确认：白金卡客户、3 个月、额外返现 0.5%。具体日期、周期起算、消费范围、报名要求、门槛、上限及结算等其他规则待定。当前本地参数不替代正式业务政策。', '',
     '## 采用依据', JSON.stringify(state.context, null, 2), '',

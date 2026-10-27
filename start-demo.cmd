@@ -1,6 +1,6 @@
 @echo off
 setlocal
-cd /d "%~dp0demo"
+cd /d "%~dp0teams"
 where node >nul 2>nul
 if errorlevel 1 goto missing_node
 if not exist node_modules (

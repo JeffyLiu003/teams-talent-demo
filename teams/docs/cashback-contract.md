@@ -9,5 +9,5 @@
 - 普通卡与期间外消费不适用；无效或非正整数分金额拒绝处理。
 - 此范围没有报名步骤；未定义消费类别、门槛、封顶或退款规则，不能据此推断正式政策不设限制。
 
-当前可执行规则位于 demo/src/cashback.ts，流程状态位于 demo/src/domain.ts。
+当前可执行规则位于 teams/src/cashback.ts，流程状态位于 teams/src/domain.ts。
 静态检查记录为 fixture，用于完整交付工作流；不代表真实 iCode 会话、Java 服务测试或模型评估已运行。

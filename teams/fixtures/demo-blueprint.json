@@ -263,7 +263,7 @@
     "failure_operation_id": "CHECK-PLATINUM-001",
     "fix_operation_id": "FIX-PLATINUM-001",
     "retest_operation_id": "CHECK-PLATINUM-002",
-    "file": "demo/src/cashback.ts",
+    "file": "teams/src/cashback.ts",
     "current_sha256": "2b61c0da081b662bedd3cf09cb41ea0d39247557bf73f0c5130521f02b294316",
     "mutation_after_sha256": "2b61c0da081b662bedd3cf09cb41ea0d39247557bf73f0c5130521f02b294316",
     "join_rule": "需求 → 上下文 → 检查记录 → 修复 → 复测 → 验收；记录来源为本地工作流 fixture，不关联原生历史会话。"
