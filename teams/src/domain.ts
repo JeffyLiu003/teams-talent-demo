@@ -60,10 +60,10 @@ export function transition(previous: DemoState, action: Action, role: Role, payl
     case 'uat': requireCondition(s.stage === 'submitted' && s.duplicateChecked, '请先验证消费与去重'); requireCondition(runCashbackChecks().every(check => check.passed), '边界验收未通过'); s.uat = true; detail = '已核对 7 项资格、期间、金额与重复入账规则；生产安全仍待验证'; break;
     case 'accept': requireCondition(s.stage === 'submitted' && s.uat && s.checks === 'passed', '验收条件未完成'); s.stage = 'accepted'; queueTaskCollection(s); detail = '功能验收通过 · 生产安全放行仍未验证'; break;
     case 'return': requireCondition(s.stage === 'submitted' && payload.reason?.trim(), '请填写退回原因'); s.stage = 'returned'; s.returnReason = payload.reason!.trim().slice(0, 500); s.uat = false; detail = s.returnReason; break;
-    case 'candidate': requireCondition(s.stage === 'accepted' && s.evolution === 'none', '请先完成验收');requireCondition(s.workspace.analysis.status==='analyzed','请先完成 Talent 轨迹分析'); s.evolution = 'candidate'; detail = 'Talent 根据 E3/E4/E5 记录 Skill 1.1.0 与 Agent r2 改进候选'; break;
+    case 'candidate': requireCondition(s.stage === 'accepted' && s.evolution === 'none', '请先完成验收');requireCondition(s.workspace.analysis.status==='analyzed','请先完成 Talents 轨迹分析'); s.evolution = 'candidate'; detail = 'Talents 根据 E3/E4/E5 记录 Skill 1.1.0 与 Agent r2 改进候选'; break;
     case 'evaluate': requireCondition(s.evolution === 'candidate', '请先生成候选'); s.evolution = 'evaluated'; detail = '固定输入的 Skill / Agent 独立对照评估结果'; break;
-    case 'release': requireCondition(s.evolution === 'evaluated', '候选尚未评估'); s.evolution = 'published'; detail = 'Talent 发布 Skill 1.1.0、Agent r2 版本'; break;
-    case 'adopt': requireCondition(s.evolution === 'published', '请先在 Talent 发布候选'); s.evolution = 'adopted'; s.adoptedSkill = '1.1.0'; s.adoptedAgent = 'r2'; detail = '供下一次作业采用；CTX-MKT-001 仍保持 Skill 1.0.0 / Agent r1'; break;
+    case 'release': requireCondition(s.evolution === 'evaluated', '候选尚未评估'); s.evolution = 'published'; detail = 'Talents 发布 Skill 1.1.0、Agent r2 版本'; break;
+    case 'adopt': requireCondition(s.evolution === 'published', '请先在 Talents 发布候选'); s.evolution = 'adopted'; s.adoptedSkill = '1.1.0'; s.adoptedAgent = 'r2'; detail = '供下一次作业采用；CTX-MKT-001 仍保持 Skill 1.0.0 / Agent r1'; break;
   }
   s.revision++;
   s.audit.push({ id: s.revision, at: new Date().toISOString(), role, system: ['candidate', 'evaluate', 'release'].includes(action) ? 'Talent' : 'Teams', action: actionLabels[action], detail, origin: 'simulated' });

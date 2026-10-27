@@ -100,12 +100,12 @@ export function taskSessionPayload(value: unknown): TalentTaskSessionPayload {
 }
 export const taskSessionPayloadDigest = (payload: TalentTaskSessionPayload) => createHash('sha256').update(JSON.stringify(taskSessionPayload(payload))).digest('hex');
 export function validateTaskIntakes(value: unknown): asserts value is TalentTaskIntake[] {
-  need(Array.isArray(value), 'Talent 会话收件清单损坏'); const keys = new Set<string>(), receiptIds = new Set<string>();
+  need(Array.isArray(value), '共享会话清单损坏'); const keys = new Set<string>(), receiptIds = new Set<string>();
   for (const record of value) {
-    need(record && typeof record === 'object', 'Talent 会话收件记录损坏'); const payload = taskSessionPayload(record.payload), receipt = record.receipt;
-    text(record.generation, '项目代次'); need(!keys.has(payload.idempotencyKey), 'Talent 会话收件幂等标识重复'); keys.add(payload.idempotencyKey);
-    need(receipt && typeof receipt === 'object', 'Talent 收件回执损坏'); text(receipt.id, '回执标识'); at(receipt.receivedAt, '收件时间'); need(!receiptIds.has(receipt.id), 'Talent 收件回执重复'); receiptIds.add(receipt.id);
-    need(receipt.projectId === payload.projectId && receipt.taskId === payload.taskId && receipt.payloadSha256 === taskSessionPayloadDigest(payload) && JSON.stringify(receipt.sessionIds) === JSON.stringify([...new Set(payload.sessions.map(item => item.sessionId))]), 'Talent 收件内容与回执不一致');
-    need(JSON.stringify(receipt.documentHashes ?? []) === JSON.stringify(payload.sessionDocuments?.map(({ sessionId, sha256 }) => ({ sessionId, sha256 })) ?? []), 'Talent 文档回执与内容不一致');
+    need(record && typeof record === 'object', '共享会话记录损坏'); const payload = taskSessionPayload(record.payload), receipt = record.receipt;
+    text(record.generation, '项目代次'); need(!keys.has(payload.idempotencyKey), '共享会话幂等标识重复'); keys.add(payload.idempotencyKey);
+    need(receipt && typeof receipt === 'object', '共享会话回执损坏'); text(receipt.id, '回执标识'); at(receipt.receivedAt, '收件时间'); need(!receiptIds.has(receipt.id), '共享会话回执重复'); receiptIds.add(receipt.id);
+    need(receipt.projectId === payload.projectId && receipt.taskId === payload.taskId && receipt.payloadSha256 === taskSessionPayloadDigest(payload) && JSON.stringify(receipt.sessionIds) === JSON.stringify([...new Set(payload.sessions.map(item => item.sessionId))]), '共享会话内容与回执不一致');
+    need(JSON.stringify(receipt.documentHashes ?? []) === JSON.stringify(payload.sessionDocuments?.map(({ sessionId, sha256 }) => ({ sessionId, sha256 })) ?? []), '共享会话文档回执与内容不一致');
   }
 }

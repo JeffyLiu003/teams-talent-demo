@@ -74,7 +74,7 @@ export async function collaborationContext(state: DemoState, data: Presentation,
   if (live) {
     try {
       talentInputs ??= await sharedTaskInputs(state, scope.projectId, live.id);
-      if(talentInputs.projectId!==scope.projectId||talentInputs.taskId!==live.id||!Array.isArray(talentInputs.skills)||!Array.isArray(talentInputs.knowledge.assets))throw new Error('Talent 输入范围或结构无效');
+      if(talentInputs.projectId!==scope.projectId||talentInputs.taskId!==live.id||!Array.isArray(talentInputs.skills)||!Array.isArray(talentInputs.knowledge.assets))throw new Error('Talents 输入范围或结构无效');
       knowledge={status:talentInputs.knowledge.assets.length?'available':'not-built',origin:talentOrigin,selectedVersion:talentInputs.knowledge.version??null,assets:talentInputs.knowledge.assets};
       skills=talentInputs.skills.map(item=>({id:item.id,scope:'project',version:item.version,sha256:item.sha256,contentSha256:item.contentSha256,path:null,content:item.content,files:[],availability:'teams-registered-package',loadedByAgent:false}));
     }catch(error){knowledge={status:'unavailable',origin:talentOrigin,selectedVersion:null,assets:[],error:(error as Error).message};skills=[];}
@@ -144,7 +144,7 @@ export async function collaborationWrite(store: Store, data: Presentation, body:
       const allowed = [...context.references.map(r => r.id), ...context.materials.map(m => m.id), ...context.skills.map(s => s.id), ...context.knowledge.assets.map((a: any) => a.id)];
       need(Array.isArray(p.readReferences) && p.readReferences.every((id: unknown) => typeof id === 'string' && allowed.includes(id)), 'readReferences 只能列出当前上下文内实际阅读的引用');
       const selected=deliveryRequirement(next,scope.projectId,scope.taskId);
-      if(selected&&scope.nodeId==='prepare'&&!selected.preparedAt){need(context.talentInputs && context.knowledge.status==='available'&&context.skills.length>0,'Talent知识与Skill尚未就绪',409);selected.talentInputsSnapshot=context.talentInputs;selected.preparedAt=at;selected.inputDigest=context.basisDigest;selected.nodes.prepare={status:'complete',updatedAt:at,summary:'iCode明确采用需求、知识与Skill输入'};selected.updatedAt=at;}
+      if(selected&&scope.nodeId==='prepare'&&!selected.preparedAt){need(context.talentInputs && context.knowledge.status==='available'&&context.skills.length>0,'Talents 知识与 Skill 尚未就绪',409);selected.talentInputsSnapshot=context.talentInputs;selected.preparedAt=at;selected.inputDigest=context.basisDigest;selected.nodes.prepare={status:'complete',updatedAt:at,summary:'iCode明确采用需求、知识与Skill输入'};selected.updatedAt=at;}
       adoptionId = randomUUID();
       ledger.adoptions.push({ ...scope, id: adoptionId, role: body.role, runId, sessionId, basisDigest: context.basisDigest, readReferences: [...new Set(p.readReferences as string[])], at, revision });
     } else {

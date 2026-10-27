@@ -64,7 +64,7 @@ try{
   };
   const cli=async(args:string[])=>JSON.parse((await promisify(execFile)(process.execPath,['scripts/teams-demo.mjs','--receipt-dir',join(dir,'cli-receipts'),...args],{env:{...process.env,DEMO_ORIGIN:origin}})).stdout);
   const nav=()=>page.locator('.framework-sidebar .nav-entry > a[aria-label]').evaluateAll(links=>links.map(a=>a.getAttribute('aria-label')).sort());
-  await visit('/teams#/home');assert.deepEqual(await nav(),['工作台','项目','团队','Agent 管理','资源市场','我的订阅','我的发布','企业连接','团队作业与追溯','开发会话轨迹','Talent'].sort());
+  await visit('/teams#/home');assert.deepEqual(await nav(),['工作台','项目','团队','Agent 管理','资源市场','我的订阅','我的发布','企业连接','团队作业与追溯','开发会话轨迹','Talents'].sort());
   const originalMetrics=await page.getByTestId('team-usage-metrics').innerText();
   await page.getByRole('combobox',{name:'筛选运营工具'}).click();await page.locator('.ant-select-item-option-content').getByText('OpenCode',{exact:true}).click();
   assert.notEqual(await page.getByTestId('team-usage-metrics').innerText(),originalMetrics);await visit('/teams#/home');
@@ -112,10 +112,10 @@ try{
   await page.getByRole('switch',{name:'启用代码 Review',exact:true}).waitFor();assert.deepEqual(await page.locator('.ant-drawer .ant-tabs-tab').allTextContents(),['质量与安全','模型与工具服务'],'Talent connection is no longer configured in Teams');
   await page.locator('.ant-drawer-close').click();await page.screenshot({path:output+'/teams-connections.png',fullPage:true});
   await visit('/teams#/organization?tab=quality');await page.getByRole('switch',{name:'启用代码 Review',exact:true}).waitFor();await page.locator('.ant-drawer-close').click();
-  await role('member');await page.getByText('此页面面向项目 Owner').waitFor();assert.deepEqual(await nav(),['工作台','项目','团队','Agent 管理','资源市场','我的订阅','我的发布','Talent'].sort());
+  await role('member');await page.getByText('此页面面向项目 Owner').waitFor();assert.deepEqual(await nav(),['工作台','项目','团队','Agent 管理','资源市场','我的订阅','我的发布','Talents'].sort());
   await visit('/teams#/team-work');await page.getByText('此页面面向项目 Owner').waitFor();
   await visit('/teams#/home');assert.equal(await page.getByTestId('team-usage-metrics').count(),0);await page.getByText('我的执行与反馈',{exact:true}).waitFor();await page.screenshot({path:output+'/teams-member-home.png',fullPage:true});
-  await page.locator('.framework-sidebar').getByRole('link',{name:'Talent',exact:true}).click();await page.waitForURL(url=>url.origin===talentOrigin);
+  await page.locator('.framework-sidebar').getByRole('link',{name:'Talents',exact:true}).click();await page.waitForURL(url=>url.origin===talentOrigin);
   let talentsUrl=new URL(page.url());assert.equal(talentsUrl.pathname,'/talents');assert.equal(talentsUrl.searchParams.get('role'),'member');assert.equal(talentsUrl.hash,'#/dev-knowledge?project=carddemo');
   await page.goBack();await page.getByRole('combobox',{name:'切换角色'}).waitFor();await role('owner');await visit('/teams#/projects?tab=content');
   await page.getByRole('button',{name:'项目资料',exact:true}).click();await page.getByRole('button',{name:'关联项目资产'}).click();await page.getByRole('tab',{name:'手工引用',exact:true}).click();await page.getByLabel('资产名称',{exact:true}).fill('白金卡返现补充规则');await page.getByLabel('来源地址或路径',{exact:true}).fill('demo://marketing/rules');
