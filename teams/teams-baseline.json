@@ -1,0 +1,274 @@
+{
+  "sourceRoot": "/__teams_demo_reference_not_shipped__/iCode-teams",
+  "commit": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+  "files": [
+    {
+      "source": "framework/client/ui/src/components/page-layout.tsx",
+      "target": "src/vendor/teams/components/page-layout.tsx",
+      "sha256": "11bf5c1dff5e221fc07e4c4199ca95b55934333cc9c387ee8081c46569c88f75",
+      "mode": "exact-copy",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "11bf5c1dff5e221fc07e4c4199ca95b55934333cc9c387ee8081c46569c88f75",
+      "targetSha256": "11bf5c1dff5e221fc07e4c4199ca95b55934333cc9c387ee8081c46569c88f75"
+    },
+    {
+      "source": "framework/client/ui/src/components/framework-sidebar.tsx",
+      "target": "src/vendor/teams/components/framework-sidebar.tsx",
+      "sha256": "5f6ee3ec9c90f9ff26f5473836fd357f454a0090ee4032c538cde03a3f581c11",
+      "mode": "exact-copy",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "5f6ee3ec9c90f9ff26f5473836fd357f454a0090ee4032c538cde03a3f581c11",
+      "targetSha256": "5f6ee3ec9c90f9ff26f5473836fd357f454a0090ee4032c538cde03a3f581c11"
+    },
+    {
+      "source": "framework/client/ui/src/theme.ts",
+      "target": "src/vendor/teams/theme.ts",
+      "sha256": "07fee0c185250d780769574b9c785b71ebc74452f433a32ffec4034d481c36e9",
+      "mode": "exact-copy",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "07fee0c185250d780769574b9c785b71ebc74452f433a32ffec4034d481c36e9",
+      "targetSha256": "07fee0c185250d780769574b9c785b71ebc74452f433a32ffec4034d481c36e9"
+    },
+    {
+      "source": "framework/client/ui/src/design-system.ts",
+      "target": "src/vendor/teams/design-system.ts",
+      "sha256": "7e9ec9570c7e17298ade311fb88b2969661a213613cfa26b5529e895fe928873",
+      "mode": "exact-copy",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "7e9ec9570c7e17298ade311fb88b2969661a213613cfa26b5529e895fe928873",
+      "targetSha256": "7e9ec9570c7e17298ade311fb88b2969661a213613cfa26b5529e895fe928873"
+    },
+    {
+      "source": "framework/client/ui/src/framework-styles.ts",
+      "target": "src/vendor/teams/framework-styles.ts",
+      "sha256": "f46c72eb76887b73afea956a66082a922b37bfa5cb28974742e2429e8cef920a",
+      "mode": "exact-copy",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "f46c72eb76887b73afea956a66082a922b37bfa5cb28974742e2429e8cef920a",
+      "targetSha256": "f46c72eb76887b73afea956a66082a922b37bfa5cb28974742e2429e8cef920a"
+    },
+    {
+      "source": "framework/client/ui/src/contracts/navigation.ts",
+      "target": "src/vendor/teams/contracts/navigation.ts",
+      "sha256": "a55343f8ceb367b572bf7cf9b2a18a570bd1c382f28f3129f2eefdfe4d3f3774",
+      "mode": "exact-copy",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "a55343f8ceb367b572bf7cf9b2a18a570bd1c382f28f3129f2eefdfe4d3f3774",
+      "targetSha256": "a55343f8ceb367b572bf7cf9b2a18a570bd1c382f28f3129f2eefdfe4d3f3774"
+    },
+    {
+      "source": "framework/client/ui/src/page-registry.ts",
+      "target": "src/vendor/teams/page-registry.ts",
+      "sha256": "d1693e1eb2d3a6f16f239ea839f56b97db02ff2210994c83bfe61e80d2342a90",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "d1693e1eb2d3a6f16f239ea839f56b97db02ff2210994c83bfe61e80d2342a90",
+      "targetSha256": "1126a7cdf7a1c14b4405ab0b22935f83d3c314a2695cd3655cd29e23a63c5c05",
+      "mode": "demo-contract-adapter",
+      "adaptation": "Reduced route/types adapter for the local demo; not an exact source copy."
+    },
+    {
+      "source": "business/domain/agent-resources/src/client/ui/index.ts",
+      "target": "src/vendor/teams/resources/catalog.tsx",
+      "sha256": "21bfc884621ef17ba5cdd4e8b0dfb9896a1e9b631ec431b576a91a42ddffe5e2",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "21bfc884621ef17ba5cdd4e8b0dfb9896a1e9b631ec431b576a91a42ddffe5e2",
+      "targetSha256": "625588c3fc9548f0983cfcf387075c4571a005aa9a29a898858e9e76bb9b9f9c",
+      "mode": "react-presentation-port",
+      "adaptation": "Ports resourceMeta, gridCard, listRow, card/renderLocal DOM hierarchy to React; demo commands are supplied by pages/resources.tsx."
+    },
+    {
+      "source": "business/domain/agent-resources/src/client/ui/index.ts",
+      "target": "src/vendor/teams/resources/resources.css",
+      "sha256": "21bfc884621ef17ba5cdd4e8b0dfb9896a1e9b631ec431b576a91a42ddffe5e2",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "21bfc884621ef17ba5cdd4e8b0dfb9896a1e9b631ec431b576a91a42ddffe5e2",
+      "targetSha256": "a874c64b55ccb635a2e908f6d4dee24f5f663e8aa241a2ecab177a4d008849d8",
+      "mode": "extracted-style-adapter",
+      "adaptation": "Extracted market CSS, scoped to demo class names; adds Ant Design inputs and responsive pagination styling."
+    },
+    {
+      "source": "business/foundation/team-groups/src/client/ui/index.ts",
+      "target": "src/pages/team.tsx",
+      "sha256": "be7fa9e81f5c640552cba3804e0a2cdcf509f2a3799f029877b744216080f461",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "be7fa9e81f5c640552cba3804e0a2cdcf509f2a3799f029877b744216080f461",
+      "targetSha256": "3a90f5f61f5906a98a24d3f61a4d85a8f8072f22d68aae59c1b223a31f2fcdf2",
+      "mode": "react-presentation-port",
+      "adaptation": "Ports the original group list and member detail layout. Local multi-team creation, scoped invitations and explicit project ownership use fixed Owner/member identities; imported Teams snapshots remain read-only."
+    },
+    {
+      "source": "framework/client/ui/src/styles.ts",
+      "target": "src/vendor/teams/team-groups.css",
+      "sha256": "5d970bb26160a51c2907f2111c9dd6fa352976b1f5994068190561da04e0b48e",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "5d970bb26160a51c2907f2111c9dd6fa352976b1f5994068190561da04e0b48e",
+      "targetSha256": "4ec206fb65753fe266a4aa08724d05e9d898c86ea95e89b9a3c04a0cbcc130b4",
+      "mode": "extracted-style-adapter",
+      "adaptation": "Copies group manager CSS with demo scoped integration rules."
+    },
+    {
+      "source": "framework/client/ui/src/views/framework-preview.tsx",
+      "target": "src/components/teams-reuse.tsx",
+      "sha256": "e5e76236926fe81061f61ee7393ffa1b8da4b25cf6890dac97d95348711a1b0b",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "e5e76236926fe81061f61ee7393ffa1b8da4b25cf6890dac97d95348711a1b0b",
+      "targetSha256": "9e412f4ba9cd988240b20e71aaf2480effcf6ff77d2e26b9327a095e6b7c9eba",
+      "mode": "react-presentation-port",
+      "adaptation": "Ports WorkRow and quick-entry-grid; TeamsPageIntro is a demo integration helper."
+    },
+    {
+      "source": "framework/client/ui/src/views/capability-state.tsx",
+      "target": "src/pages/organization.tsx",
+      "sha256": "fb4fcbdf295d2eae81965a51cdf2faae54f46c375412fe5de4606f92fb405716",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "fb4fcbdf295d2eae81965a51cdf2faae54f46c375412fe5de4606f92fb405716",
+      "targetSha256": "953a3fa2bb1359a2e25c3f21ccab3f76cff794d6bbf7e42d37125140793c9a1f",
+      "mode": "entry-reference-and-demo-extension",
+      "adaptation": "Upstream connections is a pending capability placeholder. External platform cards reuse the existing resource-card/header/meta/footer structure, with independent configuration and status. The read-only source drawer preserves local references. Local official brand assets identify GitHub, Jira, ZenTao, Confluence and TestRail. Brand provenance is recorded in src/assets/enterprise-brands/sources.json.",
+      "supportingSources": [
+        {
+          "source": "business/domain/agent-resources/src/client/ui/index.ts",
+          "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+          "sourceSha256": "21bfc884621ef17ba5cdd4e8b0dfb9896a1e9b631ec431b576a91a42ddffe5e2"
+        },
+        {
+          "source": "framework/client/ui/src/framework-styles.ts",
+          "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+          "sourceSha256": "f46c72eb76887b73afea956a66082a922b37bfa5cb28974742e2429e8cef920a"
+        }
+      ]
+    },
+    {
+      "source": "business/domain/agent-management/src/client/ui/index.ts",
+      "target": "src/vendor/teams/agent-management/index.ts",
+      "sha256": "f51a56dd7cf8344d6dbbf7640651b7baceae994bc337e8a0e9b13c1f43d29677",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "f51a56dd7cf8344d6dbbf7640651b7baceae994bc337e8a0e9b13c1f43d29677",
+      "targetSha256": "db9339b28c6f449f982a946756eda2a91f25de68604b2a512d9db8d26d376b5b",
+      "mode": "adapted-copy",
+      "adaptation": "Adds source header, local imports, injectable loadModule/configurationOwnerLabel; omits Cordis registration exports. Original HTML templates and inline CSS retained."
+    },
+    {
+      "source": "business/domain/agent-management/src/client/ui/configuration-editor.ts",
+      "target": "src/vendor/teams/agent-management/configuration-editor.ts",
+      "sha256": "74b4ecc8eaa080835f6f63b91db9a44f041b24bc2b04e0975e9c4df678ef3334",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "74b4ecc8eaa080835f6f63b91db9a44f041b24bc2b04e0975e9c4df678ef3334",
+      "targetSha256": "b816821279d46b5d9230c278b0506bcca334aa44038f5bcc8676f93a40420e65",
+      "mode": "adapted-copy",
+      "adaptation": "Adds source header/local imports and product-facing read-only configuration wording. HTML templates and inline CSS retained."
+    },
+    {
+      "source": "business/domain/agent-management/src/client/ui/configuration-controls.ts",
+      "target": "src/vendor/teams/agent-management/configuration-controls.ts",
+      "sha256": "4f4da5143a0036a0d90ba17deb6741b88fafb18accf5d1911a35ad1990f4711c",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "4f4da5143a0036a0d90ba17deb6741b88fafb18accf5d1911a35ad1990f4711c",
+      "targetSha256": "9b1d2fd344f5d4fd22793aa794fc95e901ba8d5fe1d9717ded8a3dea17a598ef",
+      "mode": "import-adapted-copy",
+      "adaptation": "Source header and local imports only."
+    },
+    {
+      "source": "business/domain/agent-management/src/client/ui/configuration-library.ts",
+      "target": "src/vendor/teams/agent-management/configuration-library.ts",
+      "sha256": "b4c58219e452556c21adec4093a5e8ac12f9e3351850dbeb1c3f9aa1e817b53d",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "b4c58219e452556c21adec4093a5e8ac12f9e3351850dbeb1c3f9aa1e817b53d",
+      "targetSha256": "84c633d9519d7c9f2adc92254186c0f01f8ac438147e8a1460ecc07e341a87d6",
+      "mode": "import-adapted-copy",
+      "adaptation": "Source header and local imports only."
+    },
+    {
+      "source": "business/shared/agent-protocol/configuration-contract.ts",
+      "target": "src/vendor/teams/agent-management/configuration-contract.ts",
+      "sha256": "cac01959cbadeb0ad6bd7bc90012f7aa239d69d5acbd8d8c9c05d506dd492fef",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "cac01959cbadeb0ad6bd7bc90012f7aa239d69d5acbd8d8c9c05d506dd492fef",
+      "targetSha256": "e8192d09e0fa62381c5c59fe14c597da2d2b93bce710720107a5e4bfdcea9fb8",
+      "mode": "header-adapted-copy",
+      "adaptation": "Source body retained; source header added."
+    },
+    {
+      "source": "business/shared/agent-ui/contract.ts",
+      "target": "src/vendor/teams/agent-management/agent-ui-contract.ts",
+      "sha256": "2de833a1e9d984fec654ffc2249f13cce3fb5ccc06b697dc992f776cc0abd724",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "2de833a1e9d984fec654ffc2249f13cce3fb5ccc06b697dc992f776cc0abd724",
+      "targetSha256": "8abd50c2c63c79d6e59f248d3669545b33d3374af4672191d8187013c305f47a",
+      "mode": "import-adapted-copy",
+      "adaptation": "Source header and local imports only."
+    },
+    {
+      "source": "framework/client/ui/src/contracts/ui.ts",
+      "target": "src/vendor/teams/agent-management/ui-contract.ts",
+      "sha256": "82682f925e528fa0093ec3d60b4cc4dd08fb42c89b3bf513029f4a5151c32564",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "82682f925e528fa0093ec3d60b4cc4dd08fb42c89b3bf513029f4a5151c32564",
+      "targetSha256": "8cb0f97872c1b466f0a20906dbb8e54bc476292ff17ad6b766ff801018c08b6e",
+      "mode": "header-adapted-copy",
+      "adaptation": "Source body retained; source header added; dependent contracts colocated."
+    },
+    {
+      "source": "framework/client/ui/src/contracts/browser-observation.ts",
+      "target": "src/vendor/teams/agent-management/browser-observation.ts",
+      "sha256": "042bf980b1058d3a1e24cf6331456a57bf96fc7df5f0124123a965fd1bd443b5",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "042bf980b1058d3a1e24cf6331456a57bf96fc7df5f0124123a965fd1bd443b5",
+      "targetSha256": "4434a30f33d68799323501896db3123eb6f50ab312b899c1c94699e3a6f7c210",
+      "mode": "header-adapted-copy",
+      "adaptation": "Source body retained; source header added."
+    },
+    {
+      "source": "framework/client/ui/src/contracts/notifications.ts",
+      "target": "src/vendor/teams/agent-management/notifications.ts",
+      "sha256": "d8fcbe140200b1f658dd6ed35384ec6e378474bb7619408204495ed6fd3c03f9",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "d8fcbe140200b1f658dd6ed35384ec6e378474bb7619408204495ed6fd3c03f9",
+      "targetSha256": "c1661cc1b3e9feb90e3dedc08b9ae90a2f475e8f5dfa6c2d5cb8782860e8bd09",
+      "mode": "header-adapted-copy",
+      "adaptation": "Source body retained; source header added."
+    },
+    {
+      "source": "business/domain/agent-resources/src/client/ui/index.ts",
+      "target": "src/enterprise-connections.css",
+      "sha256": "21bfc884621ef17ba5cdd4e8b0dfb9896a1e9b631ec431b576a91a42ddffe5e2",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "21bfc884621ef17ba5cdd4e8b0dfb9896a1e9b631ec431b576a91a42ddffe5e2",
+      "targetSha256": "488911dc8e78b85f3b454af820e5fc8b317c9acb9bb4a28f1d647ec22671a55f",
+      "mode": "style-adapter",
+      "adaptation": "Scoped responsive connection plugin cards based on existing resource grid/card hierarchy and shared Teams design tokens."
+    },
+    {
+      "source": "business/domain/team-collaboration/src/client/ui/project-real-work.tsx",
+      "target": "src/vendor/teams/work/confirm-work.tsx",
+      "sha256": "28ee7e1d9aba4fe3d9bff25ca412e24b5a6a855b8cbb25c49913139fb5bcd7f5",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "28ee7e1d9aba4fe3d9bff25ca412e24b5a6a855b8cbb25c49913139fb5bcd7f5",
+      "targetSha256": "71b051936a504d8ae88cbcf63aa666808e2a6c0dae35ee707afd472c62a4fa4c",
+      "mode": "extracted-component-adapter",
+      "adaptation": "Extracted ConfirmWork fixed request identity, pending guard, original-request retry and presentation. Host-specific startBoundWork/UiMountContext replaced with typed demo native adapter; children provide scoped project context and verified directory/session choices. No claim of production native hook or work association protocol."
+    },
+    {
+      "source": "business/domain/team-collaboration/src/client/ui/project-real-graph.tsx",
+      "target": "src/components/task-delivery-flow.tsx",
+      "sha256": "8f9685019c3f7b66a210d9bfe400c5e47f943d14e0046dc26fe3faeb56b4c5c9",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "8f9685019c3f7b66a210d9bfe400c5e47f943d14e0046dc26fe3faeb56b4c5c9",
+      "targetSha256": "546fde27c4f48d60f81c36c281bd66ffe628e7f2006d0630ff0f3291842da50d",
+      "mode": "layout-adapter",
+      "adaptation": "Adapts RealGraphCanvas Antd Button header/status/participant hierarchy, compact 124–140px by 94px cards, 6px corners and muted thin arrows. Uses local task state and measured edge anchors; adds scoped automatic knowledge/collection nodes and receipts. Not an exact copy or the original graph engine."
+    },
+    {
+      "source": "business/domain/team-collaboration/src/client/ui/project-real-graph.tsx",
+      "target": "src/task-delivery-flow.css",
+      "sha256": "8f9685019c3f7b66a210d9bfe400c5e47f943d14e0046dc26fe3faeb56b4c5c9",
+      "sourceRevision": "d3deae7ea4e47026925ccbd06ab6eec03f4648c7",
+      "sourceSha256": "8f9685019c3f7b66a210d9bfe400c5e47f943d14e0046dc26fe3faeb56b4c5c9",
+      "targetSha256": "77e8d9da64d0fc6c5f1e18a6710bfd558d8cd0aae114ae57045bac8aae6bf2d9",
+      "mode": "layout-adapter",
+      "adaptation": "Adapts RealGraphCanvas Antd Button header/status/participant hierarchy, compact 124–140px by 94px cards, 6px corners and muted thin arrows. Uses local task state and measured edge anchors; adds scoped automatic knowledge/collection nodes and receipts. Not an exact copy or the original graph engine."
+    }
+  ],
+  "schemaVersion": 2,
+  "hashConvention": "sha256 and sourceSha256 identify upstream source bytes; targetSha256 identifies this demo target. Exact copies must match both."
+}

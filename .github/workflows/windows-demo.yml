@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 20
     defaults:
       run:
-        working-directory: demo
+        working-directory: teams
         shell: pwsh
     steps:
       - uses: actions/checkout@v4
@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: '24.14.1'
           cache: npm
-          cache-dependency-path: demo/package-lock.json
+          cache-dependency-path: teams/package-lock.json
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
       - run: npm test
@@ -39,6 +39,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-terminal-runtime
-          path: demo/test-results/windows-terminal-runtime.json
+          path: teams/test-results/windows-terminal-runtime.json
           if-no-files-found: warn
           retention-days: 7
