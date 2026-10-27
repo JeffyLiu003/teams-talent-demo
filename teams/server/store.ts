@@ -1,3 +1,4 @@
+import { validateProjectIssues } from '../src/project-issues.js';
 import { validateDeliveryRequirements } from '../src/delivery-requirements.js';
 import { migrateMainDelivery } from './delivery-migration.js';
 import { validateTeams } from '../src/teams-domain.js';
@@ -45,6 +46,7 @@ export class Store {
     validateGenericTasks(this.state);
     validateTaskAutomation(this.state);
     validateDeliveryRequirements(this.state);
+    validateProjectIssues(this.state);
     normalizeLegacyTaskAssignment(this.state);
     if(!this.state.workspace.deliveryRequirements?.some(task=>task.projectId==='carddemo'&&task.id==='DEMO-MKT-001')){
       const original=await readFile(this.path,'utf8'),backup=this.path+'.pre-unified-delivery.json';

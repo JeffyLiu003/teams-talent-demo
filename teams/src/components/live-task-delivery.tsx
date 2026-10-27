@@ -1,3 +1,4 @@
+import { TaskPreparationProgress, preparationHint, preparationStatusLabel, preparationReady } from './task-preparation-progress.js';
 import {useTaskNodeInputs} from './use-task-node-inputs.js';
 import {taskExecutableBy} from '../task-visibility.js';
 import { useState } from 'react';
@@ -7,14 +8,14 @@ import { TaskNodeArtifacts, TaskCompletionCriteria, nodeArtifactSummary } from '
 import { useDemo } from '../context.js';
 import { type DeliveryRequirement, type RequirementNode } from '../delivery-requirements.js';
 import { deliveryRequirementAction } from '../api.js';
-import { collectTaskSessions, taskAutomation } from '../task-automation.js';
+import { collectTaskSessions, taskAutomation, taskNodeKnowledge } from '../task-automation.js';
 import { projectMembers } from '../teams-domain.js';
 import { taskVisibleTo } from '../task-visibility.js';
-import { TaskDeliveryFlow } from './task-delivery-flow.js';
+import { TaskDeliveryFlow, knowledgeLabels, nodeStatusTones, preparationStatusTones } from './task-delivery-flow.js';
 import { CollaborationProgress } from './collaboration-progress.js';
 import { TaskSessionActivity } from './task-session-activity.js';
 import { TaskSessions } from './task-sessions.js';
-import { DeliveryTaskSidebar } from './delivery-task-sidebar.js';
+import { DeliveryTaskSidebar, type DeliveryTaskListItem } from './delivery-task-sidebar.js';
 import { TaskDeliveryLayout, deliveryNodeLabels } from './task-delivery-layout.js';
 export { deliveryNodeLabels } from './task-delivery-layout.js';
 
@@ -22,13 +23,17 @@ const statusLabels = { pending: '待开始', running: '进行中', blocked: '阻
 const stamp = (at?: string | null) => at ? new Date(at).toLocaleString('zh-CN') : '尚无执行时间';
 const firstSentence = (text: string) => text.split(/(?<=。)|\n/).find(part => part.trim())?.trim() ?? '';
 
-export function LiveTaskDelivery({ task, node }: { task: DeliveryRequirement; node: RequirementNode }) {
+export function LiveTaskDelivery({ task, node, sidebarItems }: { task: DeliveryRequirement; node: RequirementNode; sidebarItems?: readonly DeliveryTaskListItem[] }) {
   const { state, data, role, navigate, receiveState, run, showText } = useDemo();
   const [busy, setBusy] = useState(false), [accepting, setAccepting] = useState(false), [returning, setReturning] = useState(false), [reason, setReason] = useState('');
   const scope = { projectId: task.projectId, taskId: task.id };
   const record = taskAutomation(state, scope), member = projectMembers(state, task.projectId).find(item => item.id === task.assigneeId);
   const nodeState = task.nodes[node];
-  const inputsRead=useTaskNodeInputs(task.projectId,task.id,node);
+  const preparation = record?.preparation;
+  const nodeKnowledge = node === 'accept' ? undefined : taskNodeKnowledge(record, node);
+  const awaitingKnowledge = !!nodeKnowledge && nodeKnowledge.status !== 'ready';
+  const preparingNode = node === 'prepare' && !!preparation && nodeState.status === 'pending';
+  const inputsRead=useTaskNodeInputs(task.projectId,task.id,node,!awaitingKnowledge);
   const view = taskNodeView(state, task, node, data,inputsRead.value);
   const events = (state.workspace.collaboration?.events ?? []).filter(event => event.projectId === task.projectId && event.taskId === task.id && event.nodeId === node);
   const adoptions = (state.workspace.collaboration?.adoptions ?? []).filter(item => item.projectId === task.projectId && item.taskId === task.id && item.nodeId === node);
@@ -40,7 +45,7 @@ export function LiveTaskDelivery({ task, node }: { task: DeliveryRequirement; no
   const knowledge=(inputsRead.value?.knowledge.assets??[]).map(asset=>({title:asset.title,version:asset.version??'未标注'}));
   const skills=(inputsRead.value?.skills??[]).map(skill=>({title:skill.name,version:skill.version}));
   const upNodes: RequirementNode[] = node === 'prepare' ? [] : node === 'develop' ? ['prepare'] : node === 'verify' ? ['develop'] : ['develop', 'verify'];
-  const inputState=inputsRead.pending?'正在读取节点输入':inputsRead.error?'节点输入读取未完成':inputsRead.value?.selection.status==='not-configured'?'此节点未配置输入':inputsRead.value?.selection.basis==='adopted-node'?'本节点已明确采用':inputsRead.value?.selection.basis==='historical-subset'?'历史采用的相关部分':'当前节点建议 · 待明确采用';
+  const inputState=awaitingKnowledge ? knowledgeLabels[nodeKnowledge.status] : inputsRead.pending?'正在读取节点输入':inputsRead.error?'节点输入读取未完成':inputsRead.value?.selection.status==='not-configured'?'此节点未配置输入':inputsRead.value?.selection.basis==='adopted-node'?'本节点已明确采用':inputsRead.value?.selection.basis==='historical-subset'?'历史采用的相关部分':'当前节点建议 · 待明确采用';
   const go = (id: string) => navigate('projects?' + new URLSearchParams({ project: task.projectId, tab: 'delivery', task: task.id, node: id }));
   const act = async (action: string) => {
     if (busy) return;
@@ -53,7 +58,7 @@ export function LiveTaskDelivery({ task, node }: { task: DeliveryRequirement; no
   if (!taskVisibleTo(role, task.assigneeId)) return <Alert type="info" title="此任务不在当前成员范围" />;
   const detail = (title: string, content: string) => showText(task.title + ' · ' + title, content);
   const resultHint = node === 'prepare'
-    ? task.preparedAt ? '输入已明确采用，后续开发使用本次冻结版本。' : '等待交付人在 iCode 读取并确认采用本次输入。'
+    ? task.preparedAt ? '输入已明确采用，后续开发使用本次冻结版本。' : preparationReady(preparation) ? '会话已读取任务资料，等待交付人确认采用并形成澄清成果。' : '等待交付人在 iCode 读取并确认采用本次输入。'
     : node === 'accept'
       ? task.stage === 'accepted' ? 'Owner 已确认通过需求验收。' : task.stage === 'awaiting-acceptance' ? '开发与验证成果已提交，等待 Owner 确认。' : task.stage === 'returned' ? 'Owner 已退回，等待补充后重新提交。' : '等待开发与验证完成后提交验收。'
       : result ? nodeState.status === 'complete' ? '本节点成果已回传，可查看成果引用与完整记录。' : '已有成果回传；当前处理状态以上方进度为准。' : '尚未收到本节点的成果提交。';
@@ -65,21 +70,22 @@ export function LiveTaskDelivery({ task, node }: { task: DeliveryRequirement; no
     {upNodes.map(id => <div key={id}><strong>{deliveryNodeLabels[id]} · {statusLabels[task.nodes[id].status]}</strong><p className="task-node-fulltext">{task.nodes[id].summary || '尚无上游结果。'}</p></div>)}
   </div>;
   return <TaskDeliveryLayout projectId={task.projectId} taskId={task.id} title={task.title} owner={member?.name ?? '待分配'} node={node} nodeOwner={node === 'accept' ? '确认人 · 林悦' : '交付人 · ' + (member?.name ?? '待分配')} contentKey={task.projectId + ':' + task.id + ':' + node + ':' + role}
-    sidebar={<DeliveryTaskSidebar projectId={task.projectId} selectedTaskId={task.id} />}
-    flow={<TaskDeliveryFlow scope={scope} selected={node} onSelect={go} nodeInputs={inputsRead.value} nodes={(Object.keys(deliveryNodeLabels) as RequirementNode[]).map(id => ({ id, label: deliveryNodeLabels[id], role: id === 'accept' ? 'Owner' : member?.name ?? '待分配', description: '', status: task.nodes[id].status === 'complete' && task.legacyBasis && !hasCurrentBasis(id) ? '历史完成' : statusLabels[task.nodes[id].status], complete: task.nodes[id].status === 'complete' && !(task.legacyBasis && !hasCurrentBasis(id)), summary: nodeArtifactSummary(taskNodeView(state, task, id, data)) }))} />}
+    sidebar={<DeliveryTaskSidebar projectId={task.projectId} selectedTaskId={task.id} items={sidebarItems} />}
+    flow={<TaskDeliveryFlow scope={scope} selected={node} onSelect={go} nodeInputs={inputsRead.value} nodes={(Object.keys(deliveryNodeLabels) as RequirementNode[]).map(id => ({ id, label: deliveryNodeLabels[id], role: id === 'accept' ? 'Owner' : member?.name ?? '待分配', description: '', statusTone: id === 'prepare' && preparation && task.nodes[id].status === 'pending' ? preparation.status === 'ready' && !preparationReady(preparation) ? 'processing' : preparationStatusTones[preparation.status] : nodeStatusTones[task.nodes[id].status], status: id === 'prepare' && preparation && task.nodes[id].status === 'pending' ? preparationStatusLabel(preparation) : task.nodes[id].status === 'complete' && task.legacyBasis && !hasCurrentBasis(id) ? '历史完成' : statusLabels[task.nodes[id].status], running: task.nodes[id].status === 'running' || id === 'prepare' && preparation?.status === 'preparing-session', complete: task.nodes[id].status === 'complete' && !(task.legacyBasis && !hasCurrentBasis(id)), summary: nodeArtifactSummary(taskNodeView(state, task, id, data)) }))} />}
     sections={{ input: { action: <Tag>{inputState}</Tag>, content: <>
-          <p className="task-node-requirement">{firstSentence(task.description)}</p>
+          <p className="task-node-requirement">{awaitingKnowledge ? task.description : firstSentence(task.description)}</p>
+          {awaitingKnowledge ? <><p className="muted">{nodeKnowledge.status === 'waiting-upstream' ? node === 'develop' ? 'PRD 确认后自动获取开发知识与 Skill。' : '开发成果提交后自动获取测试知识与 Skill。' : nodeKnowledge.status === 'running' ? '正在获取本节点相关知识与 Skill，完成后自动显示。' : nodeKnowledge.status === 'failed' ? '知识获取未完成，可在下方对应知识节点查看原因。' : '等待自动获取本节点相关知识与 Skill。'}</p>{node !== 'prepare' && <TaskNodeArtifacts items={view.inputs.filter(item => item.references.some(reference => !!reference.sourceNode))} onSource={go} />}</> : <>
           {inputsRead.error&&<Alert type="warning" title="Talent 节点输入读取未完成" description={inputsRead.error} action={<Button onClick={inputsRead.refresh}>重新获取</Button>}/>}
           {!inputsRead.pending&&<Space><span className="muted">{inputsRead.value?.selection.note}</span><Button type="link" size="small" onClick={inputsRead.refresh}>重新获取节点输入</Button></Space>}
           <TaskNodeArtifacts items={view.inputs} onSource={go} />
           <div className="task-node-input-summary"><span>知识 {knowledge.length} 项</span><span>当前节点 Skill {skills.length} 项</span>{upNodes.map(id => <span key={id}>{deliveryNodeLabels[id]}：{statusLabels[task.nodes[id].status]}</span>)}</div>
-          {!task.assigneeId && <Alert type="info" title="需求待分配" description="请先在任务管理选择交付人，再开始需求澄清。" action={<Button size="small" onClick={() => navigate('projects?' + new URLSearchParams({ project: task.projectId, tab: 'management', task: task.id }))}>进入任务管理</Button>} />}
-          <Collapse ghost size="small" items={[{ key: 'inputs', label: '查看需求、采用版本与上游结果', children: inputDetails }]} />
-        </> }, execution: { action: <Tag color={nodeState.status === 'complete' && !legacyNode ? 'green' : nodeState.status === 'blocked' ? 'orange' : undefined}>{legacyNode && nodeState.status === 'complete' ? '历史完成' : statusLabels[nodeState.status]}</Tag>, content: <>
-          <div className="task-node-execution-summary"><span>{stamp(nodeState.updatedAt)}</span><span>{events.length} 条进度记录</span>{sessions.length > 0 && <span>{sessions.length} 个关联会话</span>}</div>
-          <p>{node === 'accept' ? '验收结论由 Owner 确认。' : nodeState.status === 'pending' ? '使用顶部 iCode 作业入口开始工作，执行进度由会话回传。' : nodeState.status === 'blocked' ? '当前节点存在待处理事项，请查看进度与证据记录。' : nodeState.status === 'complete' ? legacyNode ? '保留历史完成记录；本轮执行以 CLI 回传为准。' : '当前节点已完成，执行依据可按需查看。' : '当前节点正在执行，按里程碑回传进展。'}</p>
+          {!task.assigneeId && <Alert type="info" title="需求待分配" description="请先在任务管理选择交付人，再开始需求澄清。" action={<Button size="small" onClick={() => navigate('projects?' + new URLSearchParams({ project: task.projectId, tab: 'management', category: 'requirements', item: (task.projectId === 'carddemo' && task.id === 'DEMO-MKT-001' ? 'requirements:' : 'teams-task:') + task.projectId + ':' + task.id }))}>进入任务管理</Button>} />}
+          <Collapse ghost size="small" items={[{ key: 'inputs', label: '查看需求、采用版本与上游结果', children: inputDetails }]} /></>}
+        </> }, execution: { action: <Tag color={nodeState.status === 'complete' && !legacyNode ? 'green' : nodeState.status === 'blocked' ? 'orange' : undefined}>{preparingNode ? preparationStatusLabel(preparation!) : legacyNode && nodeState.status === 'complete' ? '历史完成' : statusLabels[nodeState.status]}</Tag>, content: <>
+          <div className="task-node-execution-summary"><span>{stamp(preparingNode ? preparation?.updatedAt : nodeState.updatedAt)}</span><span>{events.length} 条工作回传</span>{node === 'prepare' && preparation && <span>{preparation.progress.length} 条准备记录</span>}{sessions.length > 0 && <span>{sessions.length} 个关联会话</span>}</div>
+          <p>{preparingNode ? preparationHint(preparation!) : node === 'accept' ? '验收结论由 Owner 确认。' : nodeState.status === 'pending' ? '使用顶部 iCode 作业入口开始工作，执行进度由会话回传。' : nodeState.status === 'blocked' ? '当前节点存在待处理事项，请查看进度与证据记录。' : nodeState.status === 'complete' ? legacyNode ? '保留历史完成记录；本轮执行以 CLI 回传为准。' : '当前节点已完成，执行依据可按需查看。' : '当前节点正在执行，按里程碑回传进展。'}</p>
           {legacyNode && <p className="muted">历史迁移记录，未记为本次 iCode 执行。</p>}
-          <section className="task-process-progress" aria-label="任务进展"><h3>任务进展</h3><CollaborationProgress {...scope} nodeId={node} embedded /></section>
+          <section className="task-process-progress" aria-label="任务进展"><h3>任务进展</h3>{node === 'prepare' && <TaskPreparationProgress key={preparation?.id + ':' + role} scope={scope} />}<CollaborationProgress {...scope} nodeId={node} embedded /></section>
           <TaskSessionActivity key={task.id + ':' + node + ':' + role} {...scope} nodeId={node} />
           {(node === 'develop' || node === 'verify' || node === 'accept') && <Collapse ghost size="small" items={[{ key: 'session-links', label: '查看会话关联管理', children: <TaskSessions key={task.id + ':' + node} scope={scope} node={node === 'accept' ? undefined : node} readonly={node === 'accept'} /> }]} />}
         </> }, result: { content: <>

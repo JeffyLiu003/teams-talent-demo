@@ -72,7 +72,7 @@ export const applySkillApplication = (role: Role, input: import('./skill-applica
 
 export const getResourceContent = (role: Role, scope: {resourceId:string;version:string;sha256:string}) => tracedJson<{version:string;sha256:string;contentSha256:string;content:string}>('teams', '/api/resource-content?' + new URLSearchParams({ role, ...scope }));
 
-export const triggerTaskAutomation = (role: Role, scope: import('./task-automation.js').TaskScope, step: 'knowledge' | 'collection', retry = false) => tracedJson<DemoState>('teams', '/api/task-automation', { method: 'POST', body: JSON.stringify({ role, ...scope, step, retry }) });
+export const triggerTaskAutomation = (role: Role, scope: import('./task-automation.js').TaskScope, step: 'knowledge' | 'collection' | 'preparation' | 'node-knowledge', retry = false, nodeId?: 'prepare' | 'develop' | 'verify') => tracedJson<DemoState>('teams', '/api/task-automation', { method: 'POST', body: JSON.stringify({ role, ...scope, step, retry, ...(nodeId ? { nodeId } : {}) }) });
 
 export const deliveryRequirementAction=(state:DemoState,role:Role,input:Record<string,unknown>)=>tracedJson<DemoState>('teams','/api/delivery-requirements',{method:'POST',body:JSON.stringify({revision:state.revision,role,...input})});
 

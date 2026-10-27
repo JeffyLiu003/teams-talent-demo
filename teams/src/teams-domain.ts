@@ -16,7 +16,8 @@ export function projectTeam(state: DemoState, projectId: string): TeamRecord {
   if (projectId === 'carddemo') return findTeam(state, state.workspace.projectTeamId ?? defaultTeamId);
   const project = state.workspace.projects?.find(item => item.id === projectId); need(project, '该项目没有可修改的本地团队归属'); return findTeam(state, project.teamId);
 }
-export const projectMembers = (state: DemoState, projectId: string) => projectTeam(state, projectId).members;
+/** New local work in the imported project uses local identities; source A/B/C remain unmodified. */
+export const projectMembers = (state: DemoState, projectId: string) => projectId === 'teams' ? state.workspace.team.members.filter(member => member.id === 'owner' || member.id === 'member') : projectTeam(state, projectId).members;
 export const visibleTeams = (state: DemoState, role: Role) => allTeams(state).filter(team => team.members.some(member => member.id === role && member.status === 'active'));
 export function requireTeamOwner(state: DemoState, role: Role, teamId: string) { const team = findTeam(state, teamId); need(role === 'owner' && team.members.some(member => member.id === role && member.role === 'owner' && member.status === 'active'), '当前角色无权管理此团队', 403); return team; }
 export function teamProjects(state: DemoState) {
@@ -24,6 +25,7 @@ export function teamProjects(state: DemoState) {
 }
 function assignedIds(state: DemoState, projectId: string) {
   const ids = (state.workspace.genericTasks ?? []).filter(task => task.projectId === projectId && task.assigneeId).map(task => task.assigneeId!);
+  ids.push(...(state.workspace.projectIssues??[]).filter(issue=>issue.projectId===projectId&&issue.assigneeId).map(issue=>issue.assigneeId));
   ids.push(...(state.workspace.deliveryRequirements ?? []).filter(task => task.projectId === projectId && task.assigneeId).map(task => task.assigneeId));
   if (projectId === 'carddemo' && state.assigned && !state.workspace.deliveryRequirements?.some(task=>task.projectId===projectId&&task.id==='DEMO-MKT-001')) ids.push(state.assigneeId === undefined ? 'member' : state.assigneeId!);
   return new Set(ids);

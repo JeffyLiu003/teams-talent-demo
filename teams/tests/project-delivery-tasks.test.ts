@@ -4,12 +4,22 @@ import { readFile } from 'node:fs/promises';
 import { initialState } from '../src/domain.js';
 import { updateWorkspace } from '../src/workspace.js';
 import { createDeliveryRequirement } from '../src/delivery-requirements.js';
-import { preferredDeliveryTask, projectDeliveryTasks } from '../src/project-delivery-tasks.js';
+import { preferredDeliveryTask, projectDeliveryTasks, orderDeliveryTasks } from '../src/project-delivery-tasks.js';
 import { projectOverview } from '../src/project-overview.js';
 
 const data = { ...JSON.parse(await readFile('fixtures/presentation.json', 'utf8')), teamsProject: JSON.parse(await readFile('fixtures/teams-project.json', 'utf8')) };
 const at = '2026-10-27T00:00:00Z';
 const add = (state: ReturnType<typeof initialState>, projectId: string, id: string) => createDeliveryRequirement(state, 'owner', { projectId, id, title: id + ' 交付需求', description: '独立项目范围', assigneeId: 'member', skillIds: ['dev-frontend-ui'] }, at);
+
+test('delivery display orders each actor group by createdAt only and leaves unknown dates last without changing selection or source data',()=>{
+ const rows=[{id:'OLD',assigneeId:'member',createdAt:'2026-10-26T00:00:00Z',updatedAt:'2027-01-01T00:00:00Z'},{id:'T105',assigneeId:null},{id:'OTHER-NEW',assigneeId:'owner',createdAt:'2026-10-28T01:00:00Z'},{id:'NEW',assigneeId:'member',createdAt:'2026-10-28T00:00:00Z'},{id:'T104',assigneeId:null},{id:'INVALID',assigneeId:null,createdAt:'not-a-date'}];
+ const before=JSON.stringify(rows),selected=rows[0];
+ const ordered=orderDeliveryTasks(rows);
+ assert.deepEqual(ordered.filter(row=>row.assigneeId==='member').map(row=>row.id),['NEW','OLD']);
+ assert.deepEqual(ordered.filter(row=>row.assigneeId!=='member').map(row=>row.id),['OTHER-NEW','INVALID','T104','T105']);
+ rows[0].updatedAt='2028-01-01T00:00:00Z';assert.deepEqual(orderDeliveryTasks(rows).map(row=>row.id),ordered.map(row=>row.id));assert.equal(ordered.find(row=>row.id===selected.id),selected);
+ rows[0].updatedAt='2027-01-01T00:00:00Z';assert.equal(JSON.stringify(rows),before);
+});
 
 test('delivery selector and management share actual task identity, owner, status and routes as records are added', () => {
   const state = initialState();

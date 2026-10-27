@@ -43,14 +43,18 @@ try {
   await post(origin,'/api/workspace',{kind:'skills.select',role:'member',payload:{skills:['dev-frontend-ui','teams-collaboration','office-word','audit-evidence']}});
   await post(origin,'/api/workspace',{kind:'material.add',role:'member',payload:{title:'CLI 专属需求依据',body:'实际阅读的输入，不是自动采用。'}});
   await post(origin,'/api/action',{action:'prepare',role:'member'},409);
-  await post(origin,'/api/task-automation',{...scope,step:'knowledge',role:'member'});
+  // The existing main task has no automatic preparation job; do not fabricate a ready import.
   const runId=randomUUID(),sessionId='isolated-session-'+randomUUID();
   const preparedContext=await context({...scope,nodeId:'prepare'});const prepared=await cli(['inputs','adopt','--operation-id',randomUUID(),'--input',JSON.stringify({...scope,nodeId:'prepare',runId,sessionId,expectedRevision:preparedContext.revision,basisDigest:preparedContext.basisDigest,readReferences:preparedContext.skills.filter((s:any)=>s.content).map((s:any)=>s.id)})]);
   const adoptedPrepareContext=await context({...scope,nodeId:'prepare'});
   assert.deepEqual(adoptedPrepareContext.nodeContract.inputs,preparedContext.nodeContract.inputs,'adopting must preserve the exact node input references');
   assert.equal(adoptedPrepareContext.basisDigest,preparedContext.basisDigest,'adopting must not replace its own basis');
   await cli(['result','submit','--operation-id',randomUUID(),'--input',JSON.stringify({...scope,nodeId:'prepare',runId,sessionId,expectedRevision:prepared.receipt.revision,adoptionId:prepared.receipt.adoptionId,summary:'隔离PRD合同回传',...nodeResultFixture('prepare')})]);
-  const frozen = await cli(['context','get','--input',JSON.stringify(scope),'--output',join(dir,'context.json')]);
+  const deadline=Date.now()+35000;while((await state()).workspace.taskAutomation?.find((item:any)=>item.taskId===scope.taskId)?.nodeKnowledge?.develop?.status!=='ready'){assert.ok(Date.now()<deadline,'develop import timed out');await new Promise(resolve=>setTimeout(resolve,80));}
+  const savedContext = await cli(['context','get','--input',JSON.stringify(scope),'--output',join(dir,'context.json')]);
+  assert.equal(savedContext.kind,'context.saved');assert.equal(savedContext.view,'model');assert.equal('skills' in savedContext,false);
+  const frozen = JSON.parse(await readFile(savedContext.outputPath,'utf8'));
+  assert.equal(frozen.view,'model');assert.equal(savedContext.basisDigest,frozen.basisDigest);assert.equal(savedContext.resources.skills,frozen.skills.length);
   assert.equal(frozen.mode,'frozen');assert.equal(frozen.agent.configuration.codeAgentVersion,'r1');assert.equal(frozen.knowledge.selectedVersion,'task-node-inputs-v1');assert.equal(frozen.knowledge.status,'available');assert.ok(frozen.knowledge.assets.every((a:any)=>a.sourceProjectId==='carddemo'));
   assert.deepEqual(frozen.skills.map((skill:any)=>skill.id),['arch-solution-design','dev-backend-service','dev-api-integration']);assert.ok(!frozen.skills.some((skill:any)=>['office-word','teams-collaboration','audit-evidence'].includes(skill.id)));
   const projectContext=await context({projectId:'carddemo',tab:'content'});const subscribedSkill=projectContext.skills.find((item:any)=>item.id==='audit-evidence');assert.equal(subscribedSkill.version,pinned.version);assert.equal(subscribedSkill.sha256,pinned.sha256);assert.equal(subscribedSkill.contentSha256,pinned.contentSha256);assert.equal(subscribedSkill.content,catalog.skillContents[pinned.id]);assert.equal(subscribedSkill.loadedByAgent,false);

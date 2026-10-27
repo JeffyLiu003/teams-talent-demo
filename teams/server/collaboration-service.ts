@@ -1,12 +1,12 @@
 import { readTalentNodeInputs } from './talent-node-client.js';
 import type {TalentNodeInputs} from '../src/talent-node-inputs.js';
 import { importedNodeStages, importedTaskNodeView } from '../src/imported-delivery.js';
-import { taskArtifactKinds, taskNodeContractVersion, taskNodeDefinitions, taskNodeView, nodeResultErrors } from '../src/task-node-contract.js';
+import { taskArtifactKinds, taskNodeContractVersion, taskNodeDefinitions, taskNodeView, nodeResultErrors, unitTestExecutionShapeErrors } from '../src/task-node-contract.js';
 import { projectMembers } from '../src/teams-domain.js';
 const projectMemberName=(state:DemoState,projectId:string,id:string)=>projectMembers(state,projectId).find(member=>member.id===id)?.name ?? id;
 import { deliveryRequirement, requireDeliveryMember, applyRequirementProgress, type RequirementNode } from '../src/delivery-requirements.js';
 import type { TalentTaskInputs } from '../src/talent-contract.js';
-import { mainTask, taskAutomation } from '../src/task-automation.js';
+import { mainTask, taskAutomation, taskNodeKnowledge, queueNextNodeKnowledge } from '../src/task-automation.js';
 import { requireCurrentTaskMember, taskAssigneeId, taskAssigneeName } from '../src/task-assignment.js';
 import { selectedSkillBindings } from '../src/resource-sharing.js';
 import { loadNativeSkillPackage, loadSourceSkillPackage } from './skill-packages.js';
@@ -92,20 +92,22 @@ export async function collaborationContext(state: DemoState, data: Presentation,
   } catch (error) { knowledge = { status: 'unavailable', origin: talentOrigin, selectedVersion: frozen?.knowledgeVersion ?? null, assets: [], error: (error as Error).message }; }
   }
   const agreement = live ? {id:live.id,title:live.title,assignee:{id:live.assigneeId,name:projectMemberName(state,live.projectId,live.assigneeId)},background:live.description,criteria:[],revision:'requirement-v1:'+live.createdAt} : card && scope.taskId ? { id: scope.taskId, title: data.blueprint.scenario.slice, assignee: { id: taskAssigneeId(state), name: taskAssigneeName(state) }, background: data.blueprint.scenario.parent_requirement, criteria: data.blueprint.acceptance_criteria, revision: 'demo-r1' } : task ? { id: task.id, title: task.title, background: task.goal, scope: task.scope, criteria: task.criteria, revision: data.teamsProject.sourceCommit } : { id: scope.projectId, title: card ? state.workspace.project.name : teams ? data.teamsProject.project.name : created!.name, background: card ? state.workspace.project.description : teams ? data.teamsProject.project.description : created!.description, criteria: [], revision: 'project-preparation' };
-  const nodeContract=live&&scopedNode?taskNodeView(state,live,scopedNode,data,nodeInputs):task&&scopedNode?importedTaskNodeView(task,scopedNode,nodeInputs):null;
+  const nodeContract=live&&scopedNode?taskNodeView(state,live,scopedNode,data,nodeInputs):task&&scopedNode?importedTaskNodeView(task,scopedNode,nodeInputs,data):null;
   const basis = { scope, mode: frozen || live?.preparedAt ? 'frozen' : 'preparation', contextId: live?.preparedAt ? 'CTX-'+live.id : frozen?.id ?? null, frozenAt: live?.preparedAt ?? frozen?.createdAt ?? null, agreement, node: node ?? null, assets, materials, references, skills,
     projectSkills: teams && !scopedNode ? data.teamsProject.project.skills : [],
     agent: { name: 'iCode', configuration: card ? { codeAgentVersion: frozen?.agentVersion ?? state.adoptedAgent, instructions: (frozen?.agentVersion ?? state.adoptedAgent) === 'r2' ? '读取项目上下文 → 分析与实施 → 检查实际测试退出码和报告 → 同步问题及证据 → 提交待确认成果。报告缺失保持待验证。' : '读取项目上下文 → 分析与实施 → 运行项目检查 → 提交成果与验证依据。', origin: 'Teams Code Agent 定义', model: '沿用原生 iCode 配置；此上下文未读取模型或凭据' } : { status: 'native-configuration-selected-at-launch' }, loadedByAgent: false }, knowledge };
   const {mode:_mode,contextId:_contextId,frozenAt:_frozenAt,...stableBasis}=basis;
   const basisDigest = hash({...stableBasis,nodeContract:nodeContract?{version:taskNodeContractVersion,definition:nodeContract.definition,inputs:nodeContract.inputs.map(({id,label,references})=>({id,label,references}))}:null});
+  const acquisition = scope.taskId && scopedNode && scopedNode!=='accept' ? taskNodeKnowledge(taskAutomation(state,{projectId:scope.projectId,taskId:scope.taskId}),scopedNode) : undefined;
+  const preparationReady = !live || !taskAutomation(state,{projectId:live.projectId,taskId:live.id})?.preparation || taskAutomation(state,{projectId:live.projectId,taskId:live.id})!.preparation!.status==='ready';
   return { contract: 'teams-demo-collaboration-v1', revision: state.revision, basisDigest, ...basis,
-    talentInputs, nodeInputs, nodeContract:nodeContract?{version:taskNodeContractVersion,...nodeContract}:null,
-    automaticPreparation: scope.taskId ? taskAutomation(state, {projectId:scope.projectId,taskId:scope.taskId})?.knowledge ?? null : null,
+    talentInputs, nodeInputs, nodeContract:nodeContract?{version:live?.nodeContractVersion??taskNodeContractVersion,...nodeContract}:null,
+    automaticPreparation: scope.taskId && scope.nodeId!=='accept' ? taskNodeKnowledge(taskAutomation(state, {projectId:scope.projectId,taskId:scope.taskId}),scope.nodeId==='develop'||scope.nodeId==='verify'?scope.nodeId:'prepare') ?? null : null,
     inputSources: scopedNode ? {knowledge:nodeInputs?.selection.basis==='historical-subset'?'当前节点相关历史采用知识':'Teams 当前节点知识与 Talents 共享产物',skills:'Teams 当前节点所选登记包',talentSkillLoading:nodeInputs?'shared-inputs':'unavailable'} : { knowledge: frozen?'历史冻结的 Talent 知识版本':'Talent 项目知识', skills: live&&!frozen ? 'Talent 登记资产（Teams 源包）' : 'Teams 项目与固定订阅版本', talentSkillLoading: live&&!frozen ? 'connected' : 'not-connected' },
     stage: live ? live.stage : card ? state.stage : task?.status ?? 'no-task',
     adoptedBasis: (state.workspace.collaboration?.adoptions ?? []).filter(a => a.projectId === scope.projectId && a.taskId === scope.taskId && a.nodeId === scope.nodeId),
     events: (state.workspace.collaboration?.events ?? []).filter(e => e.projectId === scope.projectId && (!scope.taskId || e.taskId === scope.taskId) && (!scope.nodeId || e.nodeId === scope.nodeId)),
-    availableActions: scope.taskId && scope.nodeId && scope.nodeId !== 'accept' ? ['inputs.adopt', 'progress.add', 'result.submit'] : ['context.get'],
+    availableActions: live && scope.nodeId && scope.nodeId !== 'accept' && preparationReady && (!acquisition || acquisition.status==='ready' || live.nodeInputSnapshots?.[scope.nodeId as RequirementNode]) ? ['inputs.adopt', 'progress.add', 'result.submit'] : ['context.get'],
     safety: { security: 'unverified', contextReadIsAdoption: false, resultIsAcceptance: false }, skillPath: collaborationSkillPath };
 }
 export function collaborationOperation(state: DemoState, operationId: string) {
@@ -128,7 +130,7 @@ export async function collaborationWrite(store: Store, data: Presentation, body:
   const context = await collaborationContext(store.state, data, scope);
   need(scope.nodeId !== 'accept', '验收节点不可通过 CLI 提交或确认', 403);
   const live=deliveryRequirement(store.state,scope.projectId,scope.taskId);
-  if(live){requireDeliveryMember(store.state,live,body.role);need(scope.nodeId==='prepare'||live.preparedAt,'请先在准备节点采用输入',409);need(!['awaiting-acceptance','accepted'].includes(live.stage),'需求已进入Owner验收',409);need(sessionId,'实际工作回传必须携带原生会话标识');}
+  if(live){requireDeliveryMember(store.state,live,body.role);const preparation=taskAutomation(store.state,scope as {projectId:string;taskId:string})?.preparation;if(preparation&&preparation.status!=='ready')throw new DomainError('当前需求的知识与会话准备尚未完成',409);const acquisition=taskNodeKnowledge(taskAutomation(store.state,scope as {projectId:string;taskId:string}),scope.nodeId as 'prepare'|'develop'|'verify');if(acquisition&&acquisition.status!=='ready'&&!live.nodeInputSnapshots?.[scope.nodeId as RequirementNode])throw new DomainError('当前节点知识尚未获取完成，请等待或重试后重新读取上下文',409);need(scope.nodeId==='prepare'||live.preparedAt,'请先在准备节点采用输入',409);need(!['awaiting-acceptance','accepted'].includes(live.stage),'需求已进入Owner验收',409);need(sessionId,'实际工作回传必须携带原生会话标识');}
   else throw new DomainError('所选任务未纳入本地交付；导入快照保持只读',403);
   const at = new Date().toISOString(); let replayed = false;
   const state = await store.transact(current => {
@@ -145,7 +147,7 @@ export async function collaborationWrite(store: Store, data: Presentation, body:
       need(Array.isArray(p.readReferences) && p.readReferences.every((id: unknown) => typeof id === 'string' && allowed.includes(id)), 'readReferences 只能列出当前上下文内实际阅读的引用');
       const selected=deliveryRequirement(next,scope.projectId,scope.taskId);
       if(selected&&scope.nodeId==='prepare'&&!selected.preparedAt){need(context.talentInputs && context.knowledge.status==='available'&&context.skills.length>0,'Talent知识与Skill尚未就绪',409);selected.talentInputsSnapshot=context.talentInputs;selected.preparedAt=at;selected.inputDigest=context.basisDigest;selected.nodes.prepare={status:'running',updatedAt:at,summary:'iCode明确采用需求、知识与Skill输入；等待PRD及澄清完成标准'};selected.updatedAt=at;}
-      if(selected){need(context.nodeInputs&&context.nodeInputs.selection.status==='configured','当前节点尚未配置输入',409);selected.nodeInputSnapshots??={};selected.nodeInputSnapshots[scope.nodeId as RequirementNode]??=structuredClone(context.nodeInputs);selected.nodeContractVersion=taskNodeContractVersion;}
+      if(selected){need(context.nodeInputs&&context.nodeInputs.selection.status==='configured','当前节点尚未配置输入',409);selected.nodeInputSnapshots??={};selected.nodeInputSnapshots[scope.nodeId as RequirementNode]??=structuredClone(context.nodeInputs);selected.nodeContractVersion??=taskNodeContractVersion;}
       adoptionId = randomUUID();
       ledger.adoptions.push({ ...scope, id: adoptionId, role: body.role, runId, sessionId, basisDigest: context.basisDigest, readReferences: [...new Set(p.readReferences as string[])], at, revision });
     } else {
@@ -157,14 +159,16 @@ export async function collaborationWrite(store: Store, data: Presentation, body:
       need(['started', 'progress', 'blocked', 'result'].includes(phase) && (body.kind === 'result.submit' || phase !== 'result'), 'phase 无效');
       const summary = string(p.summary, 'summary', 2000), blocker = phase === 'blocked' ? string(p.blocker, 'blocker', 2000) : null;
       need(Array.isArray(p.evidence) && p.evidence.length <= 30, 'evidence 必须为引用数组');
-      const evidence: CollaborationEvidence[] = p.evidence.map((e: any) => { need(e && ['reference', 'local-file'].includes(e.kind), '证据类型无效');const result:CollaborationEvidence={kind:e.kind,value:string(e.value,'证据引用',2000),description:string(e.description,'证据说明',1000)};if(e.artifact!==undefined){need(taskArtifactKinds.includes(e.artifact)&&!['owner-decision','delivery-manifest'].includes(e.artifact),'产物类型无效或属于Owner');need(['actual','preset'].includes(e.source),'产物必须明确actual/preset来源');need(e.source!=='preset'||['functional-test-report','code-review-report','security-report','issues-retest'].includes(e.artifact),'仅检查报告可声明为预置');result.artifact=e.artifact;result.version=string(e.version,'产物版本',200);result.source=e.source;if(e.codeVersion!==undefined)result.codeVersion=string(e.codeVersion,'代码版本',200);}return result; });
+      const evidence: CollaborationEvidence[] = p.evidence.map((e: any) => { need(e && ['reference', 'local-file'].includes(e.kind), '证据类型无效');const result:CollaborationEvidence={kind:e.kind,value:string(e.value,'证据引用',2000),description:string(e.description,'证据说明',1000)};if(e.artifact!==undefined){need(taskArtifactKinds.includes(e.artifact)&&!['owner-decision','delivery-manifest'].includes(e.artifact),'产物类型无效或属于Owner');need(['actual','preset'].includes(e.source),'产物必须明确actual/preset来源');need(e.source!=='preset'||['functional-test-report','code-review-report','static-analysis-report','agent-review-report','security-report','issues-retest'].includes(e.artifact),'仅检查报告可声明为预置');result.artifact=e.artifact;result.version=string(e.version,'产物版本',200);result.source=e.source;if(e.codeVersion!==undefined)result.codeVersion=string(e.codeVersion,'代码版本',200);}
+        if(e.execution!==undefined){need(e.artifact==='unit-test-result','执行声明只属于单元测试结果');const errors=unitTestExecutionShapeErrors(e.execution);need(!errors.length,errors.join('；'));result.execution=structuredClone(e.execution);}return result; });
       const completedCriteria=p.completedCriteria??[];need(Array.isArray(completedCriteria)&&new Set(completedCriteria).size===completedCriteria.length&&completedCriteria.every((id:unknown)=>typeof id==='string'&&taskNodeDefinitions[scope.nodeId as RequirementNode].completionCriteria.some(item=>item.id===id)),'完成标准只可引用本节点定义的ID');
       if (phase === 'result') need(evidence.length > 0, '成果报告需要至少一条可核对引用；本地文件只作为本机引用');
       eventId = randomUUID();
       const selected=deliveryRequirement(next,scope.projectId,scope.taskId);
       if(selected?.nodeContractVersion&&phase==='result'){const errors=nodeResultErrors(next,selected,scope.nodeId as RequirementNode,evidence,completedCriteria,p.checks);need(!errors.length,errors.join('；'),409);}
-      if(selected)applyRequirementProgress(selected,{nodeId:scope.nodeId as RequirementNode,phase,summary,sessionId,checks:p.checks},at);
+      if(selected)applyRequirementProgress(selected,{nodeId:scope.nodeId as RequirementNode,phase,summary,sessionId,checks:p.checks,evidence},at);
       ledger.events.push({ ...scope, id: eventId, operationId, role: body.role, runId, sessionId, adoptionId, phase, summary, blocker, evidence, completedCriteria, at, revision });
+      if(phase==='result'&&selected)queueNextNodeKnowledge(next,{projectId:scope.projectId,taskId:scope.taskId!},scope.nodeId!,at);
     }
     const receipt: CollaborationReceipt = { ...scope, operationId, requestDigest, revision, kind: body.kind, adoptionId, ...(eventId ? { eventId } : {}), at, status: 'saved' };
     ledger.operations.push(receipt); next.revision = revision;

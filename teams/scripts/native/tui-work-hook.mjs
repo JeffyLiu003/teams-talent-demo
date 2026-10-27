@@ -24,9 +24,17 @@ async function main() {
   if (bound && bound.sessionId !== payload.session_id) throw new Error('This Teams work is already bound to a different native session');
   if (!bound) await atomic(boundPath, receipt);
   if (payload.event === 'user_prompt_submit') {
-    const reminder = `This interactive iCode session belongs to Teams project ${manifest.scope.projectId}, task ${manifest.scope.taskId}, current node ${manifest.scope.nodeId}, run ${manifest.runId}, native session ${payload.session_id}. Read the exact Teams work context file ${manifest.taskFile} and its Teams collaboration Skill before business work. Use only the current selected node; do not automatically advance to other nodes. Follow the developer's interactive instructions. Record actual adopted context and progress through the scoped Teams CLI. Opening this TUI and receiving this reminder do not prove material reading, adoption, work completion, or Owner acceptance.`;
+    const injectedPath = join(directory, 'tui-context-injected.json');
+    let previous;
+    try { previous = JSON.parse(await readFile(injectedPath, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    if (previous && (previous.runId !== manifest.runId || previous.sessionId !== payload.session_id || previous.contextSha256 !== manifest.taskSha256 || previous.status !== 'reminder-returned')) throw new Error('Teams context reminder receipt does not match this TUI');
+    // This receipt tracks reminder delivery only, never whether the model read or adopted inputs.
+    const identity = `Teams ${manifest.scope.projectId}/${manifest.scope.taskId}; initial launch node ${manifest.scope.nodeId}; run ${manifest.runId}; session ${payload.session_id}.`;
+    const reminder = previous
+      ? `${identity} Follow the collaboration Skill's node/version refresh rule; reuse actually read unchanged inputs. The developer selects the working node; do not automatically advance. Report only actual work. This reminder proves no reading, adoption, completion or Owner acceptance.`
+      : `${identity} Before first business work, read ${manifest.taskFile} and its collaboration Skill. This is not a permanent node binding: obtain fresh context for an explicitly selected nodeId or changed input version, using that node's own revision/basisDigest and adoptionId. Wait until that node's inputs are ready; do not automatically advance. Reuse actually read unchanged materials on later turns. Follow the Skill for scoped CLI reporting; this reminder proves no reading, adoption, completion or Owner acceptance.`;
     await writeFile(resultPath, JSON.stringify({ action: 'allow', system_reminder: reminder }));
-    await atomic(join(directory, 'tui-context-injected.json'), { ...receipt, status: 'reminder-returned' });
+    await atomic(injectedPath, { ...receipt, status: 'reminder-returned', reminderMode: previous ? 'continuation' : 'initial' });
   } else await writeFile(resultPath, JSON.stringify({ action: 'allow' }));
 }
 main().catch(error => { console.error('Teams 工作上下文 Hook 失败：' + error.message); process.exitCode = 1; });

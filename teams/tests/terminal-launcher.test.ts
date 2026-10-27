@@ -93,6 +93,26 @@ test('interactive launch removes non-interactive color suppression from the chil
   const launched = t.calls[0].options as { env: NodeJS.ProcessEnv };
   assert.equal(launched.env.NO_COLOR, undefined); assert.equal(launched.env.TERM, 'xterm-256color'); assert.equal(launched.env.COLORTERM, 'truecolor');
 });
+test('macOS cleans both osascript and the new terminal surface without changing a chosen theme or capable terminal', async () => {
+  const { execFile } = await import('node:child_process'), { promisify } = await import('node:util');
+  const inherited = { ...process.env, NO_COLOR: '1', CLICOLOR: '0', CLICOLOR_FORCE: '0', FORCE_COLOR: '0', TERM: 'xterm-ghostty', COLORTERM: 'truecolor', TEXTUAL_THEME: 'chosen-theme' };
+  for (const terminal of ['terminal', 'ghostty']) {
+    const t = setup(inherited, 'darwin');
+    t.runtime.resolveExecutable = async name => name === process.execPath ? process.execPath : null;
+    const receipt = await createTerminalLauncher(t.runtime).launch({ executable: process.execPath, directory: process.cwd(), terminal, args: ['-e', 'console.log(JSON.stringify(Object.fromEntries(["NO_COLOR","CLICOLOR","CLICOLOR_FORCE","FORCE_COLOR","TERM","COLORTERM","TEXTUAL_THEME"].map(k=>[k,process.env[k]??null]))))'] });
+    const launch = t.calls[0].options as { env: NodeJS.ProcessEnv };
+    assert.equal(launch.env.NO_COLOR, undefined); assert.equal(launch.env.TERM, 'xterm-ghostty');
+    // Existing GUI processes can ignore osascript's environment. Execute the
+    // actual surface command with the original dirty environment as regression.
+    assert.match(receipt.command, /^unset NO_COLOR CLICOLOR CLICOLOR_FORCE;/);
+    if (process.platform !== 'win32') {
+      const { stdout } = await promisify(execFile)('/bin/sh', ['-c', receipt.command], { env: inherited });
+      assert.deepEqual(JSON.parse(stdout), { NO_COLOR: null, CLICOLOR: null, CLICOLOR_FORCE: null, FORCE_COLOR: null, TERM: 'xterm-ghostty', COLORTERM: 'truecolor', TEXTUAL_THEME: 'chosen-theme' });
+    }
+  }
+  assert.equal(inherited.NO_COLOR, '1');
+  assert.equal(launchEnvironment({ FORCE_COLOR: '3', TERM: 'screen-256color', COLORTERM: '24bit', TEXTUAL_THEME: 'personal' }).FORCE_COLOR, '3');
+});
 test('argument quoting retains empty values, internal quotes, and trailing backslashes for CRT; probe mode can exit',async()=>{
   assert.equal(windowsArgument(''),'""');assert.equal(windowsArgument('a"b'),'"a\\"b"');assert.equal(windowsArgument('a\\'),'"a\\\\"');assert.equal(windowsArgument('a\\"b'),'"a\\\\\\"b"');
   const t=setup({DEMO_WINDOWS_TERMINAL:'none'}); const receipt=await t.launcher.launch({...input,keepOpen:false});assert.match(receipt.command,/^exit \$toolExit$/m);assert.doesNotMatch(decode(t.calls[0].args[3]),/-NoExit/);

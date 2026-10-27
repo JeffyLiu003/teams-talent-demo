@@ -1,11 +1,13 @@
+import { projectModelContext } from './model-context.js';
 import { readTalentNodeInputs } from './talent-node-client.js';
 import { checkedNode } from './talent-node-inputs.js';
 import { projectMembers } from '../src/teams-domain.js';
 import { createTaskSessionStream } from './task-session-stream.js';
 import type { TaskSessionStreamQuery } from '../src/task-session-stream.js';
-import { createDeliveryRequirement, deliveryRequirement, acceptDeliveryRequirement, returnDeliveryRequirement, requireDeliveryMember } from '../src/delivery-requirements.js';
-import { queueTaskCollection } from '../src/task-automation.js';
+import { assignDeliveryRequirement, createDeliveryRequirement, deliveryRequirement, acceptDeliveryRequirement, returnDeliveryRequirement, requireDeliveryMember } from '../src/delivery-requirements.js';
+import { queueTaskCollection, queueTaskPreparation, taskAutomation } from '../src/task-automation.js';
 import { TaskAutomationService } from './task-automation.js';
+import { TaskPreparationService } from './task-preparation.js';
 import { resourcePublicationHistory } from '../src/resource-sharing.js';
 import { SkillApplicationService } from './skill-application.js';
 import { nativeSkillEnvironment, readInstalledNativeSkill } from './native-skill-reader.js';
@@ -22,7 +24,7 @@ import { DomainError, type Action, type Role } from '../src/domain.js';
 import { toolsStatus, writeContext, foundationSkill, launch } from './native.js';
 import { locateChrysEngine } from './engine-locate.js';
 import { createSourcePluginCatalog } from '../src/source-plugins.js';
-import type { WorkspaceAction } from '../src/workspace.js';
+import { updateWorkspace, type WorkspaceAction } from '../src/workspace.js';
 import { headers, bodyJson, staticFile, readFixtures } from './http-shared.js';
 import { exportTeamsSnapshot, knowledgeVersion, projectKnowledge, readTalentsFile } from './shared-data.js';
 import { transition } from '../src/domain.js';
@@ -47,6 +49,7 @@ async function syncKnowledge() {
 }
 await exportSnapshot();
 const taskAutomationService = new TaskAutomationService(store, fixtures, undefined, exportSnapshot);
+const taskPreparationService=new TaskPreparationService(store,fixtures,{prepareSession:(assigneeId,scope,id)=>work.prepare(assigneeId,scope,id)},exportSnapshot);
 const skillApplications = new SkillApplicationService({
   package: (role,scope) => getPublishedSkillPackage(store.state,role,scope.resourceId,scope.version,scope.sha256),
   async directory(role,projectId) {
@@ -93,7 +96,8 @@ const server = createServer(async (request, response) => {
       const role=url.searchParams.get('role')??'member',projectId=url.searchParams.get('projectId')??'';
       if(!['owner','member'].includes(role))throw new DomainError('请选择角色',400);
       if(projectId!=='teams'&&!projectMembers(store.state,projectId).some(member=>member.id===role&&member.status==='active'))throw new DomainError('无权读取此项目',403);
-      json(200, await collaborationContext(store.state, fixtures, Object.fromEntries(url.searchParams))); return;
+      const view=url.searchParams.get('view')??'full';if(!['full','model'].includes(view))throw new DomainError('上下文视图无效',400);
+      const context=await collaborationContext(store.state, fixtures, Object.fromEntries(url.searchParams));json(200,view==='model'?projectModelContext(context):context); return;
     }
     if (request.method === 'GET' && path === '/api/collaboration/operation') { json(200, collaborationOperation(store.state, url.searchParams.get('operationId') ?? '')); return; }
     if (request.method === 'GET' && path === '/api/resource-content') {
@@ -126,20 +130,27 @@ const server = createServer(async (request, response) => {
       }
       if(path==='/api/delivery-requirements') {
         const at=new Date().toISOString();
-        const saved=await store.mutate(body.revision,current=>{
+        const saved=await store.transact(current=>{
           const next=structuredClone(current);let detail='';
-          if(body.action==='create'){const task=createDeliveryRequirement(next,body.role,body.input,at);if(task.skillIds.some(id=>!fixtures.skillCatalog.some((item:{id:string})=>item.id===id)))throw new DomainError('所选Skill未登记');detail=task.id+' · '+task.title;}
+          if(body.action==='create'&&deliveryRequirement(current,body.input?.projectId,body.input?.id)){createDeliveryRequirement(next,body.role,body.input,at);return current;}
+          if(body.revision!==current.revision)throw new DomainError('另一页面已更新数据，请刷新后重试',409);
+          if(body.action==='create'){const task=createDeliveryRequirement(next,body.role,body.input,at);if(task.skillIds.some(id=>!fixtures.skillCatalog.some((item:{id:string})=>item.id===id)))throw new DomainError('所选Skill未登记');queueTaskPreparation(next,{projectId:task.projectId,taskId:task.id},at);detail=task.id+' · '+task.title;}
+          else if(body.action==='assign'){const task=assignDeliveryRequirement(next,body.role,body.input,at);queueTaskPreparation(next,{projectId:task.projectId,taskId:task.id},at);detail=task.id+' · '+(task.assigneeId||'待分配');}
           else {const task=deliveryRequirement(next,body.projectId,body.taskId);if(!task)throw new DomainError('交付需求不存在',404);
             if(body.action==='accept'){acceptDeliveryRequirement(next,body.role,task,at);queueTaskCollection(next,{projectId:task.projectId,taskId:task.id},at);}
             else if(body.action==='return')returnDeliveryRequirement(body.role,task,body.reason,at);
             else throw new DomainError('未知需求操作');detail=task.id+' · '+body.action;}
-          next.revision++;next.audit.push({id:next.revision,at,role:body.role,system:'Teams',action:body.action==='create'?'创建交付需求':body.action==='accept'?'Owner验收通过':'Owner退回补充',detail,origin:'simulated'});return next;
+          next.revision++;next.audit.push({id:next.revision,at,role:body.role,system:'Teams',action:body.action==='create'?'创建交付需求':body.action==='assign'?'分配交付需求':body.action==='accept'?'Owner验收通过':'Owner退回补充',detail,origin:'simulated'});return next;
         });json(200,saved);
+        if(['create','assign'].includes(body.action))void taskPreparationService.schedule({projectId:body.input.projectId,taskId:body.action==='create'?body.input.id:body.input.taskId}).catch(error=>console.error('自动准备未完成：'+error.message));
         if(body.action==='accept')void taskAutomationService.collect({projectId:body.projectId,taskId:body.taskId}).catch(error=>console.error('需求验收已保存，自动收集未完成：'+error.message));return;
       }
       if (path === '/api/task-automation') {
         const scope = { projectId: body.projectId, taskId: body.taskId };
-        if (body.step === 'knowledge') json(200, await taskAutomationService.prepare(body.role, scope, body.retry === true));
+        if(body.step==='node-knowledge'){if(!['prepare','develop','verify'].includes(body.nodeId))throw new DomainError('知识获取节点无效',400);json(200,await taskPreparationService.retryNode(body.role,scope,body.nodeId));}
+        else if(body.step==='preparation')json(200,await taskPreparationService.retry(body.role,scope));
+        else if(body.step==='knowledge'&&taskAutomation(store.state,scope)?.preparation){if(body.retry===true)json(200,await taskPreparationService.retry(body.role,scope));else{const task=deliveryRequirement(store.state,scope.projectId,scope.taskId);if(!task)throw new DomainError('需求不存在',404);requireDeliveryMember(store.state,task,body.role);json(200,store.state);}}
+        else if (body.step === 'knowledge') json(200, await taskAutomationService.prepare(body.role, scope, body.retry === true));
         else if (body.step === 'collection' && body.role === 'owner') json(200, await taskAutomationService.collect(scope, body.retry === true));
         else throw new DomainError('自动步骤或角色无效',403);
         return;
@@ -151,13 +162,14 @@ const server = createServer(async (request, response) => {
           if(body.role!=='owner')throw new DomainError('仅 Owner 可以发布资源',403);
           if(body.revision!==store.state.revision)throw new DomainError('状态已变化，请刷新后重试',409);
         }
+        if(body.kind==='issue.create'){const saved=await store.transact(current=>{const next=updateWorkspace(current,'issue.create',body.role,body.payload);if(next===current)return current;if(body.revision!==current.revision)throw new DomainError('另一页面已更新数据，请刷新后重试',409);return next;});json(200,saved);return;}
         json(200,await store.update(body.revision,body.kind as WorkspaceAction,body.role as Role,body.payload,sourceCatalog.list(),['resource.publish','resource.publish-all'].includes(body.kind)?await publicationCatalog():[]));return;
       }
       if (path === '/api/reset') {
         if (body.role !== 'owner') throw new DomainError('仅 Owner 可以重置工作区', 403);
         json(200, await store.reset(body.revision)); return;
       }
-      if (path === '/api/collaboration') { json(200, await collaborationWrite(store, fixtures, body)); return; }
+      if (path === '/api/collaboration') { json(200, await collaborationWrite(store, fixtures, body)); if(body.kind==='result.submit'){const node=body.input?.nodeId==='prepare'?'develop':body.input?.nodeId==='develop'?'verify':null;if(node)void taskPreparationService.scheduleNode({projectId:body.input.projectId,taskId:body.input.taskId},node).catch(error=>console.error('后续节点知识获取未完成：'+error.message));}return; }
       if (path === '/api/native/skill-apply') { if(process.env.DEMO_NATIVE_DISABLED==='1')throw new DomainError('此验证实例未开放原生用户目录写入',403); json(200,await skillApplications.apply(body.role,{projectId:body.projectId,resourceId:body.resourceId,version:body.version,sha256:body.sha256,requestId:body.requestId,planToken:body.planToken}));return; }
       if (path === '/api/native/terminal') { json(200, await terminalPreferences.select(body.terminal)); return; }
       if (path === '/api/native/work-bind') { json(200, await work.bind(body.role, body.target, body.directory)); return; }
@@ -182,6 +194,7 @@ const server = createServer(async (request, response) => {
 server.on('error', error => { console.error(error.message); process.exitCode = 1; stopTraceService(); });
 server.listen(port, '127.0.0.1', async () => {
   await mkdir(runtimeDir, { recursive: true });
+  taskPreparationService.resumeQueued();
   console.log('Teams: ' + origin + '/teams');
   console.log('Talents: ' + talentOrigin + '/talents（独立启动）');
   if(process.env.DEMO_NATIVE_DISABLED!=='1')startTraceService().then(

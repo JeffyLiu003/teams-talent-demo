@@ -1,3 +1,4 @@
+import { createProjectIssue, type ProjectIssue } from './project-issues.js';
 import { deliveryRequirement, type DeliveryRequirement } from './delivery-requirements.js';
 import { userSkillExamples } from './project-skill-examples.js';
 import { selectedSkillBindings } from './resource-sharing.js';
@@ -17,6 +18,7 @@ import type { CollaborationState } from './collaboration.js';
 export interface Asset { id: string; title: string; kind: string; location: string; sourceAssetId?: string }
 export interface Material { id: string; title: string; body: string }
 export interface WorkspaceState {
+  projectIssues?: ProjectIssue[];
   deliveryRequirements?: DeliveryRequirement[];
   teams?: TeamRecord[];
   projectTeamId?: string;
@@ -57,9 +59,9 @@ export function initialWorkspace(): WorkspaceState {
     ].map(([id,name,kind,description])=>({id,name,kind,description,enabled:true})),
   };
 }
-export const workspaceActions = ['session.link','task.create','task.assign','task.start','task.complete','project.create','project.metadata.update','project.update','asset.link','asset.add','material.add','skills.select','resource.publish','resource.publish-all','resource.acquire','team.create','team.project.assign','team.update','member.invite','member.approve','member.role','member.remove','progress.sync','session.report','analysis.run','connection.update','foundation.update'] as const;
+export const workspaceActions = ['issue.create','session.link','task.create','task.assign','task.start','task.complete','project.create','project.metadata.update','project.update','asset.link','asset.add','material.add','skills.select','resource.publish','resource.publish-all','resource.acquire','team.create','team.project.assign','team.update','member.invite','member.approve','member.role','member.remove','progress.sync','session.report','analysis.run','connection.update','foundation.update'] as const;
 export type WorkspaceAction = typeof workspaceActions[number];
-const ownerActions: WorkspaceAction[] = ['task.create','task.assign','project.create','project.metadata.update','resource.publish','resource.publish-all','project.update','asset.link','asset.add','team.create','team.project.assign','team.update','member.invite','member.approve','member.role','member.remove','analysis.run','connection.update'];
+const ownerActions: WorkspaceAction[] = ['issue.create','task.create','task.assign','project.create','project.metadata.update','resource.publish','resource.publish-all','project.update','asset.link','asset.add','team.create','team.project.assign','team.update','member.invite','member.approve','member.role','member.remove','analysis.run','connection.update'];
 const memberActions: WorkspaceAction[] = ['material.add','skills.select','progress.sync','session.report'];
 function need(ok:unknown,message:string):asserts ok { if(!ok)throw new DomainError(message); }
 function text(p:Record<string,unknown>,key:string,max=1000){ const value=p[key];need(typeof value==='string'&&value.trim().length>0&&value.length<=max,`${key} 不能为空或超出长度`);return value.trim(); }
@@ -78,6 +80,7 @@ export function updateWorkspace(previous:DemoState,kind:WorkspaceAction,role:Rol
   };
   let label='';
   switch(kind){
+    case 'issue.create': {const before=w.projectIssues?.length??0;createProjectIssue(s,role,p,at);if(w.projectIssues!.length===before)return previous;label='新建问题';break;}
     case 'session.link': linkTaskSession(s,role,p,at);label='关联任务工作会话';break;
     case 'task.create': case 'task.assign': case 'task.start': case 'task.complete': label=updateGenericTask(s,role,kind,p,at);break;
     case 'project.create': {const projectId=createdProjectId(p.id),fields=createdProjectFields(p);need(!w.projects?.some(project=>project.id===projectId),'项目标识已存在');w.projects=[...(w.projects??[]),{id:projectId,...fields,teamId:requireTeamOwner(s,role,p.teamId===undefined?defaultTeamId:text(p,'teamId',100)).id,owner:'owner',createdAt:at,updatedAt:at}];label='添加项目';break;}
