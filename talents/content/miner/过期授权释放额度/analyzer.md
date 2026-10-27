@@ -4,13 +4,13 @@
 
 PR #50 修正存量清理批处理的额度泄漏：删除过期授权明细后，按剩余明细重算每个账户的授权汇总。
 
-> card-core-java → `authorization-service` → `application.AuthorizationService.purge()` → `domain.model.AuthorizationSummary.recalculateFromDetails()`
+> carddemo-java-1025 → `authorization-service` → `application.AuthorizationService.purge()` → `domain.model.AuthorizationSummary.recalculateFromDetails()`
 
 核心涉及模块：
 
-- `services/authorization-service/src/main/java/com/cardcore/authorization/application/AuthorizationService.java`：`purge()` 找出受影响账户、删除过期明细、逐账户重算汇总。
-- `services/authorization-service/src/main/java/com/cardcore/authorization/domain/model/AuthorizationSummary.java`：授权汇总聚合，`recalculateFromDetails()` 与 `isEmpty()`，带 `@Version`。
-- `services/authorization-service/src/main/java/com/cardcore/authorization/interfaces/rest/AuthorizationController.java`：`POST /api/v1/authorization-purges`。
+- `services/authorization-service/src/main/java/com/carddemo/authorization/application/AuthorizationService.java`：`purge()` 找出受影响账户、删除过期明细、逐账户重算汇总。
+- `services/authorization-service/src/main/java/com/carddemo/authorization/domain/model/AuthorizationSummary.java`：授权汇总聚合，`recalculateFromDetails()` 与 `isEmpty()`，带 `@Version`。
+- `services/authorization-service/src/main/java/com/carddemo/authorization/interfaces/rest/AuthorizationController.java`：`POST /api/v1/authorization-purges`。
 - 测试：`AuthorizationServiceTest`。
 
 ## 需求影响位置依赖分析

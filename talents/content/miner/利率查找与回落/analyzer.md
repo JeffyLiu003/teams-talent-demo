@@ -4,13 +4,13 @@
 
 PR #55 迁移存量计息程序 `CBACT04C` 的利率查找：先按账户的披露组查，未命中回落 DEFAULT 组；利率为 0 的类别不计息。
 
-> card-core-java → `transaction-service` → `application.InterestService.run()` → `interestRate()` → `DisclosureGroupRepository` → `domain.service.InterestCalculator`
+> carddemo-java-1025 → `transaction-service` → `application.InterestService.run()` → `interestRate()` → `DisclosureGroupRepository` → `domain.service.InterestCalculator`
 
 核心涉及模块：
 
-- `services/transaction-service/src/main/java/com/cardcore/transaction/application/InterestService.java`：月度计息主流程与私有方法 `interestRate()`。
-- `services/transaction-service/src/main/java/com/cardcore/transaction/domain/service/InterestCalculator.java`：`monthlyInterest(balance, annualRatePercent)`。
-- `services/transaction-service/src/main/java/com/cardcore/transaction/interfaces/rest/InterestController.java`：`POST /api/v1/interest-runs`。
+- `services/transaction-service/src/main/java/com/carddemo/transaction/application/InterestService.java`：月度计息主流程与私有方法 `interestRate()`。
+- `services/transaction-service/src/main/java/com/carddemo/transaction/domain/service/InterestCalculator.java`：`monthlyInterest(balance, annualRatePercent)`。
+- `services/transaction-service/src/main/java/com/carddemo/transaction/interfaces/rest/InterestController.java`：`POST /api/v1/interest-runs`。
 - 测试：`InterestCalculatorTest`。
 
 ## 需求影响位置依赖分析

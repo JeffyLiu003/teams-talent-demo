@@ -28,7 +28,7 @@ public class BusinessRuleException extends RuntimeException {
 ```
 
 **参考文件**：
-- `services/transaction-service/src/main/java/com/cardcore/transaction/domain/exception/BusinessRuleException.java` 行 1-18
+- `services/transaction-service/src/main/java/com/carddemo/transaction/domain/exception/BusinessRuleException.java` 行 1-18
 
 ---
 
@@ -48,7 +48,7 @@ public class BusinessRuleException extends RuntimeException {
 ```
 
 **参考文件**：
-- `services/transaction-service/src/main/java/com/cardcore/transaction/infrastructure/client/AccountClient.java` 行 40-50
+- `services/transaction-service/src/main/java/com/carddemo/transaction/infrastructure/client/AccountClient.java` 行 40-50
 
 ---
 
@@ -58,7 +58,7 @@ public class BusinessRuleException extends RuntimeException {
 - 错误体统一为 `{"code", "message", "details"}`；每个服务各有一个 `@RestControllerAdvice`。
 
 **参考文件**：
-- `services/transaction-service/src/main/java/com/cardcore/transaction/interfaces/rest/GlobalExceptionHandler.java` 行 17-56
+- `services/transaction-service/src/main/java/com/carddemo/transaction/interfaces/rest/GlobalExceptionHandler.java` 行 17-56
 
 ---
 
@@ -67,7 +67,7 @@ public class BusinessRuleException extends RuntimeException {
 **实现逻辑**：新增错误码时同步更新接口目录的错误码总表，写明 HTTP 状态、归属服务与含义。
 
 **参考文件**：
-- 信用卡核心业务文档 / design/05-api-catalog.md §8
+- carddemo-java-1025 / docs/design/05-api-catalog.md §8
 
 **示例**：`NOTHING_TO_PAY`（409，account / transaction）、`PAYMENT_EXCEEDS_BALANCE`（409，account）、`LAST_ADMIN`（409，iam）。
 
@@ -78,5 +78,5 @@ public class BusinessRuleException extends RuntimeException {
 
 ## 依据
 
-- 信用卡核心业务文档 / design/07-java-conventions.md §3–§4
+- carddemo-java-1025 / docs/design/07-java-conventions.md §3–§4
 - 银行开发规范 / 编码规范清单（异常类：禁止吞异常）

@@ -4,14 +4,14 @@
 
 三个 PR 都位于“交易落库 + 账户余额变更”跨服务写操作上，分别覆盖账单支付、日终入账和营销返现三条入口。
 
-> card-core-java → `transaction-service`（交易上下文）→ `application`（应用服务层）→ `BillPaymentService` / `PostingService` → `infrastructure.client.AccountClient`（出站调用）→ `account-service` 的 `AccountApplicationService`（余额变更与返现去重）
+> carddemo-java-1025 → `transaction-service`（交易上下文）→ `application`（应用服务层）→ `BillPaymentService` / `PostingService` → `infrastructure.client.AccountClient`（出站调用）→ `account-service` 的 `AccountApplicationService`（余额变更与返现去重）
 
 核心涉及模块：
 
-- `services/transaction-service/src/main/java/com/cardcore/transaction/application/BillPaymentService.java`：账单支付，PR #41 把“先扣余额再落交易”改为“本地 PENDING → 远程扣款 → 置 POSTED”。
-- `services/transaction-service/src/main/java/com/cardcore/transaction/application/PostingService.java`：日终批量入账，PR #47 加入按 `transactionId` 的单笔幂等与“部分成功”结果。
-- `services/transaction-service/src/main/java/com/cardcore/transaction/infrastructure/client/AccountClient.java`：调用账户服务的出站客户端，统一把 404、409、5xx 和连接失败转换为领域异常。
-- `services/account-service/src/main/java/com/cardcore/account/application/AccountApplicationService.java`：账户服务应用层，PR #58 新增 `creditCashback()`，按 `rewardId` 去重。
+- `services/transaction-service/src/main/java/com/carddemo/transaction/application/BillPaymentService.java`：账单支付，PR #41 把“先扣余额再落交易”改为“本地 PENDING → 远程扣款 → 置 POSTED”。
+- `services/transaction-service/src/main/java/com/carddemo/transaction/application/PostingService.java`：日终批量入账，PR #47 加入按 `transactionId` 的单笔幂等与“部分成功”结果。
+- `services/transaction-service/src/main/java/com/carddemo/transaction/infrastructure/client/AccountClient.java`：调用账户服务的出站客户端，统一把 404、409、5xx 和连接失败转换为领域异常。
+- `services/account-service/src/main/java/com/carddemo/account/application/AccountApplicationService.java`：账户服务应用层，PR #58 新增 `creditCashback()`，按 `rewardId` 去重。
 - `services/account-service/src/main/resources/db/migration/V3__reward_credit.sql`：返现去重表 `reward_credit`，`reward_id` 为主键。
 - 测试：`BillPaymentServiceTest`、`PostingServiceTest`、`AccountControllerTest`。
 
@@ -21,7 +21,7 @@
 
 1. `BillPaymentController.pay()`（`BillPaymentController.java:35`）→ `BillPaymentService.pay()`（`BillPaymentService.java:50`）。
 2. `pay()` 先经 `AccountClient.findAccount()`（`AccountClient.java:34`）读取欠款，金额不大于 0 时抛 `NOTHING_TO_PAY`。
-3. 以 `TransactionStatus.PENDING` 构造 `TransactionRecord` 并保存（`BillPaymentService.java:64-69`）。
+3. 以 `TransactionStatus.PENDING` 构造 `TransactionRecord` 并保存（`BillPaymentService.java:64-70`）。
 4. 调用 `AccountClient.payBill()`（`AccountClient.java:57`）→ 私有方法 `post()`（`AccountClient.java:65`）→ 账户服务 `POST /api/v1/accounts/{id}/payments`（`AccountController.java:60`）→ `AccountApplicationService.applyBillPayment()`（`AccountApplicationService.java:56`）→ `Account.applyBillPayment()`（`Account.java:90`）。
 5. 远程成功后 `record.markPosted()` 并再次保存（`BillPaymentService.java:73-74`）；远程失败时异常穿出，`@Transactional` 回滚本地 PENDING 记录。
 
@@ -47,12 +47,12 @@
 BillPaymentController.pay()                 BillPaymentController.java:35
   └─ BillPaymentService.pay()               BillPaymentService.java:50
        ├─ AccountClient.findAccount()       AccountClient.java:34
-       ├─ transactions.saveTransaction()    PENDING，BillPaymentService.java:69
+       ├─ transactions.saveTransaction()    PENDING，BillPaymentService.java:70
        ├─ AccountClient.payBill()           AccountClient.java:57
        │    └─ post()                       AccountClient.java:65   404 / 409 / 5xx 转换
        │         └─ [account-service] AccountController.pay()        AccountController.java:60
        │              └─ AccountApplicationService.applyBillPayment()  AccountApplicationService.java:56
-       └─ record.markPosted()               BillPaymentService.java:73
+       └─ record.markPosted()               BillPaymentService.java:74
 
 PostingController.post()                    PostingController.java:43
   └─ PostingService.post()                  PostingService.java:69

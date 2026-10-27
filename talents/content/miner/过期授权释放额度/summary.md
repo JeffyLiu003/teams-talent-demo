@@ -17,7 +17,7 @@
 - 释放金额只统计已批准的明细，用于返回结果，不直接用来扣减某个账户。
 
 **参考文件**：
-- `services/authorization-service/src/main/java/com/cardcore/authorization/application/AuthorizationService.java` 行 175-193
+- `services/authorization-service/src/main/java/com/carddemo/authorization/application/AuthorizationService.java` 行 175-193
 
 **相关知识**：BR-AUTH-13。
 
@@ -49,8 +49,8 @@ summary.recalculateFromDetails(approvedCount, approvedAmount, declinedCount, dec
 ```
 
 **参考文件**：
-- `services/authorization-service/src/main/java/com/cardcore/authorization/application/AuthorizationService.java` 行 195-222
-- `services/authorization-service/src/main/java/com/cardcore/authorization/domain/model/AuthorizationSummary.java` 行 88-99
+- `services/authorization-service/src/main/java/com/carddemo/authorization/application/AuthorizationService.java` 行 195-222
+- `services/authorization-service/src/main/java/com/carddemo/authorization/domain/model/AuthorizationSummary.java` 行 88-99
 
 **相关知识**：NR-AUTH-01、NR-AUTH-02、NR-AUTH-03。
 
@@ -61,4 +61,4 @@ summary.recalculateFromDetails(approvedCount, approvedAmount, declinedCount, dec
 
 ## 依据
 
-- 业务规则目录 §8 授权；`CBPAUP0C.cbl:156,196-209,280-346`。
+- `docs/legacy/03-business-rule-catalog.md` §9 授权；`CBPAUP0C.cbl:156,196-209,280-346`。

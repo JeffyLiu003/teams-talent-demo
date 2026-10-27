@@ -4,16 +4,16 @@
 
 三个 PR 引入营销服务的奖励评估：入账成功后触发评估，按固定顺序判定资格，扣减活动预算后发放返现，返现入账失败时保留 PENDING 供人工重试。
 
-> card-core-java → `transaction-service.PostingService.evaluateRewards()` → `MarketingClient` → `marketing-service` → `application.RewardEvaluationService.evaluate()` → `domain.service.EligibilityPolicy` → `infrastructure.client.AccountClient.creditCashback()` → `account-service`
+> carddemo-java-1025 → `transaction-service.PostingService.evaluateRewards()` → `MarketingClient` → `marketing-service` → `application.RewardEvaluationService.evaluate()` → `domain.service.EligibilityPolicy` → `infrastructure.client.AccountClient.creditCashback()` → `account-service`
 
 核心涉及模块：
 
-- `services/transaction-service/src/main/java/com/cardcore/transaction/application/PostingService.java`：入账后调用 `evaluateRewards()`，失败只告警（PR #63）。
-- `services/transaction-service/src/main/java/com/cardcore/transaction/infrastructure/client/MarketingClient.java`：调用 `POST /api/v1/reward-evaluations`。
-- `services/marketing-service/src/main/java/com/cardcore/marketing/application/RewardEvaluationService.java`：评估主流程 `evaluate()` 与人工重试 `fulfill()`（PR #61、#66）。
-- `services/marketing-service/src/main/java/com/cardcore/marketing/domain/service/EligibilityPolicy.java`：资格判定，`evaluateTransaction()`。
-- `services/marketing-service/src/main/java/com/cardcore/marketing/domain/model/Campaign.java`：活动聚合，`hasBudgetFor()`、`consumeCashback()`。
-- `services/marketing-service/src/main/java/com/cardcore/marketing/domain/model/RewardGrant.java`：奖励记录，`markGranted()`、`markPending()`。
+- `services/transaction-service/src/main/java/com/carddemo/transaction/application/PostingService.java`：入账后调用 `evaluateRewards()`，失败只告警（PR #63）。
+- `services/transaction-service/src/main/java/com/carddemo/transaction/infrastructure/client/MarketingClient.java`：调用 `POST /api/v1/reward-evaluations`。
+- `services/marketing-service/src/main/java/com/carddemo/marketing/application/RewardEvaluationService.java`：评估主流程 `evaluate()` 与人工重试 `fulfill()`（PR #61、#66）。
+- `services/marketing-service/src/main/java/com/carddemo/marketing/domain/service/EligibilityPolicy.java`：资格判定，`evaluateTransaction()`。
+- `services/marketing-service/src/main/java/com/carddemo/marketing/domain/model/Campaign.java`：活动聚合，`hasBudgetFor()`、`consumeCashback()`。
+- `services/marketing-service/src/main/java/com/carddemo/marketing/domain/model/RewardGrant.java`：奖励记录，`markGranted()`、`markPending()`。
 - `services/marketing-service/src/main/resources/db/migration/V1__marketing_schema.sql`：`uk_reward_campaign_txn` 唯一约束。
 - 测试：`RewardEvaluationServiceTest`、`EligibilityPolicyTest`、`CampaignTest`、`MarketingApiTest`。
 

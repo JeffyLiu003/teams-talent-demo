@@ -4,15 +4,15 @@
 
 三个 PR 统一了 7 个服务的错误表达：领域层只抛业务异常，出站客户端把下游失败归一，接口层集中映射 HTTP 状态和错误体。
 
-> card-core-java → 各服务 `interfaces.rest.GlobalExceptionHandler`（HTTP 映射）→ `domain.exception`（`BusinessRuleException`、`NotFoundException`、`ValidationException`）→ `infrastructure.client`（`RemoteServiceException`）→ `ApiError`（统一错误体）
+> carddemo-java-1025 → 各服务 `interfaces.rest.GlobalExceptionHandler`（HTTP 映射）→ `domain.exception`（`BusinessRuleException`、`NotFoundException`、`ValidationException`）→ `infrastructure.client`（`RemoteServiceException`）→ `ApiError`（统一错误体）
 
 核心涉及模块：
 
-- `services/transaction-service/src/main/java/com/cardcore/transaction/domain/exception/BusinessRuleException.java`：业务断言失败，携带错误码，映射为 409。
-- `services/transaction-service/src/main/java/com/cardcore/transaction/infrastructure/client/AccountClient.java`：出站调用，PR #19 把连接失败、超时、5xx 统一转换为 `RemoteServiceException`。
-- `services/transaction-service/src/main/java/com/cardcore/transaction/interfaces/rest/GlobalExceptionHandler.java`：PR #12 新增，6 个 `@ExceptionHandler` 覆盖 404、409、503、400 和并发冲突。
-- `services/transaction-service/src/main/java/com/cardcore/transaction/interfaces/rest/ApiError.java`：错误体 `{code, message, details}`。
-- `services/customer-service/src/main/java/com/cardcore/customer/domain/model/Customer.java`：PR #35 让字段校验沿用存量屏幕的提示文案。
+- `services/transaction-service/src/main/java/com/carddemo/transaction/domain/exception/BusinessRuleException.java`：业务断言失败，携带错误码，映射为 409。
+- `services/transaction-service/src/main/java/com/carddemo/transaction/infrastructure/client/AccountClient.java`：出站调用，PR #19 把连接失败、超时、5xx 统一转换为 `RemoteServiceException`。
+- `services/transaction-service/src/main/java/com/carddemo/transaction/interfaces/rest/GlobalExceptionHandler.java`：PR #12 新增，6 个 `@ExceptionHandler` 覆盖 404、409、503、400 和并发冲突。
+- `services/transaction-service/src/main/java/com/carddemo/transaction/interfaces/rest/ApiError.java`：错误体 `{code, message, details}`。
+- `services/customer-service/src/main/java/com/carddemo/customer/domain/model/Customer.java`：PR #35 让字段校验沿用存量屏幕的提示文案。
 - 文档：`docs/design/05-api-catalog.md` §7 错误码总表。
 
 ## 需求影响位置依赖分析

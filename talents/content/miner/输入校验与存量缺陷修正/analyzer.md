@@ -4,14 +4,14 @@
 
 两个 PR 迁移存量屏幕的字段校验，并在同一处修正存量缺陷：客户资料的 SSN 首段和 FICO 范围（`COACTUPC`），以及卡片维护覆盖 CVV 的问题（`COCRDUPC`）。
 
-> card-core-java → `customer-service` / `card-service` → `domain.model`（`Customer`、`Card`）→ 私有校验方法 `requireXxx()` → `ValidationException`
+> carddemo-java-1025 → `customer-service` / `card-service` → `domain.model`（`Customer`、`Card`）→ 私有校验方法 `requireXxx()` → `ValidationException`
 
 核心涉及模块：
 
-- `services/customer-service/src/main/java/com/cardcore/customer/domain/model/Customer.java`：客户聚合，`applyDetails()` 调用一组 `requireXxx()` 私有方法完成校验。
-- `services/card-service/src/main/java/com/cardcore/card/domain/model/Card.java`：卡片聚合，CVV 列 `updatable = false`，`applyMaintenance()` 只修改允许的字段。
-- `services/card-service/src/main/java/com/cardcore/card/domain/model/CardMaintenance.java`：卡片维护可编辑字段的 record。
-- `services/card-service/src/main/java/com/cardcore/card/application/CardApplicationService.java`：`update()` 把 `CardMaintenance` 交给领域方法。
+- `services/customer-service/src/main/java/com/carddemo/customer/domain/model/Customer.java`：客户聚合，`applyDetails()` 调用一组 `requireXxx()` 私有方法完成校验。
+- `services/card-service/src/main/java/com/carddemo/card/domain/model/Card.java`：卡片聚合，CVV 列 `updatable = false`，`applyMaintenance()` 只修改允许的字段。
+- `services/card-service/src/main/java/com/carddemo/card/domain/model/CardMaintenance.java`：卡片维护可编辑字段的 record。
+- `services/card-service/src/main/java/com/carddemo/card/application/CardApplicationService.java`：`update()` 把 `CardMaintenance` 交给领域方法。
 - 测试：`CustomerTest`、`CardTest`、`CustomerControllerTest`、`CardControllerTest`。
 
 ## 需求影响位置依赖分析
@@ -61,7 +61,7 @@ CardController.update()                      CardController.java:88
 - **只开放可改字段**：维护操作用专门的 record 表达可编辑字段集合，不复用完整实体。
 
 **领域与系统知识**：
-- **存量缺陷清单**：迁移时发现的存量缺陷记录在业务规则目录的“NR-”条目中，修正时同步更新状态。
+- **存量缺陷清单**：迁移时发现的存量缺陷记录在 `docs/legacy/03-business-rule-catalog.md` 的“NR-”条目中，修正时同步更新状态。
 - **CVV 安全要求**：CVV 只在发卡时生成，任何维护操作不得修改或回显。
 
 **最佳实践**：

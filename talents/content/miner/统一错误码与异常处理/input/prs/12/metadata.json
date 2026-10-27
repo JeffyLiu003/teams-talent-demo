@@ -1,12 +1,12 @@
 {
   "number": 12,
-  "url": "https://code.bank.local/card-core/card-core-java/pulls/12",
+  "url": "https://code.bank.local/carddemo/carddemo-java-1025/pulls/12",
   "title": "各服务统一 ApiError 与 GlobalExceptionHandler",
   "body": "7 个服务各自返回的错误格式不一致，前端需要分别解析。本 PR 新增统一错误体 `ApiError {code, message, details}`，并为每个服务加入 `GlobalExceptionHandler`，集中映射 404、409、400。领域层只抛 `BusinessRuleException`、`NotFoundException`、`ValidationException`，不再引用 Spring Web 类型。\n\n## Validation\n\n- 7 个服务的控制器测试改为断言 `$.code`，全部通过。\n- 前端错误提示组件只解析一种结构，手工回归登录、账户查询、卡片维护。",
   "state": "merged",
   "mergedAt": "2026-09-22T15:40:00+08:00",
   "baseRef": "main",
-  "author": "王强",
+  "author": "苏晴",
   "labels": [
     "refactor",
     "error-handling"

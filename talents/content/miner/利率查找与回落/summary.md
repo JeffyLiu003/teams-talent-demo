@@ -14,7 +14,7 @@
 - 回落只发生一次；`DEFAULT` 也没有配置时利率为 0。
 
 **注意事项**：
-- 披露组只有 `A`、`DEFAULT`、`ZEROAPR` 三种（统一语言术语表），不要硬编码 `A`。
+- 披露组只有 `A`、`DEFAULT`、`ZEROAPR` 三种（`docs/legacy/04-data-dictionary.md` §2.4），不要硬编码 `A`。
 
 **一般化参考代码**：
 
@@ -30,7 +30,7 @@ private BigDecimal interestRate(String groupId, String typeCode, String category
 ```
 
 **参考文件**：
-- `services/transaction-service/src/main/java/com/cardcore/transaction/application/InterestService.java` 行 122-129
+- `services/transaction-service/src/main/java/com/carddemo/transaction/application/InterestService.java` 行 122-129
 
 **相关知识**：BR-INT-02。
 
@@ -44,7 +44,7 @@ private BigDecimal interestRate(String groupId, String typeCode, String category
 - 每个账户的各类别利息汇总为一笔交易（类型 01 / 类别 0005，描述 `Int. for a/c <账号>`）。
 
 **参考文件**：
-- `services/transaction-service/src/main/java/com/cardcore/transaction/application/InterestService.java` 行 90-117
+- `services/transaction-service/src/main/java/com/carddemo/transaction/application/InterestService.java` 行 90-117
 
 **相关知识**：BR-INT-01、BR-INT-03、BR-INT-04。
 
@@ -55,4 +55,4 @@ private BigDecimal interestRate(String groupId, String typeCode, String category
 
 ## 依据
 
-- 业务规则目录 §5 利息；`CBACT04C.cbl:214-217,415-467`。
+- `docs/legacy/03-business-rule-catalog.md` §7 利息；`CBACT04C.cbl:214-217,415-467`。

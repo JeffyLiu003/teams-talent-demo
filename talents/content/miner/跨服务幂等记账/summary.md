@@ -28,9 +28,9 @@ if (id != null && repository.existsById(id)) {
 ```
 
 **参考文件**：
-- `services/transaction-service/src/main/java/com/cardcore/transaction/application/PostingService.java` 行 76-86
+- `services/transaction-service/src/main/java/com/carddemo/transaction/application/PostingService.java` 行 76-86
 
-**相关知识**：NR-POST-01 单笔入账幂等（业务规则目录 §5）。
+**相关知识**：NR-POST-01 单笔入账幂等（`docs/legacy/03-business-rule-catalog.md` §6）。
 
 ---
 
@@ -53,7 +53,7 @@ transactions.saveTransaction(record);
 ```
 
 **参考文件**：
-- `services/transaction-service/src/main/java/com/cardcore/transaction/application/BillPaymentService.java` 行 64-70
+- `services/transaction-service/src/main/java/com/carddemo/transaction/application/BillPaymentService.java` 行 64-70
 
 ---
 
@@ -76,8 +76,8 @@ transactions.saveTransaction(record);
 ```
 
 **参考文件**：
-- `services/transaction-service/src/main/java/com/cardcore/transaction/application/BillPaymentService.java` 行 72-77
-- `services/transaction-service/src/main/java/com/cardcore/transaction/infrastructure/client/AccountClient.java` 行 40-50
+- `services/transaction-service/src/main/java/com/carddemo/transaction/application/BillPaymentService.java` 行 72-77
+- `services/transaction-service/src/main/java/com/carddemo/transaction/infrastructure/client/AccountClient.java` 行 40-50
 
 ---
 
@@ -107,7 +107,7 @@ public Account creditCashback(String accountId, String rewardId, String campaign
 ```
 
 **参考文件**：
-- `services/account-service/src/main/java/com/cardcore/account/application/AccountApplicationService.java` 行 71-81
+- `services/account-service/src/main/java/com/carddemo/account/application/AccountApplicationService.java` 行 71-81
 - `services/account-service/src/main/resources/db/migration/V3__reward_credit.sql`
 
 ---
@@ -123,7 +123,7 @@ public Account creditCashback(String accountId, String rewardId, String campaign
 - 附加权益（如营销奖励评估）失败只告警，不影响入账结果。
 
 **参考文件**：
-- `services/transaction-service/src/main/java/com/cardcore/transaction/application/PostingService.java` 行 96-132
+- `services/transaction-service/src/main/java/com/carddemo/transaction/application/PostingService.java` 行 96-132
 
 ## 测试要点
 
@@ -133,5 +133,5 @@ public Account creditCashback(String accountId, String rewardId, String campaign
 
 ## 依据
 
-- 信用卡核心业务文档 / design/adr/ADR-005-cross-service-consistency.md（方案 A：本地事务 + 同步调用 + 失败回滚 + 幂等键）
-- 业务规则：BR-BILL-05、BR-POST-06、BR-POST-08、NR-POST-01
+- carddemo-java-1025 / docs/design/adr/ADR-005-cross-service-consistency.md（方案 A：本地事务 + 同步调用 + 失败回滚 + 幂等键）
+- 业务规则（`docs/legacy/03-business-rule-catalog.md`）：BR-BILL-05、BR-POST-06、BR-POST-08、NR-POST-01

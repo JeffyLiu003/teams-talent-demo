@@ -4,13 +4,13 @@
 
 PR #64 把存量批量报表 `CBTRN03C` 迁移为查询接口：按日期闭区间查询，先校验引用再分页，保留页小计、按卡合计和总计三级口径。
 
-> card-core-java → `transaction-service` → `interfaces.rest.ReportController` → `application.TransactionReportService.report()` → `verifyReferences()` / `slice()` / `sum()`
+> carddemo-java-1025 → `transaction-service` → `interfaces.rest.ReportController` → `application.TransactionReportService.report()` → `verifyReferences()` / `slice()` / `sum()`
 
 核心涉及模块：
 
-- `services/transaction-service/src/main/java/com/cardcore/transaction/application/TransactionReportService.java`：报表主流程与三个私有方法。
-- `services/transaction-service/src/main/java/com/cardcore/transaction/interfaces/rest/ReportController.java`：`GET /api/v1/reports/transactions`。
-- `services/transaction-service/src/main/java/com/cardcore/transaction/application/TransactionReport.java`：报表结果，含明细、分页信息和三级合计。
+- `services/transaction-service/src/main/java/com/carddemo/transaction/application/TransactionReportService.java`：报表主流程与三个私有方法。
+- `services/transaction-service/src/main/java/com/carddemo/transaction/interfaces/rest/ReportController.java`：`GET /api/v1/reports/transactions`。
+- `services/transaction-service/src/main/java/com/carddemo/transaction/application/TransactionReport.java`：报表结果，含明细、分页信息和三级合计。
 
 ## 需求影响位置依赖分析
 

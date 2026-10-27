@@ -17,7 +17,7 @@
 - 消费是资金事实，营销是附加权益——两者的失败语义不同。
 
 **参考文件**：
-- `services/transaction-service/src/main/java/com/cardcore/transaction/application/PostingService.java` 行 126、134-150
+- `services/transaction-service/src/main/java/com/carddemo/transaction/application/PostingService.java` 行 126、134-150
 
 **依据**：ADR-009 营销集成方式
 
@@ -45,7 +45,7 @@ if (!evaluation.eligible()) {
 ```
 
 **参考文件**：
-- `services/marketing-service/src/main/java/com/cardcore/marketing/application/RewardEvaluationService.java` 行 64-81
+- `services/marketing-service/src/main/java/com/carddemo/marketing/application/RewardEvaluationService.java` 行 64-81
 
 ---
 
@@ -104,5 +104,5 @@ if (grant.isCashback()) {
 
 ## 依据
 
-- 信用卡核心业务文档 / design/08-marketing-capability.md §2–§3
-- 信用卡核心业务文档 / design/adr/ADR-009-marketing-integration.md
+- carddemo-java-1025 / docs/design/08-marketing-capability.md §2–§3
+- carddemo-java-1025 / docs/design/adr/ADR-009-marketing-integration.md

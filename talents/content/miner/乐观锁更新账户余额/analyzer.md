@@ -4,14 +4,14 @@
 
 三个 PR 把存量系统“读锁 + 快照比对”的并发控制改为 JPA 乐观锁，并把余额变更收敛为 `Account` 上的领域方法。
 
-> card-core-java → `account-service` / `card-service`（账户、卡片上下文）→ `domain.model`（聚合根 `Account`、`Card`）→ `@Version` 字段 → `interfaces.rest.GlobalExceptionHandler`（409 映射）
+> carddemo-java-1025 → `account-service` / `card-service`（账户、卡片上下文）→ `domain.model`（聚合根 `Account`、`Card`）→ `@Version` 字段 → `interfaces.rest.GlobalExceptionHandler`（409 映射）
 
 核心涉及模块：
 
-- `services/account-service/src/main/java/com/cardcore/account/domain/model/Account.java`：账户聚合，`@Version` 字段与 `applyPosting()`、`applyBillPayment()`、`accrueInterest()`、`applyCashback()` 四个领域方法。
-- `services/account-service/src/main/java/com/cardcore/account/application/AccountApplicationService.java`：应用服务，只做“读取 → 调领域方法 → 保存”。
-- `services/card-service/src/main/java/com/cardcore/card/domain/model/Card.java`：卡片聚合，`@Version` 与 `applyMaintenance()`，CVV 列不可更新。
-- `services/account-service/src/main/java/com/cardcore/account/interfaces/rest/GlobalExceptionHandler.java`：捕获 `OptimisticLockingFailureException`，返回 `409 CONCURRENT_UPDATE`。
+- `services/account-service/src/main/java/com/carddemo/account/domain/model/Account.java`：账户聚合，`@Version` 字段与 `applyPosting()`、`applyBillPayment()`、`accrueInterest()`、`applyCashback()` 四个领域方法。
+- `services/account-service/src/main/java/com/carddemo/account/application/AccountApplicationService.java`：应用服务，只做“读取 → 调领域方法 → 保存”。
+- `services/card-service/src/main/java/com/carddemo/card/domain/model/Card.java`：卡片聚合，`@Version` 与 `applyMaintenance()`，CVV 列不可更新。
+- `services/account-service/src/main/java/com/carddemo/account/interfaces/rest/GlobalExceptionHandler.java`：捕获 `OptimisticLockingFailureException`，返回 `409 CONCURRENT_UPDATE`。
 - `services/account-service/src/main/resources/db/migration/V1__account_schema.sql`：`version BIGINT NOT NULL DEFAULT 0`。
 - 测试：`AccountTest`、`AccountControllerTest`、`CardTest`、`CardControllerTest`。
 

@@ -25,8 +25,8 @@ private long version;
 ```
 
 **参考文件**：
-- `services/account-service/src/main/java/com/cardcore/account/domain/model/Account.java` 行 60-62
-- `services/card-service/src/main/java/com/cardcore/card/domain/model/Card.java` 行 51-53
+- `services/account-service/src/main/java/com/carddemo/account/domain/model/Account.java` 行 60-62
+- `services/card-service/src/main/java/com/carddemo/card/domain/model/Card.java` 行 51-53
 - `services/account-service/src/main/resources/db/migration/V1__account_schema.sql` 行 14
 
 ---
@@ -59,10 +59,10 @@ public void applyBillPayment(BigDecimal amount) {
 ```
 
 **参考文件**：
-- `services/account-service/src/main/java/com/cardcore/account/domain/model/Account.java` 行 77-124
-- `services/account-service/src/main/java/com/cardcore/account/application/AccountApplicationService.java` 行 44-66
+- `services/account-service/src/main/java/com/carddemo/account/domain/model/Account.java` 行 77-124
+- `services/account-service/src/main/java/com/carddemo/account/application/AccountApplicationService.java` 行 44-66
 
-**相关知识**：BR-ACCT-09、BR-ACCT-10、BR-ACCT-11、NR-ACCT-01（业务规则目录 §4）；`ACCT-CURR-BAL` 是欠款而非可用余额（统一语言术语表 §2）。
+**相关知识**：BR-ACCT-09、BR-ACCT-10、BR-ACCT-11、NR-ACCT-01（`docs/legacy/03-business-rule-catalog.md` §4）；`ACCT-CURR-BAL` 是欠款而非可用余额（`docs/legacy/05-ubiquitous-language.md` §2）。
 
 ---
 
@@ -87,7 +87,7 @@ public ResponseEntity<ApiError> handleOptimisticLock(OptimisticLockingFailureExc
 ```
 
 **参考文件**：
-- `services/account-service/src/main/java/com/cardcore/account/interfaces/rest/GlobalExceptionHandler.java` 行 38-43
+- `services/account-service/src/main/java/com/carddemo/account/interfaces/rest/GlobalExceptionHandler.java` 行 38-43
 
 ---
 
@@ -99,8 +99,8 @@ public ResponseEntity<ApiError> handleOptimisticLock(OptimisticLockingFailureExc
 - 卡片响应不返回 CVV；卡片维护只允许修改卡面姓名、状态、到期月 / 年，CVV 列设为 `updatable = false`。
 
 **参考文件**：
-- `services/card-service/src/main/java/com/cardcore/card/interfaces/rest/dto/CardResponse.java` 行 10-27
-- `services/card-service/src/main/java/com/cardcore/card/domain/model/Card.java` 行 39-40、75
+- `services/card-service/src/main/java/com/carddemo/card/interfaces/rest/dto/CardResponse.java` 行 10-27
+- `services/card-service/src/main/java/com/carddemo/card/domain/model/Card.java` 行 39-40、75
 
 **相关知识**：NR-CARD-01、NR-CARD-02。
 
@@ -111,6 +111,6 @@ public ResponseEntity<ApiError> handleOptimisticLock(OptimisticLockingFailureExc
 
 ## 依据
 
-- 信用卡核心业务文档 / design/adr/ADR-006-optimistic-locking.md
-- 信用卡核心业务文档 / design/07-java-conventions.md §3、§6
-- 业务规则：BR-ACCT-06、BR-CARD-10
+- carddemo-java-1025 / docs/design/adr/ADR-006-optimistic-locking.md
+- carddemo-java-1025 / docs/design/07-java-conventions.md §3、§6
+- 业务规则（`docs/legacy/03-business-rule-catalog.md`）：BR-ACCT-06、BR-CARD-10

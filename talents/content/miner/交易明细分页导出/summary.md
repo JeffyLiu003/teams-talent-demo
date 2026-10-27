@@ -24,10 +24,10 @@ LocalDateTime to = endDate.atTime(LocalTime.MAX);
 ```
 
 **参考文件**：
-- `services/transaction-service/src/main/java/com/cardcore/transaction/application/TransactionReportService.java` 行 44-51
-- `services/transaction-service/src/main/java/com/cardcore/transaction/interfaces/rest/ReportController.java` 行 23-31
+- `services/transaction-service/src/main/java/com/carddemo/transaction/application/TransactionReportService.java` 行 44-51
+- `services/transaction-service/src/main/java/com/carddemo/transaction/interfaces/rest/ReportController.java` 行 23-31
 
-**相关知识**：BR-RPT-01、BR-RPT-02（业务规则目录 §10）。
+**相关知识**：BR-RPT-01、BR-RPT-02（`docs/legacy/03-business-rule-catalog.md` §10）。
 
 ---
 
@@ -55,7 +55,7 @@ private static List<TransactionRecord> slice(List<TransactionRecord> rows, int p
 ```
 
 **参考文件**：
-- `services/transaction-service/src/main/java/com/cardcore/transaction/application/TransactionReportService.java` 行 53-55、112-119
+- `services/transaction-service/src/main/java/com/carddemo/transaction/application/TransactionReportService.java` 行 53-55、112-119
 
 **相关知识**：BR-RPT-04。
 
@@ -72,7 +72,7 @@ private static List<TransactionRecord> slice(List<TransactionRecord> rows, int p
 - 存量报表每 20 行分页，新系统不再做纸质分页，但合计口径保持一致。
 
 **参考文件**：
-- `services/transaction-service/src/main/java/com/cardcore/transaction/application/TransactionReportService.java` 行 56-67
+- `services/transaction-service/src/main/java/com/carddemo/transaction/application/TransactionReportService.java` 行 56-67
 
 **相关知识**：BR-RPT-03、BR-RPT-05。
 
@@ -83,4 +83,4 @@ private static List<TransactionRecord> slice(List<TransactionRecord> rows, int p
 
 ## 依据
 
-- 业务规则目录 §10 报表；`CBTRN03C.cbl:173-203,282-322,484-512`。
+- `docs/legacy/03-business-rule-catalog.md` §10 报表；`CBTRN03C.cbl:173-203,282-322,484-512`。

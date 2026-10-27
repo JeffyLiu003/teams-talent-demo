@@ -36,7 +36,7 @@ private static String requireSsn(String rawValue) {
 ```
 
 **参考文件**：
-- `services/customer-service/src/main/java/com/cardcore/customer/domain/model/Customer.java` 行 293-368
+- `services/customer-service/src/main/java/com/carddemo/customer/domain/model/Customer.java` 行 293-368
 
 **相关知识**：BR-CUST-07、BR-CUST-08（FICO 300–850）。
 
@@ -60,9 +60,9 @@ private String cvv;
 ```
 
 **参考文件**：
-- `services/card-service/src/main/java/com/cardcore/card/domain/model/Card.java` 行 39-40
-- `services/card-service/src/main/java/com/cardcore/card/domain/model/CardMaintenance.java`
-- `services/card-service/src/main/java/com/cardcore/card/application/CardApplicationService.java` 行 76
+- `services/card-service/src/main/java/com/carddemo/card/domain/model/Card.java` 行 39-40
+- `services/card-service/src/main/java/com/carddemo/card/domain/model/CardMaintenance.java`
+- `services/card-service/src/main/java/com/carddemo/card/application/CardApplicationService.java` 行 76
 
 **相关知识**：BR-CARD-09、NR-CARD-01、NR-CARD-02。
 
@@ -73,4 +73,4 @@ private String cvv;
 
 ## 依据
 
-- 业务规则目录 §2 客户、§3 卡片；`COCRDUPC.cbl:877-944,1464-1465`。
+- `docs/legacy/03-business-rule-catalog.md` §2 客户、§3 卡片；`COCRDUPC.cbl:877-944,1464-1465`。

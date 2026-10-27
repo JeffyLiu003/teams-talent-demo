@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>轨迹诊断报告 · 过期授权清理释放额度</title>
+<title>轨迹诊断报告 · 白金卡额外返现</title>
 <style>
 :root {
   --bg: #f3f5f6;
@@ -127,29 +127,27 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--accent
 <body>
 <main aria-labelledby="case-output">
 <h1 id="case-output">诊断结果与建议</h1>
-      <p class="small">会话：授权服务：过期授权清理后未释放额度（<code>8d21f6a0</code>）· 成员 陈晨 · 代码仓 card-core-java · Code Agent · 64 轮对话</p>
+      <p class="small">会话：白金卡消费额外返现（<code>WORK-PLATINUM-001</code>）· 需求 DEMO-MKT-001 · 成员 陈晨 · 代码仓 carddemo-java-1025 · Code Agent · 上下文快照 Context-r1</p>
       <div class="report">
         <div class="report-head">
           <div>
             <div class="t">诊断结论</div>
-            <div class="one">agent 用本次清理所有账户的释放合计去扣减每个账户的占用额度，又把扣成负数的结果截成 0；只测了单账户，测试全部通过后宣称 NR-AUTH-01 已实现。</div>
+            <div class="one">agent 沿用餐饮返现的资格判定链实现了消费期间与 0.5% 计算，没有加卡片等级判断，自测也只用了白金卡正向输入；首次检查 E3 中“普通卡不参与”未通过（6/7），补充判断后复测 E5 通过 7/7，缺陷在提交前修复。</div>
           </div>
           <span class="pass">诊断可信</span>
         </div>
 
         <div class="report-sec">
-          <h4>因果链：缺陷为什么一直没被修掉</h4>
+          <h4>因果链：缺陷如何产生、如何被发现</h4>
           <ol class="chain">
-            <li class="fixed"><span class="dot">1</span><span class="role">编写测试<span class="ev">轨迹第 8 步</span></span><span class="txt">用固定日期造了 6 天前的授权，但清理按系统当前时间计算过期日。</span></li>
-            <li class="fixed"><span class="dot">2</span><span class="role">测试结果<span class="ev">轨迹第 11 步</span></span><span class="txt">测试结果随运行日期变化；第 15 步改为注入 <code>Clock</code> 后稳定。</span></li>
-            <li><span class="dot">3</span><span class="role">读取代码<span class="ev">轨迹第 19 步</span></span><span class="txt">看到 <code>purge</code> 已经把全部过期明细的批准金额合计为 <code>released</code>，决定直接复用。</span></li>
-            <li><span class="dot">4</span><span class="role">代码编辑<span class="ev">轨迹第 23 步</span></span><span class="txt">对每个受影响账户的汇总执行 <code>creditBalance − released</code>，用的是所有账户的合计。</span></li>
-            <li><span class="dot">5</span><span class="role">测试结果<span class="ev">轨迹第 27 步</span></span><span class="txt">单账户用例通过。</span></li>
-            <li><span class="dot">6</span><span class="role">agent 结论<span class="ev">轨迹第 31 步</span></span><span class="txt">agent 认为“额度已正确释放”，没有构造多账户用例。</span></li>
-            <li><span class="dot">7</span><span class="role">代码编辑<span class="ev">轨迹第 36–40 步</span></span><span class="txt">为防止占用额度出现负数，加了 <code>max(0, …)</code>，多扣的部分被截掉。</span></li>
-            <li><span class="dot">8</span><span class="role">测试结果<span class="ev">轨迹第 44 步</span></span><span class="txt"><code>AuthorizationServiceTest</code> 全部 23 个用例通过。</span></li>
-            <li><span class="dot">9</span><span class="role">宣称完成<span class="ev">轨迹第 52 步</span></span><span class="txt">agent 声称 NR-AUTH-01（清理时回退信用余额）已实现。</span></li>
-            <li class="end"><span class="dot">10</span><span class="role">提交代码<span class="ev">最终文件</span></span><span class="txt">一次清理涉及多个账户时，每个账户都被扣掉所有账户的释放合计，占用额度被清零，可用额度被放大。</span></li>
+            <li class="fixed"><span class="dot">1</span><span class="role">读取上下文<span class="ev">Context-r1</span></span><span class="txt">需求三项口径为白金卡客户、未来 3 个月、额外 0.5%；知识快照写明“普通卡与期间外消费不适用”。agent 把“白金卡客户”当作活动目标人群，没有拆成卡片等级条件。</span></li>
+            <li class="fixed"><span class="dot">2</span><span class="role">参考已有实现<span class="ev">Context-r1 关键源码</span></span><span class="txt">选用餐饮返现的 <code>EligibilityPolicy.evaluateParticipation()</code> 作为模板；该链只判断活动有效、账户状态、账户组与报名，<code>AccountSnapshot</code> 不含卡片等级。</span></li>
+            <li class="fixed"><span class="dot">3</span><span class="role">编写实现<span class="ev">开发阶段</span></span><span class="txt">实现了期间开始包含、结束不包含的判断和 1/200 整数分计算，资格条件原样沿用，没有新增卡片等级判断。</span></li>
+            <li class="fixed"><span class="dot">4</span><span class="role">自测<span class="ev">开发阶段</span></span><span class="txt">只验证白金卡消费 120 元返现 0.60 元；没有普通卡、期间结束时刻、半分舍入或零金额的用例。</span></li>
+            <li class="fixed"><span class="dot">5</span><span class="role">首次检查<span class="ev">E3 · CHECK-PLATINUM-001</span></span><span class="txt">七项规则 6/7：CB-02“普通卡不参与”期望 0 分，实际 60 分，普通卡被纳入返现。</span></li>
+            <li class="fixed"><span class="dot">6</span><span class="role">修复<span class="ev">E4 · FIX-PLATINUM-001</span></span><span class="txt">在期间判断之前补充卡片等级判断，非白金卡返回 <code>CARD_TIER</code>、奖励 0 分，并补上普通卡反向用例。</span></li>
+            <li class="fixed"><span class="dot">7</span><span class="role">复测<span class="ev">E5 · CHECK-PLATINUM-002</span></span><span class="txt">七项规则 7/7 通过；安全状态保持 <code>unverified</code>。</span></li>
+            <li class="end"><span class="dot">8</span><span class="role">提交交付<span class="ev">Delivery-r1</span></span><span class="txt">功能缺陷已在提交前修复；白金卡身份在 carddemo-java-1025 中的数据来源仍未定义，正式资格细则待确认，生产安全未验证。</span></li>
           </ol>
           <div class="chain-legend"><span class="f">后来已修复</span><span>保留到提交</span></div>
         </div>
@@ -157,42 +155,42 @@ code { font-family: var(--font-mono); font-size: .88em; background: var(--accent
         <div class="report-sec">
           <h4>发现的问题</h4>
           <div class="findings">
-            <div class="finding"><span class="status fixed">后来已修复</span><div><h5>1 · 测试依赖系统时间</h5><p>过期判断用了系统当前时间；注入 <code>Clock</code> 后修复。</p><div class="loc">轨迹第 8–15 步</div></div></div>
-            <div class="finding"><span class="status kept">保留到提交</span><div><h5>2 · 按全部账户的合计释放额度</h5><p>NR-AUTH-01 要求按账户回退已批准金额并重算汇总（<code>03-business-rule-catalog.md</code>），实现用的是本次清理的全局合计。</p><div class="loc">轨迹第 19–23 步</div></div></div>
-            <div class="finding"><span class="status kept">保留到提交</span><div><h5>3 · 用截断掩盖了多扣</h5><p>占用额度变成负数本应暴露问题，<code>max(0, …)</code> 把它掩盖了，结果是额度被放大，与 NR-AUTH-03 冲突。</p><div class="loc">轨迹第 36–40 步</div></div></div>
-            <div class="finding"><span class="status kept">保留到提交</span><div><h5>4 · 只测了单账户</h5><p>单账户时“合计”恰好等于“本账户”，用例无法发现问题。</p><div class="loc">轨迹第 27–44 步</div></div></div>
+            <div class="finding"><span class="status fixed">后来已修复</span><div><h5>1 · 遗漏卡片等级判断</h5><p>需求写明普通卡不适用（<code>cashback-contract.md</code> 第 9 行），首版实现没有卡片等级条件，普通卡消费 120 元也返现 60 分。</p><div class="loc">E3 · CB-02；E4 修复</div></div></div>
+            <div class="finding"><span class="status fixed">后来已修复</span><div><h5>2 · 自测只覆盖正向输入</h5><p>开发阶段只验证白金卡 120 元返现 0.60 元，普通卡、结束时刻、半分舍入和零金额都依赖首次检查覆盖；E4 补上普通卡反向用例。</p><div class="loc">开发阶段；E3–E4</div></div></div>
+            <div class="finding"><span class="status kept">保留到提交</span><div><h5>3 · 白金卡身份没有数据来源</h5><p><code>EligibilityPolicy</code> 只判断活动、账户状态、账户组与报名，<code>AccountSnapshot</code> 和 <code>Card</code> 都没有卡片等级字段。本次修复按输入中的卡片等级判断，接入服务前需先确认白金卡身份来自哪里（验收标准 AC-01：正式资格认定细则待确认）。</p><div class="loc">Context-r1 关键源码；Delivery-r1</div></div></div>
+            <div class="finding"><span class="status kept">保留到提交</span><div><h5>4 · 安全状态未验证</h5><p>E5 七项通过只代表功能规则。按 <code>ADR-007</code>，资源服务本期不强制校验 token、生产化前须接入网关，功能验收不代表安全放行；提交时安全状态正确保留为 <code>unverified</code>。</p><div class="loc">E5；Delivery-r1</div></div></div>
           </div>
         </div>
 
         <div class="report-sec">
           <h4>过程错误分类</h4>
           <div class="cats">
-            <div><b>需求理解错误</b>把“按账户回退”实现成按全局合计回退</div>
-            <div><b>覆盖不全</b>批处理只测了单账户</div>
-            <div><b>验证错误</b>用截断处理异常值，掩盖了不变量被破坏</div>
-            <div><b>虚报完成</b>多账户场景未验证就宣称规则已实现</div>
+            <div><b>需求理解错误</b>把“白金卡客户”当作已被目标人群条件覆盖，没有拆成卡片等级判断</div>
+            <div><b>复用未核对差异</b>沿用参考实现的资格判定链，没有对照新需求逐条核对条件</div>
+            <div><b>覆盖不全</b>只有白金卡正向用例，缺少普通卡与期间边界的反向用例</div>
+            <div><b>自检缺失</b>提交检查前没有按验收条目逐条自检，问题依赖首次检查发现</div>
           </div>
         </div>
 
         <div class="report-sec">
           <h4>建议</h4>
           <div class="sugg">
-            <div><span class="who">代码修正</span><span>按账户分组计算释放金额，或直接用剩余明细重算汇总的 <code>creditBalance</code>；去掉 <code>max(0, …)</code>，出现负数时抛出领域异常。<span class="use">用于：直接修复本次任务。</span></span></div>
-            <div><span class="who">测试</span><span>补一条“多个账户、批准与拒绝混合”的清理用例，逐个账户断言占用额度。<span class="use">用于：改进测试。</span></span></div>
-            <div><span class="who">skill：dev-backend-service</span><span>在工作流第 4 步“业务规则实现”中要求跨聚合的批处理按聚合根分组计算金额；在“常见失败模式”中加一行“用截断掩盖不变量破坏”。<span class="use">用于：更新团队 Skill，后续后端开发任务都会遵循。</span></span></div>
-            <div><span class="who">prompt / 记忆</span><span>批处理改动至少覆盖多个账户的用例；遇到负数等异常值，先查原因，不用截断处理。<span class="use">用于：在线反思的检查点；写入 AGENTS.md 经验规则。</span></span></div>
+            <div><span class="who">代码修正</span><span>E4 已补充卡片等级判断并通过 E5。落到 carddemo-java-1025 前，先确认白金卡身份的数据来源（卡片等级字段或账户组映射），再在 <code>EligibilityPolicy</code> 中增加独立的卡片等级条件和原因码。<span class="use">用于：完成本次需求向服务代码的落地。</span></span></div>
+            <div><span class="who">测试</span><span>保留 CB-01 至 CB-07 作为回归用例；补一条“同一交易重复评估只产生一笔奖励”的检查。<span class="use">用于：改进测试。</span></span></div>
+            <div><span class="who">skill：dev-backend-service</span><span>在工作流第 4 步“业务规则实现”中要求每条规则写正向与反向检查，覆盖白金卡与普通卡、期间开始与结束边界、整数分舍入和重复评估；在“常见失败模式”中加一行“规则只测正向输入”。<span class="use">用于：更新团队 Skill，后续后端开发任务都会遵循。</span></span></div>
+            <div><span class="who">prompt / 记忆</span><span>资格条件按新需求重新列出，不直接沿用参考实现的判定链；提交前按验收条目逐条自检，功能通过不等于安全放行。<span class="use">用于：在线反思的检查点；写入 AGENTS.md 经验规则。</span></span></div>
           </div>
         </div>
 
         <div class="report-sec">
           <h4>判定依据</h4>
           <div class="checks">
-            <div><b>✓ 真实性</b>　用两个账户的过期授权重放清理，提交的代码把两个账户的占用额度都清零；修正后各自只回退自己的批准金额。</div>
-            <div><b>✓ 可从轨迹推出</b>　复用全局合计、截断为 0、只有单账户用例和宣称完成都在轨迹里，不依赖标准答案也能推出。</div>
+            <div><b>✓ 真实性</b>　E3 记录 CB-02 期望 0 分、实际 60 分；E4 补充卡片等级判断后，E5 七项全部通过，普通卡奖励为 0。</div>
+            <div><b>✓ 可从轨迹推出</b>　需求口径、参考实现缺少卡片等级维度、检查与修复记录都在本次作业记录中，不依赖标准答案也能推出。</div>
           </div>
         </div>
       </div>
-      <p class="small" style="margin-top:12px">四条建议分别对应：修复本次任务、改进测试、更新 Skill、沉淀经验规则。这些建议的实际效果尚未通过回放实验验证。</p>
+      <p class="small" style="margin-top:12px">四条建议分别对应：完成需求落地、改进测试、更新 Skill、沉淀经验规则。E3、E4、E5 来自 Teams 本地交付工作流的固定检查记录，不是原生 iCode 会话回放；建议的实际效果尚未通过回放实验验证。</p>
 </main>
 </body>
 </html>
