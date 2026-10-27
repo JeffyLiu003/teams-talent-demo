@@ -15,9 +15,9 @@ export function headers(request: IncomingMessage, response: ServerResponse) {
     response.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Demo-Token, X-Demo-Request');
   }
 }
-export async function bodyJson(request: IncomingMessage) {
+export async function bodyJson(request: IncomingMessage, maxBytes = 65536) {
   const chunks: Buffer[] = []; let size = 0;
-  for await (const chunk of request) { size += chunk.length; if (size > 65536) throw new DomainError('请求过大', 413); chunks.push(chunk); }
+  for await (const chunk of request) { size += chunk.length; if (size > maxBytes) throw new DomainError('请求过大', 413); chunks.push(chunk); }
   try { return JSON.parse(Buffer.concat(chunks).toString()) as Record<string, any>; } catch { throw new DomainError('JSON 请求无效', 400); }
 }
 export async function staticFile(path: string, app: 'teams' | 'talent', response: ServerResponse) {

@@ -1,3 +1,6 @@
+import { deliveryRequirement,requirementNode } from '../delivery-requirements.js';
+import { LiveTaskDelivery } from '../components/live-task-delivery.js';
+import { projectMembers, projectTeam } from '../teams-domain.js';
 import { displayProjectDescription, displayText } from '../display-text.js';
 import { Alert, Button, Descriptions, Space, Tag } from 'antd';
 import { ArrowLeftOutlined, FileTextOutlined, SettingOutlined } from '@ant-design/icons';
@@ -16,19 +19,21 @@ import '../project.css';
 export function Project({ tab = 'content', node }: { tab?: string; node?: string }) {
   const { state, role, navigate } = useDemo();
   if (tab === 'list') return <div className="page-stack project-workspace"><Heading eyebrow="团队空间" title="项目" description={role === 'owner' ? '管理项目任务，协调问题并验收交付成果。' : '进入参与的项目，完成分配给自己的任务。'} actions={role === 'owner' ? <CreateProjectButton /> : undefined} />
-    <FrameworkCard title={state.workspace.project.name} action={<Tag color={state.stage === 'accepted' ? 'green' : 'purple'}>{stageLabels[state.stage]}</Tag>}><p>{displayText(displayProjectDescription(state.workspace.project.description))}</p><Descriptions size="small" column={2} items={[{ key: 'team', label: '所属团队', children: state.workspace.team.name }, { key: 'people', label: '协作角色', children: 'Owner 林悦 · 成员 陈晨' }, { key: 'repository', label: '主仓', children: state.workspace.project.repository }, { key: 'task', label: '本次需求', children: '信用卡消费返现 · MKT-001' }]} /><Space wrap><Button type="primary" data-project-primary="carddemo" aria-label={(role === 'owner' ? '进入任务管理：' : '进入任务交付：') + state.workspace.project.name} onClick={() => navigate('projects?tab=' + (role === 'owner' ? 'management' : 'delivery'))}>{role === 'owner' ? '进入任务管理' : '进入任务交付'}</Button><Button onClick={() => navigate('projects?tab=content')}>项目资料</Button>{role === 'owner' && <Button onClick={() => navigate('projects?tab=delivery')}>交付与验收</Button>}{role === 'owner' && <Button onClick={() => navigate('projects?tab=settings')}>编辑项目</Button>}</Space></FrameworkCard>
+    <FrameworkCard title={state.workspace.project.name} action={<Tag color={state.stage === 'accepted' ? 'green' : 'purple'}>{stageLabels[state.stage]}</Tag>}><p>{displayText(displayProjectDescription(state.workspace.project.description))}</p><Descriptions size="small" column={2} items={[{ key: 'team', label: '所属团队', children: projectTeam(state, 'carddemo').name }, { key: 'people', label: '协作角色', children: projectMembers(state, 'carddemo').filter(member => member.status === 'active').map(member => member.name + ' · ' + (member.role === 'owner' ? 'Owner' : '成员')).join('、') }, { key: 'repository', label: '主仓', children: state.workspace.project.repository }, { key: 'task', label: '本次需求', children: '信用卡消费返现 · MKT-001' }]} /><Space wrap><Button type="primary" data-project-primary="carddemo" aria-label={(role === 'owner' ? '进入任务管理：' : '进入任务交付：') + state.workspace.project.name} onClick={() => navigate('projects?tab=' + (role === 'owner' ? 'management' : 'delivery'))}>{role === 'owner' ? '进入任务管理' : '进入任务交付'}</Button><Button onClick={() => navigate('projects?tab=content')}>项目资料</Button>{role === 'owner' && <Button onClick={() => navigate('projects?tab=delivery')}>交付与验收</Button>}{role === 'owner' && <Button onClick={() => navigate('projects?tab=settings')}>编辑项目</Button>}</Space></FrameworkCard>
     <TeamsProjectCard />
     {(state.workspace.projects ?? []).map(project => <CreatedProjectCard key={project.id} project={project} />)}
   </div>;
+  const taskId=new URLSearchParams(location.hash.split('?')[1]??'').get('task')??'DEMO-MKT-001';
+  const task=deliveryRequirement(state,'carddemo',taskId);
   const legacy = tab === 'requirement' ? 'management' : ['context', 'acceptance'].includes(tab) ? 'delivery' : tab;
-  const selectedNode: DeliveryNode = tab === 'context' ? 'prepare' : tab === 'acceptance' ? 'accept' : node && Object.hasOwn(nodeLabels, node) ? node as DeliveryNode : ['submitted', 'accepted'].includes(state.stage) ? 'accept' : ['failed', 'fixed'].includes(state.stage) ? 'verify' : ['developing', 'returned'].includes(state.stage) ? 'develop' : 'prepare';
+  const selectedNode: DeliveryNode = tab === 'context' ? 'prepare' : tab === 'acceptance' ? 'accept' : node && Object.hasOwn(nodeLabels, node) ? node as DeliveryNode : task ? requirementNode(task) : ['submitted', 'accepted'].includes(state.stage) ? 'accept' : ['failed', 'fixed'].includes(state.stage) ? 'verify' : ['developing', 'returned'].includes(state.stage) ? 'develop' : 'prepare';
   return <div className="page-stack project-workspace project-detail">
-    <ProjectToolbar activeKey={legacy} onChange={value => navigate('projects?tab=' + value)} actions={<>
+    <ProjectToolbar activeKey={legacy} onChange={value => navigate('projects?project=carddemo&tab=' + value + (task?'&task='+encodeURIComponent(task.id):''))} actions={<>
       <Button type="text" icon={<FileTextOutlined />} aria-label="查看需求执行记录" title="查看需求执行记录" onClick={() => navigate('trace')}><span className="project-secondary-action-label">执行记录</span></Button>
       <Button type="text" icon={<SettingOutlined />} aria-label="项目设置" title="项目设置" onClick={() => navigate('projects?tab=settings')}><span className="project-secondary-action-label">项目设置</span></Button>
-      <ProjectWorkLaunch target={{ projectId: 'carddemo', tab: legacy, ...(legacy === 'delivery' ? { taskId: 'DEMO-MKT-001', nodeId: selectedNode } : {}) }} />
+      <ProjectWorkLaunch target={{ projectId: 'carddemo', tab: legacy, ...(legacy === 'delivery' ? { taskId, nodeId: selectedNode } : {}) }} />
     </>} />
-    {legacy === 'content' ? <ProjectContent /> : legacy === 'management' ? <ProjectManagement /> : legacy === 'delivery' ? <ProjectDelivery node={selectedNode} /> : legacy === 'settings' ? <><Button className="self-start" icon={<ArrowLeftOutlined />} onClick={() => navigate('projects?tab=content')}>返回项目内容</Button><ProjectSettings /></> : <Alert type="error" title="项目页面不存在" action={<Button onClick={() => navigate('projects?tab=content')}>进入项目内容</Button>} />}
+    {legacy === 'content' ? <ProjectContent /> : legacy === 'management' ? <ProjectManagement /> : legacy === 'delivery' ? task ? <LiveTaskDelivery key={task.projectId+':'+task.id+':'+role} task={task} node={selectedNode}/> : taskId==='DEMO-MKT-001'?<ProjectDelivery node={selectedNode} />:<Alert type="error" title="需求任务不存在"/> : legacy === 'settings' ? <><Button className="self-start" icon={<ArrowLeftOutlined />} onClick={() => navigate('projects?tab=content')}>返回项目概览</Button><ProjectSettings /></> : <Alert type="error" title="项目页面不存在" action={<Button onClick={() => navigate('projects?tab=content')}>进入项目概览</Button>} />}
 
   </div>;
 }

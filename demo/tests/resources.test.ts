@@ -48,7 +48,7 @@ test('subscriptions are actor-scoped, fixed and idempotent; additional skills re
   s=updateWorkspace(s,'resource.acquire','member',{name:item.id,version:item.version,sha256:item.sha256});
   const pinned=structuredClone(resourceSubscriptions(s,'member'));assert.equal(pinned[0].version,'2.0.0');assert.equal(pinned[0].sha256,item.sha256);
   assert.equal(updateWorkspace(s,'resource.acquire','member',{name:item.id}),s);
-  s=updateWorkspace(s,'skills.select','member',{skills:[item.id,'office-word']});s=transition(s,'assign','owner');s=transition(s,'knowledge','owner');s=transition(s,'prepare','member');
+  s=updateWorkspace(s,'skills.select','member',{skills:[item.id,'office-word']});s=transition(s,'assign','owner',{assigneeId:'member'});s=transition(s,'knowledge','owner');s=transition(s,'prepare','member');
   const frozen=structuredClone(s.context);assert.equal(frozen!.skillBindings!.find(binding=>binding.id===item.id)?.sha256,item.sha256);
   // A future publication has a distinct, fixed identity; it cannot upgrade an existing subscription.
   const future={...item,version:'2.1.0',sha256:sha256('future package'),contentSha256:sha256('future SKILL body')};
@@ -79,7 +79,7 @@ test('CLI context retains the frozen package after a new publication and explici
   const {readFixtures}=await import('../server/http-shared.js');
   t.mock.method(globalThis,'fetch',async()=>new Response(JSON.stringify({assets:[]}),{status:200,headers:{'Content-Type':'application/json'}}));
   let s=published();const id='audit-evidence',item=skillCatalog.find(entry=>entry.id===id)!;
-  s=updateWorkspace(s,'resource.acquire','member',{name:id});s=updateWorkspace(s,'skills.select','member',{skills:[id]});s=transition(s,'assign','owner');s=transition(s,'knowledge','owner');s=transition(s,'prepare','member');
+  s=updateWorkspace(s,'resource.acquire','member',{name:id});s=updateWorkspace(s,'skills.select','member',{skills:[id]});s=transition(s,'assign','owner',{assigneeId:'member'});s=transition(s,'knowledge','owner');s=transition(s,'prepare','member');
   s=updateWorkspace(s,'resource.publish','owner',{id},[],[{...item,version:'2.1.0',sha256:sha256('new package'),contentSha256:sha256('new body')}]);
   const data=await readFixtures();data.skillContents[id]='Current catalog text must not replace the frozen package';
   const context=await collaborationContext(s,data,{projectId:'carddemo',taskId:'DEMO-MKT-001',nodeId:'develop'}),skill=context.skills.find(value=>value.id===id)!;

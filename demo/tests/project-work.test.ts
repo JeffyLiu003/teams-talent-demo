@@ -10,6 +10,7 @@ import { updateWorkspace } from '../src/workspace.js';
 import { readFixtures } from '../server/http-shared.js';
 import { ProjectWorkService, resolveProjectWork, type WorkTransport } from '../server/project-work.js';
 import { sessionId, workspace } from '../server/config.js';
+import { createDeliveryRequirement } from '../src/delivery-requirements.js';
 const fixtures = await readFixtures();
 function transport() {
   const calls: any[] = []; let active = false, fail = false, terminal = 'ghostty';
@@ -81,4 +82,24 @@ test('changing saved terminal invalidates the confirmation while active focus re
     t.setActive();const current=await service.plan('owner',plan.target);assert.equal(current.instance.terminal?.name,'Terminal');assert.equal(current.history,undefined);
     await service.start('owner',{requestId:randomUUID(),target:current.target,action:'new',planToken:current.planToken});assert.equal(t.calls.length,1);assert.equal(t.calls[0].terminal,'terminal');
   } finally { await rm(dir,{recursive:true,force:true}); }
+});
+
+test('independent delivery work pins its own task/directory and sends a real native task file without touching the main requirement', async () => {
+  const dir=await mkdtemp(join(tmpdir(),'work-delivery-')), repo=join(dir,'source'), t=transport(), state=initialState();
+  await mkdir(repo);execFileSync('git',['init','-q',repo]);
+  const task=createDeliveryRequirement(state,'owner',{id:'MKT-E2E-UNIT',projectId:'carddemo',title:'独立试算需求',description:'只验证当前三项已确认规则',assigneeId:'member',skillIds:['dev-code-reviewer'],workDirectory:await realpath(repo)},new Date().toISOString());
+  const originalStage=state.stage,originalContext=state.context;
+  try {
+    const service=new ProjectWorkService(()=>state,fixtures,dir,t.value), target={projectId:'carddemo',tab:'delivery',taskId:task.id,nodeId:'prepare'};
+    const plan=await service.plan('member',target);
+    assert.equal(plan.target.taskId,task.id);assert.equal(plan.target.requirementId,task.id);assert.equal(plan.title,task.title);assert.equal(plan.directory.root,await realpath(repo));assert.equal(plan.directory.valid,true);assert.deepEqual(plan.context.selectedSkills,['dev-code-reviewer']);
+    assert.throws(()=>resolveProjectWork(state,fixtures,{...target,requirementId:'DEMO-MKT-001'}),/不一致/);
+    const ownerPlan=await service.plan('owner',target);assert.equal(ownerPlan.actions[0].enabled,false);assert.match(ownerPlan.actions[0].reason!,/交付人/);
+    const requestId=randomUUID(),receipt=await service.start('member',{requestId,target,action:'new',planToken:plan.planToken});
+    assert.deepEqual(t.calls[0].task,{runId:requestId,path:receipt.contextPath,scope:{projectId:'carddemo',taskId:task.id,nodeId:'prepare'}});
+    const prompt=await readFile(receipt.contextPath,'utf8');assert.match(prompt,/本次自动执行授权/);assert.match(prompt,/native-session\.json/);assert.match(prompt,/停在待 Owner 验收/);assert.match(prompt,/不得修改 Teams 应用工程/);
+    assert.equal(state.stage,originalStage);assert.equal(state.context,originalContext);assert.equal(task.stage,'preparing');
+    task.stage='awaiting-acceptance';assert.equal((await service.plan('member',target)).actions[0].enabled,false);
+    task.stage='preparing';task.workDirectory=join(dir,'missing');assert.equal((await service.plan('member',target)).directory.valid,false);
+  } finally {await rm(dir,{recursive:true,force:true});}
 });
