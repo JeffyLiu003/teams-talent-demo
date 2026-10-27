@@ -8,6 +8,7 @@ import { access, stat } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { delimiter, isAbsolute, join, resolve, win32 } from 'node:path';
 import { homedir } from 'node:os';
+import { interactiveEnvironment, interactiveShellSetup } from '../scripts/native/interactive-environment.mjs';
 const exec = promisify(execFile);
 export interface TerminalInput { executable: string; directory: string; args: string[]; instruction?: string; keepOpen?: boolean; terminal?: string }
 export interface TerminalOption { id: string; name: string; path?: string }
@@ -38,14 +39,7 @@ export function formatShellCommand(args: string[], platform: NodeJS.Platform = p
  * make the launched TUI advertise a color-capable terminal.
  */
 export function launchEnvironment(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  const next = { ...env };
-  delete next.NO_COLOR;
-  delete next.CLICOLOR;
-  delete next.CLICOLOR_FORCE;
-  if (next.FORCE_COLOR === '0') delete next.FORCE_COLOR;
-  if (!next.TERM || next.TERM === 'dumb') next.TERM = 'xterm-256color';
-  if (!next.COLORTERM) next.COLORTERM = 'truecolor';
-  return next;
+  return interactiveEnvironment(env);
 }
 /** CommandLineToArgv/CRT inverse: quote every argv element, including empty values. */
 export function windowsArgument(value: string) {
@@ -108,13 +102,13 @@ export function createTerminalLauncher(overrides: Partial<TerminalRuntime> = {})
     if (runtime.platform === 'darwin') {
       const selected = (await runtime.macTerminals()).find(item => item.id === (input.terminal ?? 'terminal'));
       if (!selected?.path) throw new Error('所选终端不可用：' + (input.terminal ?? 'terminal') + '；请安装或在 Agent 管理中重新选择，未改用其他终端');
-      const command = 'cd ' + posixQuote(input.directory) + ' && ' + (input.instruction ? 'printf ' + posixQuote('%s\n') + ' ' + posixQuote(input.instruction) + ' && ' : '') + formatShellCommand([executable, ...input.args], 'darwin');
+      const command = interactiveShellSetup + 'cd ' + posixQuote(input.directory) + ' && ' + (input.instruction ? 'printf ' + posixQuote('%s\n') + ' ' + posixQuote(input.instruction) + ' && ' : '') + formatShellCommand([executable, ...input.args], 'darwin');
       const application = '"' + selected.path.replaceAll('\\', '\\\\').replaceAll('"', '\\"') + '"';
       // Create a new surface; never send a command to an existing user session.
       const script = selected.id === 'ghostty'
         ? 'on run argv\ntell application ' + application + '\nset cfg to new surface configuration\nset initial working directory of cfg to item 2 of argv\nset command of cfg to item 1 of argv\nset wait after command of cfg to ' + (input.keepOpen === false ? 'false' : 'true') + '\nset agentWindow to new window with configuration cfg\nactivate window agentWindow\nreturn id of (focused terminal of selected tab of agentWindow)\nend tell\nend run'
         : 'on run argv\ntell application ' + application + '\nactivate\nset agentTab to do script (item 1 of argv)\nreturn tty of agentTab\nend tell\nend run';
-      const reply = await runtime.execute('/usr/bin/osascript', ['-e', script, selected.id === 'ghostty' ? '/bin/sh -c ' + posixQuote(command) : command, input.directory], { cwd: input.directory, env: runtime.env });
+      const reply = await runtime.execute('/usr/bin/osascript', ['-e', script, selected.id === 'ghostty' ? '/bin/sh -c ' + posixQuote(command) : command, input.directory], { cwd: input.directory, env: launchEnvironment(runtime.env) });
       return { status: 'terminal-requested', terminal: selected.name as 'Terminal' | 'Ghostty', ...(reply?.stdout.trim() ? { terminalId: reply.stdout.trim() } : {}), command, note: '系统已受理 ' + selected.name + ' 启动请求；不代表模型执行或上下文已读取。' };
     }
     if (input.terminal && input.terminal !== 'system') throw new Error('所选终端不适用于 Windows，未启动其他终端');

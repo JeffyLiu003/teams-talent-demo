@@ -33,7 +33,7 @@ type Tool = 'iCode' | 'OpenCode';
 interface UsageRow { id: string; memberId: string; name: string; tool: Tool; model: string; tokens: number; input: number; output: number; status: Presence; project: string; task: string; lastActive: string; days: number; used: boolean }
 interface MemberAgentRow { id: string; memberId: string; name: string; tool: Tool; project: string; task: string; sessionId: string; nodes: string; sources: string; lastActive: string }
 const statusColor: Record<Presence, string | undefined> = { '未使用': undefined, '离线': undefined, '在线空闲': 'blue', '执行中': 'green', '等待人工处理': 'gold' };
-const knowledgeStatusLabels = { running: '正在导入', ready: '输入已就绪', waiting: '等待输入就绪', failed: '导入未完成' } as const;
+const knowledgeStatusLabels = { 'waiting-upstream': '等待上游', queued: '待导入', running: '导入中', ready: '导入完成', waiting: '等待输入就绪', failed: '导入未完成' } as const;
 const collectionStatusLabels = { queued: '等待归集', running: '正在归集', collected: '已归集', empty: '暂无关联会话', failed: '归集未完成' } as const;
 const evolutionStatusLabels = { none: '未开始', candidate: '候选待评估', evaluated: '评估已完成', published: '新版本待采用', adopted: '新版本已采用' } as const;
 const formatTokens = (n: number) => n >= 1000000 ? `${(n / 1000000).toFixed(2)}M` : n >= 1000 ? `${(n / 1000).toFixed(n >= 100000 ? 0 : 1)}K` : String(n);

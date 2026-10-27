@@ -13,10 +13,23 @@ import type { Presentation } from '../src/api.js';
 import { randomUUID, createHash } from 'node:crypto';
 import { chromium, type Browser } from 'playwright';
 import type { DemoState } from '../src/domain.js';
+import { initialState } from '../src/domain.js';
+import { createDeliveryRequirement } from '../src/delivery-requirements.js';
+import { Store } from '../server/store.js';
 const bundle = await build({ entryPoints: ['src/main.tsx'], bundle: true, outdir: 'test-results/unified-delivery/bundle', write: false, format: 'esm', minify: true, target: ['chrome120'], define: { 'process.env.NODE_ENV': '"production"' } });
 const dir = await mkdtemp(join(tmpdir(), 'unified-delivery-ui-'));
 const teams = 'http://127.0.0.1:46078', talent = 'http://127.0.0.1:46088';
 const env = { ...process.env, DEMO_PORT: '46078', DEMO_TALENT_PORT: '46088', DEMO_STATE_DIR: join(dir, 'teams'), DEMO_SHARED_DIR: join(dir, 'shared'), DEMO_SHARED_SEED_DIR: join(dir, 'no-seed'), DEMO_NATIVE_DISABLED: '1' };
+const ids = ['DEMO-MKT-001', 'MKT-E2E-001'];
+// Existing records predate native preparation. New-task 20s/native preparation
+// has its own HTTP and real-native probes; this suite exercises their shared UI.
+const seed=initialState();seed.assigned=true;seed.assigneeId='member';seed.stage='assigned';
+await mkdir(join(dir,'teams'),{recursive:true});await writeFile(join(dir,'teams/state.json'),JSON.stringify(seed));
+const fixtureStore=new Store(join(dir,'teams/state.json'));await fixtureStore.init();
+await fixtureStore.transact(current=>{const next=structuredClone(current);for(const input of [
+ {id:ids[1],title:'第二条独立需求的完整标题用于验证两行省略与任务资料范围',description:'独立需求乙：核对本任务的输入和结果。仅用于界面范围验证，不代表真实 iCode 执行。',assigneeId:'member'},
+ {id:'MKT-UI-OTHER-003',title:'其他成员的任务',description:'共享可读，只有明确交付人能够执行。',assigneeId:'su'},
+])createDeliveryRequirement(next,'owner',{projectId:'carddemo',skillIds:['dev-frontend-ui'],...input},new Date().toISOString());return next;});
 let logs = '', browser: Browser | undefined;
 const children = ['server/index.ts'].map(entry => {
   const child = spawn(process.execPath, ['--import', 'tsx', entry], { env, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -29,21 +42,21 @@ const post = async (path: string, body: object) => {
   const value = await response.json(); assert.equal(response.status, 200, JSON.stringify(value)); return value;
 };
 const hashes = async () => Promise.all([join(dir, 'teams/state.json')].map(async path => createHash('sha256').update(await readFile(path)).digest('hex')));
-const ids = ['DEMO-MKT-001', 'MKT-E2E-001'];
 const out = 'test-results/unified-delivery';
 try {
   let ready = false;
   for (let n = 0; n < 120; n++) { try { if ((await fetch(teams + '/api/health')).ok) { ready = true; break; } } catch {} await new Promise(resolve => setTimeout(resolve, 100)); }
   assert.ok(ready, logs);
-  await post('/api/action', { action: 'assign', assigneeId: 'member' });
-  await post('/api/delivery-requirements', { action: 'create', input: { projectId: 'carddemo', id: ids[1], title: '第二条独立需求的完整标题用于验证两行省略与任务资料范围', description: '独立需求乙：核对本任务的输入和结果。仅用于界面范围验证，不代表真实 iCode 执行。', assigneeId: 'member', skillIds: ['dev-frontend-ui'] } });
-  await post('/api/delivery-requirements', { action: 'create', input: { projectId: 'carddemo', id: 'MKT-UI-OTHER-003', title: '其他成员的任务', description: '共享可读，只有明确交付人能够执行。', assigneeId: 'su', skillIds: ['dev-frontend-ui'] } });
   // Produce task states and receipts through the normal isolated HTTP contract.
   // These protocol fixtures do not launch iCode or claim external scan execution.
   for (const id of ids) {
     const scope = { projectId: 'carddemo', taskId: id }, runId = randomUUID(), sessionId = 'ui-protocol-' + randomUUID();
-    await post('/api/task-automation', { ...scope, step: 'knowledge', role: 'member' });
     for (const nodeId of ['prepare', 'develop', 'verify'] as const) {
+      if(nodeId!=='prepare') {
+        let ready=false;
+        for(let attempt=0;attempt<70;attempt++){const automation=(await state()).workspace.taskAutomation?.find(item=>item.projectId===scope.projectId&&item.taskId===id);if(automation?.nodeKnowledge?.[nodeId]?.status==='ready'){ready=true;break;}await new Promise(resolve=>setTimeout(resolve,500));}
+        assert.ok(ready,id+' '+nodeId+' knowledge must complete before adoption');
+      }
       const context = await (await fetch(teams + '/api/collaboration/context?' + new URLSearchParams({ ...scope, nodeId }))).json();
       const adoption = await post('/api/collaboration', { role: 'member', kind: 'inputs.adopt', operationId: randomUUID(), input: { ...scope, nodeId, runId, sessionId, expectedRevision: context.revision, basisDigest: context.basisDigest, readReferences: context.skills.map((skill: { id: string }) => skill.id) } });
       const report = (kind: string, extra: object) => post('/api/collaboration', { role: 'member', kind, operationId: randomUUID(), input: { ...scope, nodeId, runId, sessionId, adoptionId: adoption.receipt.adoptionId, expectedRevision: 0, ...extra } });
@@ -77,12 +90,12 @@ try {
     const expected = (saved.workspace.collaboration?.events ?? []).filter(event => event.projectId === 'carddemo' && event.taskId === id && event.nodeId === node);
     assert.deepEqual(await page.locator('[data-collaboration-event]').evaluateAll(nodes => nodes.map(node => (node as HTMLElement).dataset.collaborationEvent)), expected.map(event => event.id));
     if (expected.length) { await page.getByRole('button', { name: '查看会话、操作与证据引用', exact: true }).last().click(); const detail = JSON.parse(await page.locator('.drawer-console').innerText()); assert.equal(detail.taskId, id); assert.equal(detail.nodeId, node); await page.locator('.ant-drawer-open .ant-drawer-close').click(); await page.locator('.ant-drawer-open').waitFor({ state: 'hidden' }); }
-    if (node === 'verify') { await page.getByText('查看检查与复检记录（6）', { exact: true }).click(); assert.equal(await page.locator('[data-check-source=actual]').count(), 2); assert.equal(await page.locator('[data-check-source=preset]').count(), 4); }
+    if (node === 'verify') { await page.getByText('查看检查与复检记录（8）', { exact: true }).click(); assert.equal(await page.locator('[data-check-source=actual]').count(), 2); assert.equal(await page.locator('[data-check-source=preset]').count(), 6); }
     if (node === 'accept') { await page.getByRole('button', { name: '通过需求验收', exact: true }).click(); await page.getByRole('dialog', { name: '确认通过需求验收' }).waitFor(); await page.getByRole('dialog').getByRole('button', { name: /取\s*消/ }).click(); }
     const definition = taskNodeDefinitions[node as RequirementNode];
-    assert.deepEqual(await page.locator('[data-node-section=result] [data-artifact-slot]').evaluateAll(items => items.map(item => (item as HTMLElement).dataset.artifactSlot)), definition.deliverableRequirements.map(item => item.id));
+    assert.deepEqual(await page.locator('[data-node-section=result] [data-artifact-slot]').evaluateAll(items => items.map(item => (item as HTMLElement).dataset.artifactSlot)), definition.deliverableRequirements.filter(item=>!item.optional).map(item => item.id));
     assert.deepEqual(await page.locator('[data-completion-criterion]').evaluateAll(items => items.map(item => (item as HTMLElement).dataset.completionCriterion)), definition.completionCriteria.map(item => item.id));
-    if (node !== 'accept') { assert.equal(await page.locator('[data-node-section=result] [data-artifact-status=ready]').count(), definition.deliverableRequirements.length); assert.equal(await page.locator('[data-criterion-status=reported]').count(), definition.completionCriteria.length); }
+    if (node !== 'accept') { assert.equal(await page.locator('[data-node-section=result] [data-artifact-status=ready]').count(), definition.deliverableRequirements.filter(item=>!item.optional).length); assert.equal(await page.locator('[data-criterion-status=reported]').count(), definition.completionCriteria.length); }
     if (node === 'develop') {
       const prd = taskNodeView(saved, saved.workspace.deliveryRequirements!.find(task => task.id === id)!, 'prepare').deliverables[0].references[0];
       assert.equal(await page.locator('[data-node-section=input] [data-artifact-slot=prd] [data-artifact-reference]').getAttribute('data-artifact-reference'), prd.id);
@@ -111,7 +124,7 @@ try {
     await page.screenshot({ path: out + '/' + theme + '-' + width + '.png', fullPage: true, animations: 'disabled' });
     if (width === 390) { await page.locator('.task-permanent-materials').scrollIntoViewIfNeeded(); await page.screenshot({ path: out + '/' + theme + '-' + width + '-materials.png', fullPage: true, animations: 'disabled' }); }
   }
-  await visit(ids[1], 'verify', 'member'); assert.deepEqual(await page.locator('[data-delivery-task]').evaluateAll(nodes => nodes.map(node => (node as HTMLElement).dataset.deliveryTask)), [...ids, 'MKT-UI-OTHER-003']);
+  await visit(ids[1], 'verify', 'member'); assert.deepEqual(await page.locator('[data-delivery-task]').evaluateAll(nodes => nodes.map(node => (node as HTMLElement).dataset.deliveryTask)), [ids[1], ids[0], 'MKT-UI-OTHER-003']);
   await page.reload(); await page.locator('[data-material-task="' + ids[1] + '"]').waitFor(); assert.equal(await page.getByRole('button', { name: '通过需求验收', exact: true }).count(), 0);
   await visit('MKT-UI-OTHER-003', 'develop', 'member'); assert.equal(await page.locator('[data-material-task=MKT-UI-OTHER-003]').count(), 1); assert.equal(await page.getByRole('button', { name: 'iCode 作业', exact: true }).isDisabled(), true);
   // Controlled transport fixtures exercise polling/scroll behavior only, without native execution claims.
@@ -152,9 +165,9 @@ try {
     await visitImported(task.id, node); await page.locator('[data-material-task="' + task.id + '"]').waitFor();
     assert.deepEqual(await page.locator('.task-main-rail [data-flow-node]').evaluateAll(nodes => nodes.map(item => (item as HTMLElement).dataset.flowNode)), deliveryStages);
     assert.deepEqual(await page.locator('.task-main-rail strong').allTextContents(), ['需求澄清', '功能开发', '测试验证', '需求验收']);
-    assert.equal(await page.locator('.task-talent-rail [data-flow-node]').count(), 2);
-    assert.equal(await page.locator('[data-flow-node=auto-collection]').getByText('原项目只读', { exact: true }).count(), 1);
-    await page.locator('[data-flow-node=auto-knowledge]').getByText('节点建议已读取', { exact: true }).waitFor();
+    assert.equal(await page.locator('.task-talent-rail [data-flow-node]').count(), 4);
+    assert.equal(await page.locator('[data-flow-node=auto-collection]').getByText('来源只读 · 未执行', { exact: true }).count(), 1);
+    await page.locator('[data-flow-node=knowledge-prepare]').getByText('来源只读 · 未执行', { exact: true }).waitFor();
     assert.deepEqual(await page.locator('[data-node-section]>.framework-card>.card-heading>h2').allTextContents(), ['输入', '结果', '执行过程']);
     const material = await page.locator('.task-permanent-materials').innerText();
     assert.doesNotMatch(material, /本次采用的输入|查看输入来源详情/); for (const criterion of task.criteria) assert.ok(material.includes(criterion));
@@ -166,6 +179,12 @@ try {
     if (source.outputs.length > 2) { await page.locator('[data-node-section=result] [data-artifact-slot=source-output]').getByRole('button', { name: '查看全部 ' + source.outputs.length + ' 项', exact: true }).click(); const sourceText = await page.locator('.drawer-console').innerText(); for (const output of source.outputs) assert.ok(sourceText.includes(output.output)); await page.locator('.ant-drawer-open .ant-drawer-close').click(); await page.locator('.ant-drawer-open').waitFor({ state: 'hidden' }); }
     for (const item of taskNodeDefinitions[node].deliverableRequirements) assert.equal(await page.locator('[data-node-section=result] [data-artifact-slot="' + item.id + '"]').getAttribute('data-artifact-status'), 'unregistered');
     assert.equal(await page.locator('[data-criterion-status=reported]').count(), 0);
+    if(node==='verify'&&task.id==='T104'){
+      const cases=page.locator('[data-node-section=input] [data-artifact-slot=test-cases]');
+      await cases.getByText(/TEAMS-TC-001/).waitFor();assert.match(await cases.innerText(),/企业测试资产插件.*用例定义/);
+      await cases.getByRole('button',{name:'查看引用',exact:true}).click();const text=await page.locator('.drawer-console').innerText();assert.match(text,/TEAMS-TC-001/);assert.match(text,/expected/);await page.locator('.ant-drawer-open .ant-drawer-close').click();
+    }
+    if(node==='verify'&&task.id==='T108')assert.equal(await page.locator('[data-node-section=input] [data-artifact-slot=test-cases] [data-artifact-reference]').count(),0);
     if (source.nodes.length) {
       await page.getByText('查看本阶段原节点与作业记录', { exact: true }).click();
       assert.deepEqual(await page.locator('[data-imported-source-node]').evaluateAll(nodes => nodes.map(item => (item as HTMLElement).dataset.importedSourceNode)), source.nodes.map(item => item.id));

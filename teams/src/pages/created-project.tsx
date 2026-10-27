@@ -71,7 +71,7 @@ export function CreatedProjectPage({ project, tab }: { project: CreatedProject; 
   const selected = requestedTask ? tasks.find(task => task.id === requestedTask) : preferredDeliveryTask(tasks, role);
   const requestedNode = params.get('node');
   const node: RequirementNode = requestedNode && ['prepare', 'develop', 'verify', 'accept'].includes(requestedNode) ? requestedNode as RequirementNode : selected?.node ?? 'prepare';
-  const jump = (next: string) => navigate(createdProjectRoute(project.id, next) + (selected ? '&task=' + encodeURIComponent(selected.id) : ''));
+  const jump = (next: string) => navigate(createdProjectRoute(project.id, next) + (next === 'delivery' && selected ? '&task=' + encodeURIComponent(selected.id) : ''));
   if (![...projectPages.map(page => page.key), 'settings'].includes(tab)) return <Alert type="error" title="项目页面不存在" action={<Button onClick={() => jump('content')}>进入项目概览</Button>} />;
   const empty = { delivery: ['任务交付', '尚无可交付任务'] };
   return <div className="page-stack project-workspace project-detail created-project">

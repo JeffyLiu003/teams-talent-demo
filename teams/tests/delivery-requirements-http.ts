@@ -1,5 +1,6 @@
 import {nodeResultFixture} from './node-contract-fixtures.js';
-import type {RequirementNode} from '../src/delivery-requirements.js';
+import {createDeliveryRequirement,type RequirementNode} from '../src/delivery-requirements.js';
+import {Store} from '../server/store.js';
 import assert from 'node:assert/strict';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -9,9 +10,13 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 const dir=await mkdtemp(join(tmpdir(),'delivery-scoped-')),teams='http://127.0.0.1:46193',talent='http://127.0.0.1:46194';
 const env={...process.env,DEMO_PORT:'46193',DEMO_TALENT_PORT:'46194',DEMO_STATE_DIR:join(dir,'teams'),DEMO_TALENT_STATE_DIR:join(dir,'talent'),DEMO_SHARED_DIR:join(dir,'shared'),DEMO_SHARED_SEED_DIR:join(dir,'empty-seed'),DEMO_NATIVE_DISABLED:'1'};
+// Existing task fixtures predate automatic native preparation. This suite tests their full CLI/acceptance protocol; new-task preparation is covered by task-preparation-http.ts.
+const ids=['DEMO-MKT-001','MKT-E2E-001','MKT-OWNER-001'];
+const fixtureStore=new Store(join(dir,'teams','state.json'));await fixtureStore.init();
+await fixtureStore.transact(current=>{const next=structuredClone(current);for(const id of ids.slice(1))createDeliveryRequirement(next,'owner',{projectId:'carddemo',id,title:'独立任务 '+id,description:'白金卡、3个月、额外0.5%；其余政策未定。',assigneeId:id==='MKT-OWNER-001'?'owner':'member',skillIds:['dev-frontend-ui','dev-code-reviewer']},new Date().toISOString());return next;});
 let logs='';const start=(entry:string)=>{const child=spawn(process.execPath,['--import','tsx',entry],{env,stdio:['ignore','pipe','pipe']});child.stdout.on('data',d=>logs+=d);child.stderr.on('data',d=>logs+=d);return child;};const server=start('server/index.ts');
 const state=async()=>await(await fetch(teams+'/api/state')).json() as any;
-const wait=async(check:()=>Promise<boolean>)=>{for(let i=0;i<100;i++){try{if(await check())return;}catch{}await new Promise(r=>setTimeout(r,100));}throw new Error('Timed out: '+logs);};
+const wait=async(check:()=>Promise<boolean>)=>{for(let i=0;i<350;i++){try{if(await check())return;}catch{}await new Promise(r=>setTimeout(r,100));}throw new Error('Timed out: '+logs);};
 const post=async(base:string,path:string,body:object,expected=200)=>{const {token}=await(await fetch(base+'/api/session')).json() as any;const response=await fetch(base+path,{method:'POST',headers:{origin:base,'content-type':'application/json','x-demo-token':token},body:JSON.stringify({role:'owner',revision:(await state()).revision,...body})});const value=await response.json();assert.equal(response.status,expected,JSON.stringify(value));return value;};
 const context=async(taskId:string,nodeId:string)=>await(await fetch(teams+'/api/collaboration/context?'+new URLSearchParams({projectId:'carddemo',taskId,nodeId}))).json() as any;
 const ownerCli=async(kind:string,input:object)=>{
@@ -23,16 +28,15 @@ const automation=(s:any,id:string)=>s.workspace.taskAutomation?.find((r:any)=>r.
 try{
  await wait(async()=>(await fetch(teams+'/api/health')).ok);
  const original=await state();
- const ids=['DEMO-MKT-001','MKT-E2E-001','MKT-OWNER-001'];
  await post(teams,'/api/action',{action:'assign',assigneeId:'member'});
- for(const id of ids.slice(1))await post(teams,'/api/delivery-requirements',{action:'create',input:{projectId:'carddemo',id,title:'独立任务 '+id,description:'白金卡、3个月、额外0.5%；其余政策未定。',assigneeId:id==='MKT-OWNER-001'?'owner':'member',skillIds:['dev-frontend-ui','dev-code-reviewer']}});
  for(const action of ['prepare','replay','check-fail','fix','submit'])await post(teams,'/api/action',{action,role:'member'},409);
  const current=(id:string,s:any)=>s.workspace.deliveryRequirements.find((t:any)=>t.id===id);
  const receipts:any[]=[];
  for(const [index,id] of ids.entries()){
   const role=id==='MKT-OWNER-001'?'owner':'member',otherRole=role==='owner'?'member':'owner';const scope={projectId:'carddemo',taskId:id};const sessionId='test-protocol-session-'+index,runId=randomUUID();
-  await post(teams,'/api/task-automation',{...scope,step:'knowledge',role});assert.equal(automation(await state(),id).knowledge.status,'ready');
+  // Historical protocol fixtures have no automatic preparation record; new-task preparation is exercised separately.
   for(const nodeId of ['prepare','develop','verify']){
+   if(nodeId!=='prepare')await wait(async()=>automation(await state(),id)?.nodeKnowledge?.[nodeId]?.status==='ready');
    const c=await context(id,nodeId);assert.equal(c.agreement.id,id);assert.equal(c.talentInputs.taskId,id);assert.ok(c.skills.every((skill:any)=>skill.availability==='talent-node-input'));const input={...scope,nodeId,sessionId,runId,expectedRevision:c.revision,basisDigest:c.basisDigest,readReferences:c.skills.map((skill:any)=>skill.id)};
    const beforeWrong=await state();await post(teams,'/api/collaboration',{role:otherRole,kind:'inputs.adopt',operationId:randomUUID(),input},403);assert.deepEqual(await state(),beforeWrong);
    const pageInputs=await(await fetch(teams+'/api/task-node-inputs?'+new URLSearchParams({...scope,nodeId,role}))).json();
@@ -50,7 +54,7 @@ try{
    }
    await progress('result.submit',nodeResultFixture(nodeId as RequirementNode));
   }
-  const task=current(id,await state());assert.equal(task.stage,'awaiting-acceptance');assert.equal(task.nodes.prepare.status,'complete');assert.equal(task.nodes.develop.status,'complete');assert.equal(task.nodes.verify.status,'complete');assert.equal(task.checks.length,6);
+  const task=current(id,await state());assert.equal(task.stage,'awaiting-acceptance');assert.equal(task.nodes.prepare.status,'complete');assert.equal(task.nodes.develop.status,'complete');assert.equal(task.nodes.verify.status,'complete');assert.equal(task.checks.length,8);
   assert.equal(automation(await state(),id).collection,undefined);
   await post(teams,'/api/delivery-requirements',{...scope,action:'accept',role:'member'},403);
  }

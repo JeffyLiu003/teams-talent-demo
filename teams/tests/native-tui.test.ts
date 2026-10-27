@@ -35,8 +35,18 @@ test('native TUI Hook is inert outside Teams; scoped prompt gets exact context r
     const payload = { event: 'session_start', session_id: sessionId, cwd: directory };
     await writeFile(payloadPath, JSON.stringify(payload)); await exec(process.execPath, [hook], { env }); assert.deepEqual(JSON.parse(await readFile(resultPath, 'utf8')), { action: 'allow' });
     await writeFile(payloadPath, JSON.stringify({ ...payload, event: 'user_prompt_submit', text: 'Developer chooses to begin this node' })); await exec(process.execPath, [hook], { env });
-    const injected = JSON.parse(await readFile(resultPath, 'utf8')); assert.equal(injected.action, 'allow'); assert.match(injected.system_reminder, /current node develop/); assert.match(injected.system_reminder, /do not automatically advance/); assert.ok(injected.system_reminder.includes(taskFile));
+    const injected = JSON.parse(await readFile(resultPath, 'utf8')); assert.equal(injected.action, 'allow'); assert.match(injected.system_reminder, /initial launch node develop/); assert.match(injected.system_reminder, /do not automatically advance/); assert.match(injected.system_reminder, /not a permanent node binding/); assert.match(injected.system_reminder, /fresh context.*nodeId/); assert.match(injected.system_reminder, /Wait until that node/); assert.ok(injected.system_reminder.includes(taskFile));
     const receipt = JSON.parse(await readFile(join(directory, 'tui-context-injected.json'), 'utf8')); assert.equal(receipt.sessionId, sessionId); assert.equal(receipt.runId, runId); assert.equal(receipt.status, 'reminder-returned');
+    assert.equal(receipt.reminderMode, 'initial');
+    await exec(process.execPath, [hook], { env });
+    const continued = JSON.parse(await readFile(resultPath, 'utf8'));
+    assert.equal(continued.action, 'allow');assert.ok(continued.system_reminder.length < injected.system_reminder.length * 0.75);assert.ok(!continued.system_reminder.includes(taskFile));assert.match(continued.system_reminder,/reuse actually read unchanged inputs/);assert.match(continued.system_reminder,/node\/version refresh/);assert.match(continued.system_reminder,/proves no reading, adoption/);
+    assert.equal(JSON.parse(await readFile(join(directory,'tui-context-injected.json'),'utf8')).reminderMode,'continuation');
+    // A newly opened TUI has its own run locator, even when restoring the same native session.
+    const resumedDirectory=join(directory,'resumed');await mkdir(resumedDirectory);const resumedRun=randomUUID(),resumedManifest=join(resumedDirectory,'manifest.json');
+    await writeFile(resumedManifest,JSON.stringify({version:1,executionMode:'interactive',runId:resumedRun,scope:{...scope,nodeId:'verify'},directory,taskFile,taskSha256:createHash('sha256').update(task).digest('hex')}));
+    await exec(process.execPath,[hook],{env:{...env,TEAMS_TUI_MANIFEST:resumedManifest}});const resumed=JSON.parse(await readFile(resultPath,'utf8'));assert.match(resumed.system_reminder,/initial launch node verify/);assert.ok(resumed.system_reminder.includes(taskFile));assert.equal(JSON.parse(await readFile(join(resumedDirectory,'tui-context-injected.json'),'utf8')).reminderMode,'initial');
+    await writeFile(join(directory,'tui-context-injected.json'),'{bad');await assert.rejects(exec(process.execPath,[hook],{env}),/Hook 失败/);await writeFile(join(directory,'tui-context-injected.json'),JSON.stringify(receipt));
     await writeFile(payloadPath, JSON.stringify({ ...payload, session_id: randomUUID() })); await assert.rejects(exec(process.execPath, [hook], { env }), /different native session/);
     await writeFile(payloadPath, JSON.stringify(payload)); await writeFile(taskFile, 'changed'); await assert.rejects(exec(process.execPath, [hook], { env }), /changed after confirmation/);
   } finally { await rm(directory, { recursive: true, force: true }); }

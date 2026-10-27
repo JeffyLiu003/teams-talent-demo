@@ -99,7 +99,8 @@ test('independent delivery work pins its own task/directory and sends a real nat
     const ownerPlan=await service.plan('owner',target);assert.equal(ownerPlan.actions[0].enabled,false);assert.match(ownerPlan.actions[0].reason!,/交付人/);
     const requestId=randomUUID(),receipt=await service.start('member',{requestId,target,action:'new',planToken:plan.planToken});
     assert.deepEqual(t.calls[0].task,{runId:requestId,path:receipt.contextPath,scope:{projectId:'carddemo',taskId:task.id,nodeId:'prepare'}});
-    assert.equal(plan.executionMode,'interactive');assert.equal(receipt.executionMode,'interactive');const prompt=await readFile(receipt.contextPath,'utf8');assert.match(prompt,/当前节点为 prepare/);assert.match(prompt,/不自动连跑/);assert.match(prompt,/本次交互工作范围/);assert.match(prompt,/native-session\.json/);assert.match(prompt,/停在待 Owner 验收/);assert.match(prompt,/不得修改 Teams 应用工程/);
+    assert.equal(plan.executionMode,'interactive');assert.equal(receipt.executionMode,'interactive');const prompt=await readFile(receipt.contextPath,'utf8');assert.match(prompt,/本次进入时所选节点为 prepare/);assert.match(prompt,/不自动连跑/);assert.match(prompt,/本次交互工作范围/);assert.match(prompt,/native-session\.json/);assert.match(prompt,/停在待 Owner 验收/);assert.match(prompt,/不得修改 Teams 应用工程/);
+    const exported=JSON.parse(await readFile(join(dir,'work-contexts',requestId+'.json'),'utf8'));assert.equal(exported.view,'model');assert.equal(exported.scope.taskId,task.id);assert.equal('talentInputs' in exported,false);assert.equal(exported.agreement.background,task.description);assert.match(prompt,/只打印保存回执/);
     assert.equal(state.stage,originalStage);assert.equal(state.context,originalContext);assert.equal(task.stage,'preparing');
     task.stage='awaiting-acceptance';assert.equal((await service.plan('member',target)).actions[0].enabled,false);
     task.stage='preparing';task.workDirectory=join(dir,'missing');assert.equal((await service.plan('member',target)).directory.valid,false);

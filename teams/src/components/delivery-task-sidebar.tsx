@@ -1,14 +1,14 @@
 import { Button, Tag } from 'antd';
 import { useDemo } from '../context.js';
 import { displayRequirementId } from '../display-text.js';
-import { projectDeliveryTasks } from '../project-delivery-tasks.js';
+import { projectDeliveryTasks, orderDeliveryTasks } from '../project-delivery-tasks.js';
 import { taskExecutableBy } from '../task-visibility.js';
 import './delivery-task-sidebar.css';
 
-export interface DeliveryTaskListItem { id: string; title: string; owner: string; assigneeId?: string | null; status: string; route: string; accepted: boolean }
+export interface DeliveryTaskListItem { id: string; title: string; owner: string; assigneeId?: string | null; status: string; route: string; accepted: boolean; createdAt?: string }
 export function DeliveryTaskSidebar({ projectId, selectedTaskId, items }: { projectId: string; selectedTaskId: string; items?: readonly DeliveryTaskListItem[] }) {
   const { state, role, navigate } = useDemo();
-  const tasks = items ?? projectDeliveryTasks(state, projectId, role);
+  const tasks = orderDeliveryTasks(items ?? projectDeliveryTasks(state, projectId, role));
   const groups = [{ id: 'mine', title: '我的任务', tasks: tasks.filter(task => taskExecutableBy(role, task.assigneeId)) }, { id: 'others', title: '其他任务', tasks: tasks.filter(task => !taskExecutableBy(role, task.assigneeId)) }];
   return <aside className="project-task-list project-delivery-sidebar" aria-label="交付任务列表" data-task-count={tasks.length}>
     <div className="project-column-title">交付任务 <Tag>{tasks.length}</Tag></div>

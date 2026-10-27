@@ -14,7 +14,7 @@ import '../operations.css';
 
 const colors: Partial<Record<Presence, string>> = { '执行中': 'green', '等待人工处理': 'gold', '在线空闲': 'blue' };
 const activityLabels = { started: '已开始', progress: '进度回传', blocked: '报告阻塞', result: '成果待确认' } as const;
-const knowledgeLabels = { running: '正在导入', ready: '输入已就绪', waiting: '等待输入就绪', failed: '导入未完成' } as const;
+const knowledgeLabels = { 'waiting-upstream': '等待上游', queued: '待导入', running: '导入中', ready: '导入完成', waiting: '等待输入就绪', failed: '导入未完成' } as const;
 const collectionLabels = { queued: '等待归集', running: '正在归集', collected: '已归集', empty: '暂无会话', failed: '归集未完成' } as const;
 
 export function MemberUsageTable() {

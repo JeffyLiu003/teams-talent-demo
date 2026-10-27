@@ -1,5 +1,7 @@
+import { issueSeverityLabels } from './project-issues.js';
+import { projectMembers } from './teams-domain.js';
 import { collectTaskSessions, taskAutomation, type CollectedSession, type TaskAutomation, type TaskScope } from './task-automation.js';
-import { projectDeliveryTasks, type DeliveryPhase } from './project-delivery-tasks.js';
+import { orderDeliveryTasks, projectDeliveryTasks, type DeliveryPhase } from './project-delivery-tasks.js';
 import { verificationChecks,type DeliveryRequirement } from './delivery-requirements.js';
 import type { Presentation } from './api.js';
 import type { DemoState, Role } from './domain.js';
@@ -11,7 +13,7 @@ export type { DeliveryPhase } from './project-delivery-tasks.js';
 export type OverviewFilter = 'all' | 'pending' | 'active' | 'acceptance' | 'delivered' | 'issues' | 'open' | 'closed' | 'unconfirmed' | 'blocking';
 export interface QualityConclusion { label: string; result: string; passed: boolean }
 export interface OverviewRequirement {
-  id: string; source: SourcePluginAsset; owner: string; assigneeId?: string | null; phase: DeliveryPhase; due?: string; overdue: boolean;
+  id: string; source: SourcePluginAsset; owner: string; assigneeId?: string | null; phase: DeliveryPhase; createdAt?: string; due?: string; overdue: boolean;
   taskId?: string; route?: string; deliveryStatus?: string; scope: string; pendingConfirmation: boolean; issues: OverviewIssue[]; quality: QualityConclusion[]; activity?: CollaborationEvent;
 }
 export interface OverviewIssue {
@@ -44,10 +46,10 @@ export function projectOverview(state: DemoState, data: Presentation, projectId:
   if (projectId === 'teams') [...data.teamsProject.tasks.map(task => `requirements:teams:REQ-${task.id}`), 'requirements:teams:REQ-WINDOWS-RECONNECT', 'defects:teams:TEAMS-BUG-001'].forEach(id => included.add(id));
   const sources = [...included].map(id => catalog.get(id)).filter((asset): asset is SourcePluginAsset => !!asset);
   const allWork: OverviewRequirement[] = sources.filter(source => source.kind === 'requirement').map(source => {
-    const item: OverviewRequirement = { id: source.id, source, owner: '未分配', assigneeId: sourceTaskAssigneeId(source, projectId), phase: '待开展', due: undefined, overdue: false, scope: '已关联来源 · 未纳入 Teams 交付', pendingConfirmation: true, issues: [], quality: unknownQuality() };
+    const item: OverviewRequirement = { id: source.id, source, owner: '未分配', assigneeId: sourceTaskAssigneeId(source, projectId), phase: '待开展', createdAt: source.createdAt, due: undefined, overdue: false, scope: '已关联来源 · 未纳入 Teams 交付', pendingConfirmation: true, issues: [], quality: unknownQuality() };
     if (projectId === 'carddemo' && source.id === 'requirements:carddemo:DEMO-MKT-001') {
       const task = deliveryTasks.find(task => task.id === 'DEMO-MKT-001')!;
-      item.taskId = task.id; item.owner = task.owner; item.assigneeId = task.assigneeId; item.phase = task.phase; item.deliveryStatus = task.status; item.pendingConfirmation = task.pendingAssignment;
+      item.taskId = task.id; item.createdAt = task.createdAt; item.due = task.record?.due; item.owner = task.owner; item.assigneeId = task.assigneeId; item.phase = task.phase; item.deliveryStatus = task.status; item.pendingConfirmation = task.pendingAssignment;
       item.scope = 'Teams 任务交付'; item.route = !task.pendingAssignment ? task.route : route(projectId, 'management');
       item.quality = task.record?deliveryQuality(task.record):[
         { label: '功能', result: state.stage === 'accepted' ? '验收通过' : state.uat ? '边界验收结果已记录' : '待验收', passed: state.stage === 'accepted' },
@@ -75,11 +77,11 @@ export function projectOverview(state: DemoState, data: Presentation, projectId:
     return item;
   });
   for(const task of deliveryTasks)if(task.record&&task.id!=='DEMO-MKT-001'){
-    const source:SourcePluginAsset={id:'teams-task:'+projectId+':'+task.id,pluginId:'requirements',sourceRecordId:task.id,kind:'requirement',title:task.title,summary:task.record.description,detail:task.record.description,sourceProjectId:projectId,sourceProjectName:projectId==='carddemo'?state.workspace.project.name:state.workspace.projects?.find(project=>project.id===projectId)?.name??projectId,origin:'teams-task',version:'1',updatedAt:task.record.updatedAt,references:[],relatedRequirementIds:[]};
-    allWork.push({id:source.id,source,owner:task.owner,assigneeId:task.assigneeId,phase:task.phase,deliveryStatus:task.status,overdue:false,taskId:task.id,route:task.route,scope:'Teams需求',pendingConfirmation:task.pendingAssignment,issues:[],quality:deliveryQuality(task.record)});
+    const source:SourcePluginAsset={id:'teams-task:'+projectId+':'+task.id,pluginId:'requirements',sourceRecordId:task.id,kind:'requirement',title:task.title,summary:task.record.description,detail:task.record.description,sourceProjectId:projectId,sourceProjectName:projectId==='carddemo'?state.workspace.project.name:projectId==='teams'?data.teamsProject.project.name:state.workspace.projects?.find(project=>project.id===projectId)?.name??projectId,origin:'teams-task',version:'1',createdAt:task.createdAt,updatedAt:task.record.updatedAt,references:[],relatedRequirementIds:[]};
+    allWork.push({id:source.id,source,owner:task.owner,assigneeId:task.assigneeId,phase:task.phase,deliveryStatus:task.status,createdAt:task.createdAt,due:task.record.due,overdue:!!task.record.due&&task.record.due<asOf&&task.phase!=='已交付',taskId:task.id,route:task.route,scope:'Teams需求',pendingConfirmation:task.pendingAssignment,issues:[],quality:deliveryQuality(task.record)});
   }
   const allRequirements = allWork.filter(item => !item.source.requirement || item.source.requirement.category === 'requirement');
-  const requirements = allRequirements.filter(item => taskVisibleTo(role, item.assigneeId));
+  const requirements = orderDeliveryTasks(allRequirements.filter(item => taskVisibleTo(role, item.assigneeId)));
   const research = allWork.filter(item => taskVisibleTo(role, item.assigneeId) && item.source.requirement?.category === 'research');
   const latestReport = (taskId?: string) => (state.workspace.collaboration?.events ?? []).filter(event => event.projectId === projectId && event.taskId === taskId).reduce<CollaborationEvent | undefined>((latest, event) => !latest || event.revision > latest.revision ? event : latest, undefined);
   for (const item of allWork) if (item.taskId) item.activity = latestReport(item.taskId);
@@ -95,8 +97,12 @@ export function projectOverview(state: DemoState, data: Presentation, projectId:
     item.blocksDelivery = item.closed === false && blocking && allRequirements.some(requirement => item.relatedIds.includes(requirement.id) && requirement.phase !== '已交付' && (requirement.taskId || requirement.source.sourceProjectId === projectId && requirement.source.requirement?.delivery));
     return item;
   }).filter(item => taskVisibleTo(role, item.assigneeId));
+  for(const issue of state.workspace.projectIssues??[])if(issue.projectId===projectId){
+    const source:SourcePluginAsset={id:'teams-issue:'+projectId+':'+issue.id,pluginId:'defects',sourceRecordId:issue.id,kind:'defect',title:issue.title,summary:issue.description,detail:issue.description,sourceProjectId:projectId,sourceProjectName:projectId==='carddemo'?state.workspace.project.name:projectId==='teams'?data.teamsProject.project.name:state.workspace.projects?.find(project=>project.id===projectId)?.name??projectId,origin:'teams-task',version:'1',updatedAt:issue.updatedAt,references:[],relatedRequirementIds:[]};
+    issues.push({id:source.id,source,owner:projectMembers(state,projectId).find(member=>member.id===issue.assigneeId)?.name??'未分配',assigneeId:issue.assigneeId||null,severity:issueSeverityLabels[issue.severity],status:'待处理',progress:'Teams 本地记录 · 尚无处理记录；未同步外部问题平台',closed:false,confirmed:true,blocksDelivery:false,relatedIds:[]});
+  }
   for (const requirement of requirements) requirement.issues = issues.filter(issue => issue.closed !== true && issue.confirmed && issue.relatedIds.includes(requirement.id));
-  const result: ProjectOverview = { requirements, research, issues, counts: { all: 0, pending: 0, active: 0, acceptance: 0, delivered: 0, issues: 0, open: 0, closed: 0, unconfirmed: 0, blocking: 0 }, scope: projectId === 'teams' ? `已纳入交付的 ${requirements.length} 项需求与 ${research.length} 项调研分别统计；待确认讨论尚未转成任务。进度与计划来自已导入记录。` : projectId === 'carddemo' ? '需求与问题分别来自需求平台和缺陷平台；主需求进度随 Teams 任务状态更新，其余进度按来源记录呈现。' : '仅统计本项目已关联的需求与问题；来源关联不代表已进入交付。', asOf };
+  const result: ProjectOverview = { requirements, research, issues, counts: { all: 0, pending: 0, active: 0, acceptance: 0, delivered: 0, issues: 0, open: 0, closed: 0, unconfirmed: 0, blocking: 0 }, scope: projectId === 'teams' ? `已纳入交付的 ${requirements.length} 项需求与 ${research.length} 项调研分别统计；待确认讨论尚未转成任务。导入记录与本地新建需求分开保留来源。` : projectId === 'carddemo' ? '汇总已关联平台来源与 Teams 本地新建记录；本地需求进度按当前任务状态呈现。' : '仅统计本项目已关联与本地新建的需求和问题；来源关联不代表已进入交付。', asOf };
   for (const filter of ['all', 'pending', 'active', 'acceptance', 'delivered'] as const) result.counts[filter] = filterRequirements(result, filter).length;
   for (const filter of ['issues', 'open', 'closed', 'unconfirmed', 'blocking'] as const) result.counts[filter] = filterIssues(result, filter).length;
   if (role === 'owner') result.projectActivity = latestReport();

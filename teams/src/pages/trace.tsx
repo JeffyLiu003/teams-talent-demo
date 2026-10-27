@@ -14,7 +14,7 @@ import { collectTaskSessions, mainTask, taskAutomation } from '../task-automatio
 import { stageLabels } from '../domain.js';
 import '../operations.css';
 
-const knowledgeLabels = { running: '正在导入', ready: '输入已就绪', waiting: '等待输入就绪', failed: '导入未完成' } as const;
+const knowledgeLabels = { 'waiting-upstream': '等待上游', queued: '待导入', running: '导入中', ready: '导入完成', waiting: '等待输入就绪', failed: '导入未完成' } as const;
 const collectionLabels = { queued: '等待归集', running: '正在归集', collected: '已归集', empty: '暂无关联会话', failed: '归集未完成' } as const;
 const phaseLabels = { started: '已开始', progress: '进度回传', blocked: '报告阻塞', result: '成果待确认' } as const;
 const evidenceNotes: Record<string, string> = { E3: '首次检查', E4: '修复说明', E5: '复测结果' };

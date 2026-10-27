@@ -36,7 +36,7 @@ export function Project({ tab = 'content', node }: { tab?: string; node?: string
   const legacy = tab === 'requirement' ? 'management' : ['context', 'acceptance'].includes(tab) ? 'delivery' : tab;
   const selectedNode: DeliveryNode = tab === 'context' ? 'prepare' : tab === 'acceptance' ? 'accept' : node && Object.hasOwn(nodeLabels, node) ? node as DeliveryNode : selected?.node ?? 'prepare';
   return <div className="page-stack project-workspace project-detail">
-    <ProjectToolbar activeKey={legacy} onChange={value => navigate('projects?project=carddemo&tab=' + value + (selected?'&task='+encodeURIComponent(selected.id):''))} actions={<>
+    <ProjectToolbar activeKey={legacy} onChange={value => navigate('projects?project=carddemo&tab=' + value + (value === 'delivery' && selected ? '&task=' + encodeURIComponent(selected.id) : ''))} actions={<>
       {task ? <TaskExecutionRecords key={task.projectId + ':' + task.id + ':' + role} task={task} /> : selected ? <Button type="text" icon={<FileTextOutlined />} aria-label="查看需求执行记录" title="查看需求执行记录" onClick={() => navigate('trace')}><span className="project-secondary-action-label">执行记录</span></Button> : null}
       <Button type="text" icon={<SettingOutlined />} aria-label="项目设置" title="项目设置" onClick={() => navigate('projects?tab=settings')}><span className="project-secondary-action-label">项目设置</span></Button>
       {(legacy !== 'delivery' || selected) && <ProjectWorkLaunch target={{ projectId: 'carddemo', tab: legacy, ...(legacy === 'delivery' ? { taskId, nodeId: selectedNode } : {}) }} />}

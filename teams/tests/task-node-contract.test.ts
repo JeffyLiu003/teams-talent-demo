@@ -40,3 +40,23 @@ test('old actual awaiting acceptance keeps its history, while new node-contract 
  const protectedHistory=JSON.stringify(f.task.checks);acceptDeliveryRequirement(f.state,'owner',f.task,at);assert.equal(f.task.stage,'accepted');assert.equal(JSON.stringify(f.task.checks),protectedHistory);
  f.task.stage='awaiting-acceptance';f.task.nodeContractVersion='delivery-node-v1';assert.throws(()=>acceptDeliveryRequirement(f.state,'owner',f.task,at),/依据不齐全/);
 });
+
+test('enterprise test cases carry case IDs, versions and expectations with exact task scope, independent of Talent knowledge',async()=>{
+ const data=await readFixtures(),f=setup();f.task.id='DEMO-MKT-001';
+ let cases=taskNodeView(f.state,f.task,'verify',data).inputs.find(item=>item.id==='test-cases')!.references;
+ assert.equal(cases.length,3);assert.ok(cases.every(item=>item.testCase?.id&&item.testCase.expected&&item.version&&item.sourceLabel.includes('企业测试资产插件')));
+ f.task.id='REQ-'+randomUUID();f.task.title='白金卡消费返现权益说明页';cases=taskNodeView(f.state,f.task,'verify',data).inputs.find(item=>item.id==='test-cases')!.references;assert.equal(cases.length,4);assert.match(cases[1].testCase!.expected,/待确认|不补造/);
+ f.task.title+='变更';assert.equal(taskNodeView(f.state,f.task,'verify',data).inputs.find(item=>item.id==='test-cases')!.references.length,0);
+ f.task.projectId='teams';f.task.id='T104';cases=taskNodeView(f.state,f.task,'verify',data).inputs.find(item=>item.id==='test-cases')!.references;assert.equal(cases.length,1);assert.equal(cases[0].testCase!.id,'TEAMS-TC-001');assert.doesNotMatch(JSON.stringify(cases),/白金卡/);
+});
+
+test('new contracts require separate static-tool and Agent Review reports; old v1 awaiting results remain acceptable without invented reports',()=>{
+ const f=setup();add(f,'prepare');add(f,'develop');const v2=nodeResultFixture('verify');
+ assert.ok(v2.evidence.some(item=>item.artifact==='static-analysis-report'));assert.ok(v2.evidence.some(item=>item.artifact==='agent-review-report'));
+ const incomplete=v2.evidence.filter(item=>item.artifact!=='static-analysis-report');assert.match(nodeResultErrors(f.state,f.task,'verify',incomplete,v2.completedCriteria,v2.checks).join(';'),/静态检查/);
+ const oldEvidence=v2.evidence.filter(item=>item.artifact!=='static-analysis-report').map(item=>item.artifact==='agent-review-report'?{...item,artifact:'code-review-report' as const}:item);
+ const oldChecks=v2.checks!.filter(item=>item.artifact!=='static-analysis-report').map(item=>item.artifact==='agent-review-report'?{...item,artifact:'code-review-report'}:item);
+ f.task.nodeContractVersion='delivery-node-v1';assert.deepEqual(nodeResultErrors(f.state,f.task,'verify',oldEvidence,v2.completedCriteria,oldChecks),[]);
+ f.state.workspace.collaboration!.events.push({id:randomUUID(),operationId:randomUUID(),projectId:f.task.projectId,taskId:f.task.id,nodeId:'verify',role:'member',runId:'old-run',sessionId:'old-session',adoptionId:'old-adopt',phase:'result',summary:'原 v1 检视结果',blocker:null,evidence:oldEvidence,completedCriteria:v2.completedCriteria,at,revision:3});
+ f.task.checks=oldChecks.map(item=>({...item,id:randomUUID(),nodeId:'verify' as const,at,sessionId:'old-session',source:item.source as 'actual'|'preset',status:'passed' as const}));f.task.verificationCheckIds=f.task.checks.map(item=>item.id);f.task.stage='awaiting-acceptance';f.task.nodes.develop.status='complete';f.task.nodes.verify.status='complete';const before=JSON.stringify(f.task.checks);acceptDeliveryRequirement(f.state,'owner',f.task,at);assert.equal(f.task.stage,'accepted');assert.equal(JSON.stringify(f.task.checks),before);assert.ok(!taskNodeView(f.state,f.task,'verify').artifacts.some(item=>item.artifact==='static-analysis-report'));
+});

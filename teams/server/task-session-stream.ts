@@ -98,7 +98,7 @@ export function createTaskSessionStream(runtime: string, options: { isAlive?: (p
         const runId = name.slice(0, -7), manifest = await readJson(root, join(runRoot, 'manifest.json'));
         if (!uuid.test(owner.sessionId) || owner.runId !== runId || owner.source !== 'icode-active-session-owner' || !nodes.has(owner.nodeId) || !timestamp(owner.startedAt) || !await nativeSessionRootMatches(root, runRoot, owner, runtime) || !manifest || manifest.runId !== runId || !scopeMatches(manifest.scope ?? {}) || manifest.scope.nodeId !== owner.nodeId) throw new DomainError('原生会话与任务绑定校验失败', 409);
         bind(owner.sessionId, 'icode', owner.nodeId, owner.startedAt, runId);
-        bindings.get(owner.sessionId)!.runs.set(runId, { ...owner, sessionRoot: join(runRoot, 'session-root') });
+        bindings.get(owner.sessionId)!.runs.set(runId, { ...owner, ...(manifest.preparedSession ? {preparedSession:manifest.preparedSession} : {}), sessionRoot: join(runRoot, 'session-root') });
       }
     }
     for (const binding of bindings.values()) {
@@ -157,7 +157,10 @@ export function createTaskSessionStream(runtime: string, options: { isAlive?: (p
           rows.push(row);
         }
       }
-      turns.push(...projectSessionTurns({ document, rows, sessionId: selected.id, runId, nodeId: query.nodeId, status: selected.status, nodeAt: at => nodeAt(selected, runId, at), points: selected.points.filter(point => !point.runId || point.runId === runId), clean: visibleSessionText }));
+      const projected=projectSessionTurns({ document, rows, sessionId: selected.id, runId, nodeId: query.nodeId, status: selected.status, nodeAt: at => nodeAt(selected, runId, at), points: selected.points.filter(point => !point.runId || point.runId === runId), clean: visibleSessionText });
+      // Resume carries the native conversation intact. Older turns remain attached
+      // to their original run/node, rather than appearing again at the new node.
+      turns.push(...projected.filter(turn=>!owner.preparedSession||Date.parse(turn.startedAt)>=Date.parse(owner.startedAt)));
       if (trajectory === null && document === null) { selected.note = selected.status === 'running' ? '会话已关联，等待原生进程保存对话正文' : '运行已有记录，但未记录可读取的对话正文'; const summary = summaries.find(item => item.id === selected.id); if (summary) summary.note = selected.note; }
     }
     if (turns.length > 20000) throw new DomainError('当前节点对话轮次超过读取上限', 413);

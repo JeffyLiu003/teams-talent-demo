@@ -121,21 +121,23 @@ export async function nativeWorkDefaults(): Promise<(Omit<ProjectWorkPlan['insta
   if (trace.enabled && process.env.DEMO_NATIVE_DISABLED !== '1') try { await nativeTraceRuntime(); await checkNativeTraceReceiver(trace.endpoint, expectedTraceReceiver()); traceStatus.readiness = 'ready'; traceStatus.diagnostic = '接收端已就绪；实际轨迹以接收记录为准'; } catch (error) { traceStatus.diagnostic = '本机 trace 接收端未就绪：' + (error as Error).message; }
   return { trace: traceStatus, agent: role.id, agentLabel: role.displayName, model: matches[0].id, modelLabel: matches[0].name, terminal: { id: preference.selectedTerminal, name: preference.terminalName, error: preference.terminalError } };
 }
-export async function startNativeWork(input: { directory: string; agent: string; model: string; sessionId?: string; instruction: string; terminal: string; task?: { runId: string; path: string; scope: { projectId: string; taskId: string; nodeId: string } } }) {
+export async function startNativeWork(input: { directory: string; agent: string; model: string; sessionId?: string; instruction: string; terminal: string; task?: { runId: string; path: string; scope: { projectId: string; taskId: string; nodeId: string }; preparedSession?: { preparationRunId: string; sourceRunId: string; sessionSha256: string; sessionId: string } } }) {
   if (process.env.DEMO_NATIVE_DISABLED === '1') throw new Error('此验证实例未开放真实原生启动');
   if (input.task) {
-    if (input.sessionId || !/^[0-9a-f-]{36}$/i.test(input.task.runId)) throw new Error('当前任务仅支持明确的新会话请求');
+    if (!/^[0-9a-f-]{36}$/i.test(input.task.runId) || input.sessionId && input.task.preparedSession?.sessionId !== input.sessionId) throw new Error('当前任务只允许新会话或已核验的同任务准备会话');
     const output = join(runtimeDir, 'work-contexts', input.task.runId + '.native');
     const trace = nativeTraceEnvironment(process.env, { ...input.task.scope, runId: input.task.runId });
     const traceRuntime = trace.enabled ? await nativeTraceRuntime() : undefined;
     if (trace.enabled) await checkNativeTraceReceiver(trace.endpoint, expectedTraceReceiver());
     await mkdir(output, { recursive: true });
     const manifest = join(output, 'manifest.json');
-    await atomicJson(manifest, { version: 1, executionMode: 'interactive', runId: input.task.runId, scope: input.task.scope, executable: binary, directory: input.directory, agent: input.agent, model: input.model, trace: {...traceLaunchSettings(trace),...expectedTraceReceiver(),runtime:traceRuntime}, taskFile: input.task.path, taskSha256: createHash('sha256').update(await readFile(input.task.path)).digest('hex') });
+    await atomicJson(manifest, { version: 1, executionMode: 'interactive', runId: input.task.runId, scope: input.task.scope, executable: binary, directory: input.directory, agent: input.agent, model: input.model, ...(input.task.preparedSession?{preparedSession:input.task.preparedSession}:{}), trace: {...traceLaunchSettings(trace),...expectedTraceReceiver(),runtime:traceRuntime}, taskFile: input.task.path, taskSha256: createHash('sha256').update(await readFile(input.task.path)).digest('hex') });
     const nativeEnvironment = traceRuntime ?? await nativeSkillEnvironment();
     await ensureNativeTuiHooks(join(root, 'scripts/native/tui-work-hook.mjs'), join(runtimeDir, 'native-hook-backups'), nativeEnvironment.configDirectory, join(root, '..', 'demo', 'scripts/native/tui-work-hook.mjs'));
     const terminal = await terminalPreferences.selected(input.terminal);
-    return terminalLauncher.launch({ executable: process.execPath, directory: input.directory, args: [join(root, 'scripts/native/run-project-tui.mjs'), manifest], instruction: '进入 iCode 交互界面；输入工作指令后，当前任务节点上下文将通过原生 Hook 附带。', terminal: terminal.id });
+    const receipt = await terminalLauncher.launch({ executable: process.execPath, directory: input.directory, args: [join(root, 'scripts/native/run-project-tui.mjs'), manifest], instruction: input.sessionId ? '恢复当前任务已准备的 iCode 会话；保留阅读背景与待确认问题，等待你继续交互。' : '进入 iCode 交互界面；输入工作指令后，当前任务节点上下文将通过原生 Hook 附带。', terminal: terminal.id });
+    await atomicJson(join(output, 'terminal-receipt.json'), { runId: input.task.runId, ...input.task.scope, directory: input.directory, terminalKind: terminal.id, at: new Date().toISOString(), ...receipt });
+    return receipt;
   }
   const args = ['-C', input.directory, '--agent', input.agent, '--model', input.model, ...(input.sessionId ? ['--session', input.sessionId] : [])];
   const terminal = await terminalPreferences.selected(input.terminal);

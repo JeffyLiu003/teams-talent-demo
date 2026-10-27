@@ -16,6 +16,13 @@ const teamTopics:Record<string,{title:string;focus:string}>={
  T107:{title:'代码仓与本地工作目录关联',focus:'代码仓身份、本地目录核验、关联确认与不同项目目录隔离'},
  T108:{title:'调研外部需求系统接入范围',focus:'外部需求来源字段、接入范围、身份与权限边界、待确认接口和调研结论'},
 };
+/** Explicit new-task preparation: source facts are exactly the saved requirement, never another task's scenario. */
+export function registeredTaskNodePreset(task:{title:string;description:string},node:RequirementNode):NodePreset{
+ const stage={prepare:'需求澄清',develop:'功能开发',verify:'测试验证',accept:'需求验收'}[node];
+ const guidance={prepare:'依据原始说明确认目标、范围、验收标准及待确认项；没有登记的业务口径必须保持待确认。',develop:'仅实现本需求已确认PRD；核对实际仓库和接口，设计、代码PR/提交与单元测试引用同一代码版本。',verify:'按本需求PRD、设计及代码版本准备功能、Review、安全检查；实际执行与预置检查必须分别标注，保留问题及复测结果。',accept:'对照本需求已确认PRD与交付清单核对报告和遗留问题；Owner明确通过或退回，不能由自动准备代替验收。'}[node];
+ const slot=node==='prepare'?'business-documents':node==='develop'?'development-knowledge':node==='verify'?'verification-knowledge':'acceptance-knowledge';
+ return{knowledge:[k('registered-requirement',task.title+' · '+stage+'依据','当前登记的原始需求：\n'+task.description+'\n\n本节点准备要点：'+guidance,slot,'本需求原文与当前节点准备标准；尚未确认、采用或执行')],skills:node==='prepare'?['ba-requirement-analysis','ba-acceptance-criteria']:node==='develop'?['arch-solution-design','dev-unit-test']:node==='verify'?['dev-code-reviewer','dev-unit-test','qa-integration-test','sec-scan-review']:['qa-uat-support'],skillSlot:node==='prepare'?'business-skills':node==='develop'?'development-skills':node==='verify'?'quality-skills':'acceptance-skills'};
+}
 export function nodePreset(projectId:string,taskId:string,node:RequirementNode):NodePreset|undefined{
  if(projectId==='carddemo'&&taskId==='MKT-OWNER-001'){const base=credit[node];return node==='develop'?{...base,knowledge:[k('explanation-page','返现说明页开发要点','说明页只陈述白金卡、未来3个月、额外0.5%和待确认事项；设计信息分组、可读性及边界提示，复用实际项目UI规范，不新增返现计算政策。','development-knowledge','对应说明页交付而非修改返现引擎')],skills:['arch-solution-design','dev-frontend-ui','dev-unit-test']}:{...base};}
  if(projectId==='carddemo'&&['DEMO-MKT-001','MKT-E2E-001','MKT-E2E-ACCEPT-001','MKT-OWNER-001'].includes(taskId))return credit[node];
