@@ -38,11 +38,11 @@ export const defaultSkills = projectSkillIds;
 export function initialWorkspace(): WorkspaceState {
   return {
     acquiredResources:[],project: { name: '信用卡营销交付', description: '针对白金卡客户未来 3 个月的消费，额外增加 0.5% 的消费返现。', repository: 'carddemo-java-1025', assets: [
-      { id:'code',title:'白金卡返现规则',kind:'repository',location:'demo/src/cashback.ts',sourceAssetId:'repository:carddemo:carddemo-java-1025' },
-      { id:'design',title:'消费返现规则',kind:'document',location:'demo/docs/cashback-contract.md',sourceAssetId:'design-library:carddemo:marketing-capability' },
+      { id:'code',title:'白金卡返现规则',kind:'repository',location:'teams/src/cashback.ts',sourceAssetId:'repository:carddemo:carddemo-java-1025' },
+      { id:'design',title:'消费返现规则',kind:'document',location:'teams/docs/cashback-contract.md',sourceAssetId:'design-library:carddemo:marketing-capability' },
       { id:'history',title:'白金卡消费返现需求',kind:'requirement',location:'requirements:carddemo:DEMO-MKT-001' },
-      { id:'adr',title:'交易处理边界',kind:'document',location:'demo/docs/cashback-integration.md',sourceAssetId:'design-library:carddemo:ADR-009' },
-      { id:'security',title:'权限与安全范围',kind:'document',location:'demo/docs/security-scope.md',sourceAssetId:'design-library:carddemo:ADR-007' },
+      { id:'adr',title:'交易处理边界',kind:'document',location:'teams/docs/cashback-integration.md',sourceAssetId:'design-library:carddemo:ADR-009' },
+      { id:'security',title:'权限与安全范围',kind:'document',location:'teams/docs/security-scope.md',sourceAssetId:'design-library:carddemo:ADR-007' },
     ] }, materials: [], selectedSkills: [...defaultSkills], progress: [], sessionReported:false, reportAt:null,
     analysis:{scope:'single',status:'idle'}, foundation:{progressEnabled:true,uploadEnabled:true},
     team:{ name:'信用卡研发团队',members:[['owner','林悦'],['member','陈晨'],['su','苏晴'],['yang','杨帆'],['zhao','赵宁'],['wang','王晓']].map(([id,name])=>({id,name,role:id==='owner'?'owner':'member',status:'active'})) },

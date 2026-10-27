@@ -12,9 +12,9 @@ import '../talent.css';
 
 export const knowledgeRules = [
   { id: 'K-01', title: '白金卡资格独立校验', text: '在计算返现前校验卡片等级；普通卡不能进入白金卡专属返现路径。', source: '白金卡返现资格校验', evidence: 'E4', category: '业务状态' },
-  { id: 'K-02', title: '同一交易只奖励一次', text: '同一交易只写入一次；重复提交不会再次改动交易或欠款余额。', source: 'demo/src/domain.ts / purchase', evidence: 'E7', category: '业务规则' },
-  { id: 'K-03', title: '明确交易与回传边界', text: '交易写入通过版本校验避免重复；Talent 回传失败保留待回传结果，重试不重建成果。真实账务重试仍待验证。', source: '交易与返现处理边界', evidence: null, document: 'demo/docs/cashback-integration.md', category: '异常处理' },
-  { id: 'K-04', title: '按最小货币单位计算返现', text: '符合条件的消费额外返现 0.5%，以分为单位计算并四舍五入；金额与周期边界单独验证。', source: '白金卡返现规则', evidence: null, document: 'demo/docs/cashback-contract.md', category: '业务规则' },
+  { id: 'K-02', title: '同一交易只奖励一次', text: '同一交易只写入一次；重复提交不会再次改动交易或欠款余额。', source: 'teams/src/domain.ts / purchase', evidence: 'E7', category: '业务规则' },
+  { id: 'K-03', title: '明确交易与回传边界', text: '交易写入通过版本校验避免重复；Talent 回传失败保留待回传结果，重试不重建成果。真实账务重试仍待验证。', source: '交易与返现处理边界', evidence: null, document: 'teams/docs/cashback-integration.md', category: '异常处理' },
+  { id: 'K-04', title: '按最小货币单位计算返现', text: '符合条件的消费额外返现 0.5%，以分为单位计算并四舍五入；金额与周期边界单独验证。', source: '白金卡返现规则', evidence: null, document: 'teams/docs/cashback-contract.md', category: '业务规则' },
 ];
 
 export function openKnowledgeRule(rule: (typeof knowledgeRules)[number], data: Pick<Presentation, 'sources' | 'evidence'>, showEvidence: (id: string) => void, showText: (title: string, content: string) => void) {

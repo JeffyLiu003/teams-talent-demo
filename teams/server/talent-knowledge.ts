@@ -4,10 +4,10 @@ import { legacyAssetSourceIds } from '../src/project-asset-links.js';
 import type { TalentProjectContext } from '../src/talent-contract.js';
 
 const rules = [
-  { id: 'K-01', title: '白金卡资格独立判断', text: '先检查卡片等级。普通卡不进入白金卡额外返现计算。', file: 'demo/docs/cashback-contract.md' },
-  { id: 'K-02', title: '同一交易只奖励一次', text: '同一交易不得重复写入，重复处理不能改变奖励条数或余额。', file: 'demo/docs/cashback-integration.md' },
-  { id: 'K-03', title: '三个月期间边界', text: '按已配置期间核对消费时间，开始包含、结束不包含；正式起止日期仍需确认。', file: 'demo/docs/cashback-contract.md' },
-  { id: 'K-04', title: '额外0.5%以整数分计算', text: '120.00元额外返现0.60元；半分向上舍入至整分，拒绝非正金额。正式舍入及其他业务细则需确认。', file: 'demo/docs/cashback-contract.md' },
+  { id: 'K-01', title: '白金卡资格独立判断', text: '先检查卡片等级。普通卡不进入白金卡额外返现计算。', file: 'teams/docs/cashback-contract.md' },
+  { id: 'K-02', title: '同一交易只奖励一次', text: '同一交易不得重复写入，重复处理不能改变奖励条数或余额。', file: 'teams/docs/cashback-integration.md' },
+  { id: 'K-03', title: '三个月期间边界', text: '按已配置期间核对消费时间，开始包含、结束不包含；正式起止日期仍需确认。', file: 'teams/docs/cashback-contract.md' },
+  { id: 'K-04', title: '额外0.5%以整数分计算', text: '120.00元额外返现0.60元；半分向上舍入至整分，拒绝非正金额。正式舍入及其他业务细则需确认。', file: 'teams/docs/cashback-contract.md' },
 ];
 export function buildMockKnowledge(context: TalentProjectContext, fixtures: Presentation): SourcePluginAsset[] {
   const catalog = createSourcePluginCatalog(fixtures), at = new Date().toISOString();

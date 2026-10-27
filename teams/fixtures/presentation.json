@@ -264,7 +264,7 @@
       "failure_operation_id": "CHECK-PLATINUM-001",
       "fix_operation_id": "FIX-PLATINUM-001",
       "retest_operation_id": "CHECK-PLATINUM-002",
-      "file": "demo/src/cashback.ts",
+      "file": "teams/src/cashback.ts",
       "current_sha256": "2b61c0da081b662bedd3cf09cb41ea0d39247557bf73f0c5130521f02b294316",
       "mutation_after_sha256": "2b61c0da081b662bedd3cf09cb41ea0d39247557bf73f0c5130521f02b294316",
       "join_rule": "需求 → 上下文 → 检查记录 → 修复 → 复测 → 验收；记录来源为本地工作流 fixture，不关联原生历史会话。"
@@ -797,43 +797,43 @@
     {
       "id": "web",
       "name": "消费输入",
-      "file": "demo/src/cashback.ts#PurchaseInput",
+      "file": "teams/src/cashback.ts#PurchaseInput",
       "description": "卡片等级、消费时间与整数分金额。",
       "excerpt": "export interface PurchaseInput { amountCents: number; cardTier: 'platinum' | 'standard'; purchasedAt: string }\nexport interface CashbackResult { eligible: boolean; rewardCents: number; reason: 'ELIGIBLE' | 'CARD_TIER' | 'OUTSIDE_WINDOW' }\n"
     },
     {
       "id": "posting",
       "name": "交易处理",
-      "file": "demo/src/domain.ts#purchase",
+      "file": "teams/src/domain.ts#purchase",
       "description": "提交后处理单笔交易，拒绝重复写入。",
       "excerpt": "case 'purchase': { requireCondition(s.stage === 'submitted' && !s.transactions.length, '请先提交交付；该交易只记账一次'); const result = calculateCashback({ amountCents: 12000, cardTier: 'platinum', purchasedAt: campaign.purchaseAt }); s.transactions.push({ id: 'TX-PLATINUM-120', amount: 120, reward: result.rewardCents / 100 }); s.balance = (255075 + 12000 - result.rewardCents) / 100; detail = '消费记录 120.00 → 额外返现 0.60 → 欠款 2670.15'; break; }"
     },
     {
       "id": "reward",
       "name": "返现计算",
-      "file": "demo/src/cashback.ts#calculateCashback",
+      "file": "teams/src/cashback.ts#calculateCashback",
       "description": "白金卡资格、三个月期间与额外0.5%整数分计算。",
       "excerpt": "/** Local workflow contract. Dates and rounding are fixture assumptions, not approved production policy. */\nexport const campaign = Object.freeze({\n  id: 'platinum-extra-cashback-v1',\n  start: '2026-11-01T00:00:00+08:00',\n  endExclusive: '2027-02-01T00:00:00+08:00',\n  purchaseAt: '2026-11-15T12:00:00+08:00',\n  extraBasisPoints: 50,\n  origin: 'fixture' as const,\n});\nexport interface PurchaseInput { amountCents: number; cardTier: 'platinum' | 'standard'; purchasedAt: string }\nexport interface CashbackResult { eligible: boolean; rewardCents: number; reason: 'ELIGIBLE' | 'CARD_TIER' | 'OUTSIDE_WINDOW' }\nexport function calculateCashback(input: PurchaseInput): CashbackResult {\n  if (!Number.isSafeInteger(input.amountCents) || input.amountCents <= 0) throw new RangeError('消费金额必须为正整数分');\n  if (!['platinum', 'standard'].includes(input.cardTier)) throw new RangeError('卡片等级无效');\n  if (!/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?(?:Z|[+-]\\d{2}:\\d{2})$/.test(input.purchasedAt)) throw new RangeError('消费时间必须包含时区');\n  const date = input.purchasedAt.slice(0, 10);\n  const calendarDay = Date.parse(date + 'T00:00:00Z');\n  if (!Number.isFinite(calendarDay) || new Date(calendarDay).toISOString().slice(0, 10) !== date) throw new RangeError('消费日期无效');\n  const instant = Date.parse(input.purchasedAt);\n  if (!Number.isFinite(instant)) throw new RangeError('消费时间无效');\n  if (input.cardTier !== 'platinum') return { eligible: false, rewardCents: 0, reason: 'CARD_TIER' };\n  if (instant < Date.parse(campaign.start) || instant >= Date.parse(campaign.endExclusive)) return { eligible: false, rewardCents: 0, reason: 'OUTSIDE_WINDOW' };\n  // 0.5% = 1/200. Integer half-up rounding avoids floating-point amount drift.\n  const rewardCents = Number((BigInt(input.amountCents) + 100n) / 200n);\n  return { eligible: true, rewardCents, reason: 'ELIGIBLE' };\n}\n\n"
     },
     {
       "id": "account",
       "name": "余额更新",
-      "file": "demo/src/domain.ts#balance",
+      "file": "teams/src/domain.ts#balance",
       "description": "原欠款加消费再减奖励，功能状态独立于安全放行。",
       "excerpt": "原欠款255075分 + 消费12000分 - 奖励60分 = 267015分\n重复处理不会产生第二笔奖励或更新余额。"
     }
   ],
   "sources": [
     {
-      "file": "demo/docs/cashback-contract.md",
-      "content": "# 白金卡消费额外返现\n\n已确认范围：白金卡客户，3 个月消费期间，额外返现 0.5%。\n\n本地流程参数用于验证产品交互，不是已批准的正式活动政策：\n- 起止时间：2026-11-01 00:00:00 +08:00（含）至 2027-02-01 00:00:00 +08:00（不含）。\n- 金额以整数分计算；额外返现为消费金额的 1/200，半分向上舍入至整分。\n- 白金卡消费 120.00 元，额外返现 0.60 元；原欠款 2550.75 元，结果欠款 2670.15 元。\n- 普通卡与期间外消费不适用；无效或非正整数分金额拒绝处理。\n- 此范围没有报名步骤；未定义消费类别、门槛、封顶或退款规则，不能据此推断正式政策不设限制。\n\n当前可执行规则位于 demo/src/cashback.ts，流程状态位于 demo/src/domain.ts。\n静态检查记录为 fixture，用于完整交付工作流；不代表真实 iCode 会话、Java 服务测试或模型评估已运行。\n"
+      "file": "teams/docs/cashback-contract.md",
+      "content": "# 白金卡消费额外返现\n\n已确认范围：白金卡客户，3 个月消费期间，额外返现 0.5%。\n\n本地流程参数用于验证产品交互，不是已批准的正式活动政策：\n- 起止时间：2026-11-01 00:00:00 +08:00（含）至 2027-02-01 00:00:00 +08:00（不含）。\n- 金额以整数分计算；额外返现为消费金额的 1/200，半分向上舍入至整分。\n- 白金卡消费 120.00 元，额外返现 0.60 元；原欠款 2550.75 元，结果欠款 2670.15 元。\n- 普通卡与期间外消费不适用；无效或非正整数分金额拒绝处理。\n- 此范围没有报名步骤；未定义消费类别、门槛、封顶或退款规则，不能据此推断正式政策不设限制。\n\n当前可执行规则位于 teams/src/cashback.ts，流程状态位于 teams/src/domain.ts。\n静态检查记录为 fixture，用于完整交付工作流；不代表真实 iCode 会话、Java 服务测试或模型评估已运行。\n"
     },
     {
-      "file": "demo/docs/cashback-integration.md",
+      "file": "teams/docs/cashback-integration.md",
       "content": "# 交易与返现处理边界\n\n本地工作流以单笔 TX-PLATINUM-120 作为验收输入。先计算整数分奖励，再写入一条交易并更新欠款。重复 purchase 被拒绝，不得再次改动交易或余额。\n\n并发写入使用服务端队列及 revision 乐观锁。Talent 在独立状态目录保存知识与候选；回传失败保留 pending，重试沿用同一操作与 generation，避免重复采用。\n\n真实支付、账户系统与外部模型不在当前实现范围。退款、重试账务、清算和生产事务一致性尚未验证。\n"
     },
     {
-      "file": "demo/docs/security-scope.md",
+      "file": "teams/docs/security-scope.md",
       "content": "# 权限与安全范围\n\nOwner 管理项目、分配、验收及发布；成员准备上下文、提交工作与交付成果。两种本地角色共用状态，但所有写接口检查角色、Origin、访问令牌与 revision。\n\n浏览器角色选择不等于企业身份认证。本地 HTTP 服务只监听127.0.0.1；真实企业登录、生产鉴权、安全扫描及支付能力尚未接入。功能验收不改变 security=unverified。\n"
     }
   ],

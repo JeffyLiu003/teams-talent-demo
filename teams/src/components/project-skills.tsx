@@ -21,7 +21,7 @@ export interface ProjectSkillEntry {
 
 export function userSkillsFor(state: DemoState, data: Presentation, role: Role): ProjectSkillEntry[] {
   const subscriptions = new Map(resourceSubscriptions(state, role).map(item => [item.id, item]));
-  const entries = new Map<string, ProjectSkillEntry>(userSkillExamples.map(skill => [skill.id, { ...skill, version: skill.id === 'teams-collaboration' ? 'cli-v1' : 'v1', source: skill.id === 'teams-collaboration' ? '本地接入 · Skill 与 CLI' : '用户 Skill', path: skill.id === 'teams-collaboration' ? data.localPaths.collaborationSkill : '', content: skill.id === 'teams-collaboration' ? skill.content.replace('demo/skills/teams-demo-collaboration/SKILL.md', data.localPaths.collaborationSkill).replace('demo/scripts/teams-demo.mjs', data.localPaths.cli) : skill.content }]));
+  const entries = new Map<string, ProjectSkillEntry>(userSkillExamples.map(skill => [skill.id, { ...skill, version: skill.id === 'teams-collaboration' ? 'cli-v1' : 'v1', source: skill.id === 'teams-collaboration' ? '本地接入 · Skill 与 CLI' : '用户 Skill', path: skill.id === 'teams-collaboration' ? data.localPaths.collaborationSkill : '', content: skill.id === 'teams-collaboration' ? skill.content.replace('teams/skills/teams-demo-collaboration/SKILL.md', data.localPaths.collaborationSkill).replace('teams/scripts/teams-demo.mjs', data.localPaths.cli) : skill.content }]));
   for (const skill of data.skills) {
     const subscription = subscriptions.get(skill.name);
     if (subscription?.sha256) entries.set(skill.name, { ...skill, version: subscription.version, source: '当前用户订阅 · 固定版本', content: data.skillContents[skill.name] });
