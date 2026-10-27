@@ -5,7 +5,10 @@
 .enterprise-plugin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:var(--ui-space-3);min-width:0}
 .enterprise-plugin-card.resource-card{display:flex;flex-direction:column;gap:var(--ui-space-3);padding:var(--ui-card-padding);min-width:0;border:var(--ui-border-block);border-radius:var(--ui-radius-framework);background:var(--ui-color-surface)}
 .enterprise-plugin-card .resource-heading{gap:var(--ui-space-2);min-width:0}
-.enterprise-plugin-card .resource-icon{display:grid;place-items:center;width:36px;height:36px;flex:none;background:var(--ui-color-primary-soft);color:var(--ui-color-primary);border-radius:var(--ui-radius);font-size:20px}
+.enterprise-plugin-card .resource-icon{display:grid;place-items:center;width:40px;height:40px;flex:none;background:var(--ui-color-primary-soft);color:var(--ui-color-primary);border-radius:var(--ui-radius);font-size:20px}
+.enterprise-plugin-card .enterprise-brand-icon{background:transparent}
+.enterprise-brand-icon img{display:block;width:32px;height:32px;object-fit:contain}
+.enterprise-platform-name{font-size:var(--ui-font-size-caption);line-height:1.5;color:var(--ui-color-muted);margin-bottom:var(--ui-space-1)}
 .enterprise-plugin-card .resource-heading h3{font-size:var(--ui-font-size-body);line-height:1.5;margin:0 0 var(--ui-space-1);overflow-wrap:anywhere}
 .enterprise-plugin-card .resource-heading p,.enterprise-plugin-scope p{font-size:var(--ui-font-size-note);line-height:1.6;margin:0;color:var(--ui-color-muted);overflow-wrap:anywhere}
 .enterprise-plugin-data{display:flex;gap:var(--ui-space-2);align-items:center;flex-wrap:wrap}
@@ -29,3 +32,7 @@
 .enterprise-source-body>*{min-width:0}.enterprise-source-body .ui-note{overflow-wrap:anywhere}
 
 .connection-search{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.connection-search .ant-input-search{max-width:420px}.connection-advanced{margin-top:16px}
+
+.enterprise-brand-icon .enterprise-brand-dark{display:none}
+:root[data-theme="dark"] .enterprise-brand-icon .enterprise-brand-light{display:none}
+:root[data-theme="dark"] .enterprise-brand-icon .enterprise-brand-dark{display:block}

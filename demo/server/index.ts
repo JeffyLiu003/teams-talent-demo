@@ -1,3 +1,6 @@
+import { createDeliveryRequirement, deliveryRequirement, acceptDeliveryRequirement, returnDeliveryRequirement, requireDeliveryMember } from '../src/delivery-requirements.js';
+import { queueTaskCollection } from '../src/task-automation.js';
+import { TaskAutomationService } from './task-automation.js';
 import { resourcePublicationHistory } from '../src/resource-sharing.js';
 import { SkillApplicationService } from './skill-application.js';
 import { nativeSkillEnvironment, readInstalledNativeSkill } from './native-skill-reader.js';
@@ -22,6 +25,7 @@ const store = new Store(); await store.init();
 const token = randomBytes(24).toString('hex');
 const fixtures = await readFixtures();
 const work = new ProjectWorkService(() => store.state, fixtures);
+const taskAutomationService = new TaskAutomationService(store, fixtures);
 const sourceCatalog = createSourcePluginCatalog(fixtures);
 const skillApplications = new SkillApplicationService({
   package: (role,scope) => getPublishedSkillPackage(store.state,role,scope.resourceId,scope.version,scope.sha256),
@@ -82,7 +86,32 @@ const server = createServer(async (request, response) => {
         json(200, action === 'analysis.run' ? await store.update(body.revision, action, 'owner', payload) : await store.apply(body.revision, action, 'owner', {})); return;
       }
       if (path === '/api/action' && talentActions.includes(body.action)) throw new DomainError('此操作由独立 Talent 服务处理', 400);
-      if (path === '/api/action') { json(200, await store.apply(body.revision, body.action as Action, body.role as Role, { reason: body.reason })); return; }
+      if (path === '/api/action') {
+        const state = await store.apply(body.revision, body.action as Action, body.role as Role, { reason: body.reason, assigneeId: body.assigneeId });
+        json(200, state);
+        if (body.action === 'accept') void taskAutomationService.collect().catch(error => console.error('验收已保存，自动归集未完成：' + error.message));
+        return;
+      }
+      if(path==='/api/delivery-requirements') {
+        const at=new Date().toISOString();
+        const saved=await store.mutate(body.revision,current=>{
+          const next=structuredClone(current);let detail='';
+          if(body.action==='create'){const task=createDeliveryRequirement(next,body.role,body.input,at);if(task.skillIds.some(id=>!fixtures.skillCatalog.some((item:{id:string})=>item.id===id)))throw new DomainError('所选Skill未登记');detail=task.id+' · '+task.title;}
+          else {const task=deliveryRequirement(next,body.projectId,body.taskId);if(!task)throw new DomainError('交付需求不存在',404);
+            if(body.action==='accept'){acceptDeliveryRequirement(next,body.role,task,at);queueTaskCollection(next,{projectId:task.projectId,taskId:task.id},at);}
+            else if(body.action==='return')returnDeliveryRequirement(body.role,task,body.reason,at);
+            else throw new DomainError('未知需求操作');detail=task.id+' · '+body.action;}
+          next.revision++;next.audit.push({id:next.revision,at,role:body.role,system:'Teams',action:body.action==='create'?'创建交付需求':body.action==='accept'?'Owner验收通过':'Owner退回补充',detail,origin:'simulated'});return next;
+        });json(200,saved);
+        if(body.action==='accept')void taskAutomationService.collect({projectId:body.projectId,taskId:body.taskId}).catch(error=>console.error('需求验收已保存，自动收集未完成：'+error.message));return;
+      }
+      if (path === '/api/task-automation') {
+        const scope = { projectId: body.projectId, taskId: body.taskId };
+        if (body.step === 'knowledge') json(200, await taskAutomationService.prepare(body.role, scope, body.retry === true));
+        else if (body.step === 'collection' && body.role === 'owner') json(200, await taskAutomationService.collect(scope, body.retry === true));
+        else throw new DomainError('自动步骤或角色无效',403);
+        return;
+      }
       if(path==='/api/workspace'){
         if (body.kind === 'analysis.run') throw new DomainError('轨迹分析由独立 Talent 服务处理', 400);
         if (body.kind === 'connection.update' && body.payload?.id === 'business-knowledge') body.payload.id = 'talent';

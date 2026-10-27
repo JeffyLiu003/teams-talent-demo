@@ -5,7 +5,7 @@ import { dirname, join, resolve } from 'node:path';
 import { runtimeDir, origin as configuredOrigin } from '../server/config.ts';
 import { createHash, randomUUID } from 'node:crypto';
 const help = `Teams CLI · 本机接入
-context get | inputs adopt | progress add | result submit | session report | operation get
+context get | inputs adopt | progress add | result submit | operation get
 --endpoint http://127.0.0.1:45970 (或 DEMO_ORIGIN)
 --input '{"projectId":"…","taskId":"…","nodeId":"…"}' 或 --input-file FILE
 context get 可用 --project / --task / --node；--output FILE 保存完整 JSON。
@@ -15,7 +15,7 @@ progress add：adoptionId、phase=started|progress|blocked、summary、blocker�
 result submit：adoptionId、summary、至少一条 evidence[{kind:reference|local-file,value,description}]。
 成果报告只记录成员贡献；Owner 验收和质量门槛保持原流程。
 operation get：--operation-id ID。--receipt-dir DIR 指定本地请求和回执目录。
-session report：沿用已提交交付的 CardDemo 会话追溯关联，需 adoptionId 与 sessionId。
+开发/验证进度携带 sessionId 会自动关联任务；Owner 验收通过后自动归集，无需再次上报。
 读取上下文不会冻结或采用；写失败保留原请求并返回非零退出码。`;
 let requestPath;
 async function atomic(path, text) { await mkdir(dirname(path), { recursive: true }); const temp = path + '.' + randomUUID() + '.tmp'; const f = await open(temp, 'wx', 0o600); try { await f.writeFile(text); await f.sync(); } finally { await f.close(); } await rename(temp, path); }
@@ -41,7 +41,7 @@ try {
     if (!options['operation-id']) throw new Error('operation get 需要原 operation-id');
     result = await request('/api/collaboration/operation?operationId=' + encodeURIComponent(options['operation-id']));
   } else {
-    const kind = ({ 'inputs adopt':'inputs.adopt', 'progress add':'progress.add', 'result submit':'result.submit', 'session report':'session.report' })[command];
+    const kind = ({ 'inputs adopt':'inputs.adopt', 'progress add':'progress.add', 'result submit':'result.submit' })[command];
     if (!kind) throw new Error(help);
     if (!options['operation-id']) throw new Error('每个逻辑写操作需要稳定 --operation-id；重试保留原 ID 与载荷');
     const payload = { role: options.role ?? 'member', kind, input, operationId: options['operation-id'] };

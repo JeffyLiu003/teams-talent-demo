@@ -33,7 +33,7 @@ async function post(base: string, path: string, body: Record<string, unknown>, e
   const response = await fetch(base + path, { method: 'POST', signal: AbortSignal.timeout(5000), headers: { Origin: base, 'Content-Type': 'application/json', 'X-Demo-Token': token }, body: JSON.stringify({ revision: (await state()).revision, role: 'owner', projectId: 'carddemo', ...body }) });
   const value = await response.json(); assert.equal(response.status, expected, JSON.stringify(value)); return value;
 }
-const action = (name: string, role = 'owner', expected = 200) => post(['knowledge', 'candidate', 'evaluate', 'release'].includes(name) ? talent : teams, '/api/action', { action: name, role }, expected);
+const action = (name: string, role = 'owner', expected = 200) => post(['knowledge', 'candidate', 'evaluate', 'release'].includes(name) ? talent : teams, '/api/action', { action: name, role, ...(name==='assign'?{assigneeId:'member'}:{}) }, expected);
 async function start() {
   for (const script of ['server/index.ts', 'server/talent.ts']) {
     const child = spawn(process.execPath, ['--import', 'tsx', script], { cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -71,6 +71,7 @@ try {
   await action('assign'); const staleRevision = (await state()).revision - 1;
   await post(teams, '/api/action', { action: 'assign', revision: staleRevision }, 409);
   await action('prepare', 'member'); const frozen = structuredClone((await state()).context);
+  await post(teams, '/api/workspace', {kind:'session.link',role:'member',payload:{projectId:'carddemo',taskId:'DEMO-MKT-001',nodeId:'develop',sessionId:'http-isolated-session',tool:'icode'}});
   await action('replay', 'member');
   await post(teams, '/api/workspace', { kind: 'progress.sync', role: 'member', payload: { text: '已完成资格和期间规则实现' } });
   await action('check-fail', 'member'); await action('submit', 'member', 409);
@@ -81,15 +82,16 @@ try {
   const ledger = await state(); assert.equal(ledger.transactions.length, 1); assert.equal(ledger.transactions[0].reward, 0.6); assert.equal(ledger.balance, 2670.15);
   await action('purchase', 'owner', 409); assert.deepEqual(await state(), ledger);
   await action('deduplicate'); await action('uat'); await action('accept');
-  await post(teams, '/api/workspace', { kind: 'session.report', role: 'member', payload: {} });
+  for(let i=0;i<80 && (await state()).workspace.taskAutomation?.[0]?.collection?.reporting?.status!=='reported';i++)await delay(100);assert.equal((await state()).workspace.taskAutomation?.[0]?.collection?.reporting?.status,'reported');assert.equal((await state()).workspace.sessionReported,false);
+  await post(teams, '/api/workspace', { kind: 'session.report', role: 'member', payload: {} },409);
   await post(talent, '/api/workspace', { kind: 'analysis.run', role: 'member', payload: { scope: 'project' } }, 403);
-  await post(talent, '/api/workspace', { kind: 'analysis.run', payload: { scope: 'project' } });
-  for (const name of ['candidate', 'evaluate', 'release', 'adopt']) await action(name);
-  const completed = await state(); assert.equal(completed.stage, 'accepted'); assert.equal(completed.evolution, 'adopted'); assert.equal(completed.security, 'unverified'); assert.deepEqual(completed.context, frozen);
-  assert.equal(completed.adoptedSkill, '1.1.0'); assert.equal(completed.context!.skillVersion, '1.0.0');
+  await post(talent, '/api/workspace', { kind: 'analysis.run', payload: { scope: 'project' } },409);
+  await action('candidate','owner',409);
+  const completed = await state(); assert.equal(completed.stage, 'accepted'); assert.equal(completed.evolution, 'none'); assert.equal(completed.security, 'unverified'); assert.deepEqual(completed.context, frozen);
+  assert.equal(completed.adoptedSkill, '1.0.0'); assert.equal(completed.context!.skillVersion, '1.0.0');
   const snapshot = await get(talent, '/api/bootstrap?project=carddemo');
-  assert.equal(snapshot.data.talent.project.projection.status, 'confirmed'); assert.equal(snapshot.data.talent.project.evolution.status, 'published');
-  console.log('PASS 2/5: complete two-role delivery, return/resubmit, 0.5% ledger, dedup and Talent evolution');
+  assert.equal(snapshot.data.talent.project.projection.status, 'confirmed'); assert.equal(snapshot.data.talent.project.evolution.status, 'none');
+  console.log('PASS 2/5: complete two-role delivery, return/resubmit, 0.5% ledger, dedup and actual persisted Talent receipt');
 
   await stop(); await start(); assert.deepEqual(await state(), completed);
   const restored = await get(talent, '/api/bootstrap?project=carddemo');

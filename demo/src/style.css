@@ -29,3 +29,7 @@
 @media(max-width:760px){.teams-page-intro{align-items:flex-start;flex-direction:column}.teams-page-intro>div{justify-content:flex-start}.ops-page .work-row>.ui-note{display:none}}
 
 .enterprise-connections .framework-card>.ui-note{margin:0 0 var(--ui-space-3);color:var(--ui-color-muted);font-size:var(--ui-font-size-note)}.enterprise-connections .ant-table-wrapper{max-width:100%;min-width:0}.enterprise-connections .ant-table-cell{overflow-wrap:anywhere}
+
+/* Enlarge Teams navigation locally, preserving the upstream compact mobile sidebar. */
+.framework-root:not(.talent-root) .framework-sidebar{--ui-font-size-navigation:14px;--ui-font-size-eyebrow:13px;--ui-shell-nav-row:38px}
+.framework-root:not(.talent-root) .framework-sidebar nav .nav-group{line-height:1.5}
