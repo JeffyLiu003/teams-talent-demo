@@ -30,7 +30,7 @@ try{
   const page=await browser.newPage({viewport:{width:1440,height:1000}});currentPage=page;page.setDefaultTimeout(8000);
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   let currentRole:'owner'|'member'='owner';
-  const visit=async(path:string)=>{const url=new URL(path,path.startsWith('/talent')?talentOrigin:origin);url.searchParams.set('demo-role',currentRole);await page.goto(url.toString());await page.getByRole('button',{name:'使用指引'}).waitFor();};
+  const visit=async(path:string)=>{const url=new URL(path,path.startsWith('/talent')?talentOrigin:origin);url.searchParams.set('demo-role',currentRole);await page.goto(url.toString());await page.getByRole('combobox', { name: '切换角色' }).waitFor();};
   const save=async(kind:string,button:Locator)=>{
     const [response]=await Promise.all([page.waitForResponse(r=>r.url()===(kind==='analysis.run'?talentOrigin:origin)+'/api/workspace'&&r.request().postDataJSON().kind===kind),button.click()]);
     assert.equal(response.status(),200,await response.text());if(kind==='analysis.run')assert.equal(response.request().postDataJSON().projectId,'carddemo');await page.waitForTimeout(120);
@@ -89,9 +89,9 @@ try{
   for(const type of ['需求','设计','问题单','缺陷','代码','测试用例'])await page.locator('.enterprise-connections .enterprise-plugin-data').getByText(type,{exact:true}).waitFor();
   assert.equal(await page.locator('.enterprise-connections .metrics-row').count(),0);
   for(const text of ['知识整合','会话记录','验收记录','发布记录'])assert.equal(await page.locator('.enterprise-connections').getByText(text,{exact:true}).count(),0);
-  await page.getByRole('button',{name:'配置测试资产平台',exact:true}).click();await page.getByRole('textbox',{name:'数据范围说明',exact:true}).fill('餐饮返现业务测试用例库。');
+  await page.getByRole('button',{name:'配置测试资产平台',exact:true}).click();await page.getByText('高级：数据范围说明',{exact:true}).click();await page.getByRole('textbox',{name:'数据范围说明',exact:true}).fill('白金卡返现业务测试用例库。');
   await save('connection.update',page.getByRole('button',{name:'保存配置',exact:true}));
-  assert.equal((await state()).workspace.connections.find((c:any)=>c.id==='test-assets').description,'餐饮返现业务测试用例库。');
+  assert.equal((await state()).workspace.connections.find((c:any)=>c.id==='test-assets').description,'白金卡返现业务测试用例库。');
   await page.getByRole('button',{name:'其他能力配置',exact:true}).click();
   await page.getByRole('switch',{name:'启用代码 Review',exact:true}).waitFor();await page.getByRole('tab',{name:'Talent 接入',exact:true}).click();
   assert.equal(await page.getByRole('switch',{name:'启用Talent 知识与演进',exact:true}).getAttribute('aria-checked'),'true');
@@ -103,7 +103,7 @@ try{
   await page.locator('.framework-sidebar').getByRole('link',{name:'Talent',exact:true}).click();await page.waitForURL(url=>url.origin===talentOrigin);assert.equal(new URL(page.url()).searchParams.get('demo-role'),'member');
   await visit('/talent#/evolution');await page.getByText('会话分析与能力演进由项目 Owner 管理',{exact:true}).waitFor();
   await role('owner');await visit('/teams#/projects?tab=content');
-  await page.getByRole('button',{name:'项目资料',exact:true}).click();await page.getByRole('button',{name:'关联项目资产'}).click();await page.getByRole('tab',{name:'手工引用',exact:true}).click();await page.getByLabel('资产名称',{exact:true}).fill('餐饮营销补充规则');await page.getByLabel('来源地址或路径',{exact:true}).fill('demo://marketing/rules');
+  await page.getByRole('button',{name:'项目资料',exact:true}).click();await page.getByRole('button',{name:'关联项目资产'}).click();await page.getByRole('tab',{name:'手工引用',exact:true}).click();await page.getByLabel('资产名称',{exact:true}).fill('白金卡返现补充规则');await page.getByLabel('来源地址或路径',{exact:true}).fill('demo://marketing/rules');
   await save('asset.add',page.getByRole('button',{name:'保存资产引用'}));assert.equal((await state()).workspace.project.assets.length,5);
   await click('knowledge');const builtKnowledge=await knowledgeAssets();assert.equal(builtKnowledge.projects.find((project:any)=>project.id==='carddemo').status,'ready');assert.equal(builtKnowledge.projects.find((project:any)=>project.id==='teams').status,'not-built');assert.ok(builtKnowledge.assets.length>0);assert.ok(builtKnowledge.assets.every((asset:any)=>asset.kind==='knowledge'&&asset.sourceProjectId==='carddemo'));await page.screenshot({path:output+'/teams-project-content.png',fullPage:true});
   await visit('/talent#/knowledge');await page.screenshot({path:output+'/talent-knowledge.png',fullPage:true});
@@ -113,16 +113,16 @@ try{
   assert.equal((await state()).published,false);assert.equal((await state()).workspace.resourcePublications,undefined);
   await visit('/teams#/projects?tab=management');await click('assign');
   await role('member');await visit('/teams#/projects?tab=delivery&node=prepare');
-  await page.getByRole('button',{name:'补充需求材料'}).click();await page.getByLabel('材料标题',{exact:true}).fill('餐饮边界补充');await page.getByLabel('内容与来源',{exact:true}).fill('本轮演示要求重复评估不重复入账。');
+  await page.getByRole('button',{name:'补充需求材料'}).click();await page.getByLabel('材料标题',{exact:true}).fill('返现边界补充');await page.getByLabel('内容与来源',{exact:true}).fill('要求重复评估不重复入账。');
   await save('material.add',page.getByRole('button',{name:'保存到需求'}));
   const skills=page.getByRole('combobox',{name:'选择业务 Skill'});await skills.click();await skills.fill('Word');
   await page.locator('.ant-select-item-option-content').getByText('Word 文件处理',{exact:true}).waitFor();
   await save('skills.select',page.locator('.ant-select-item-option-content').getByText('Word 文件处理',{exact:true}));await skills.press('Escape');
-  await click('prepare');assert.equal((await state()).context.materials[0].title,'餐饮边界补充');
+  await click('prepare');assert.equal((await state()).context.materials[0].title,'返现边界补充');
   const unpublishedPrepared=await state();assert.equal(unpublishedPrepared.published,false);assert.equal(unpublishedPrepared.workspace.resourcePublications,undefined);assert.ok(unpublishedPrepared.context.selectedSkills.includes('dev-frontend-ui'));assert.ok(unpublishedPrepared.context.selectedSkills.includes('office-word'));assert.equal(unpublishedPrepared.context.agentVersion,'r1');
   await page.screenshot({path:output+'/teams-unpublished-prepared.png',fullPage:true});
   assert.equal(await page.getByRole('combobox',{name:'选择业务 Skill'}).isEnabled(),false);
-  const exported=await cli(['context','get','--project','carddemo','--task','DEMO-MKT-001','--node','prepare']);assert.equal(exported.mode,'frozen');assert.ok(exported.skills.some((s:any)=>s.id==='dev-frontend-ui'));assert.ok(JSON.stringify(exported.materials).includes('餐饮边界补充'));assert.equal(exported.skills.find((s:any)=>s.id==='office-word').availability,'example-only');assert.equal(exported.skills.find((s:any)=>s.id==='office-word').path,null);
+  const exported=await cli(['context','get','--project','carddemo','--task','DEMO-MKT-001','--node','prepare']);assert.equal(exported.mode,'frozen');assert.ok(exported.skills.some((s:any)=>s.id==='dev-frontend-ui'));assert.ok(JSON.stringify(exported.materials).includes('返现边界补充'));assert.equal(exported.skills.find((s:any)=>s.id==='office-word').availability,'example-only');assert.equal(exported.skills.find((s:any)=>s.id==='office-word').path,null);
   const foundation=await readFile(exported.skillPath,'utf8');assert.ok(foundation.includes('progress add'));assert.ok(foundation.includes('teams-demo-collaboration'));
   await role('owner');await visit('/teams#/publications');assert.equal(await page.locator('.resource-library-entry').count(),0);
   await page.getByRole('button',{name:'发布资源',exact:true}).click();await page.getByRole('combobox',{name:'选择发布资源'}).click();await page.locator('.ant-select-item-option-content').getByText('dev-frontend-ui · 1.0.0',{exact:true}).click();
@@ -140,13 +140,13 @@ try{
   const scope={projectId:'carddemo',taskId:'DEMO-MKT-001',nodeId:'develop'},runId=randomUUID(),sessionId='6b82c08d-eb3b-4bdc-b373-54fed16a7fcd';
   const basis=await cli(['context','get','--input',JSON.stringify(scope)]);
   const adopted=await cli(['inputs','adopt','--operation-id',randomUUID(),'--input',JSON.stringify({...scope,runId,sessionId,expectedRevision:basis.revision,basisDigest:basis.basisDigest,readReferences:[]})]);
-  const sync=await cli(['progress','add','--operation-id',randomUUID(),'--input',JSON.stringify({...scope,runId,sessionId,adoptionId:adopted.receipt.adoptionId,expectedRevision:adopted.receipt.revision,phase:'progress',summary:'已从 iCode 基础协作 CLI 同步演示进度，正在修复报名入口。',evidence:[]})]);assert.equal(sync.ok,true);await page.getByText('已从 iCode 基础协作 CLI 同步演示进度，正在修复报名入口。',{exact:true}).waitFor();
+  const sync=await cli(['progress','add','--operation-id',randomUUID(),'--input',JSON.stringify({...scope,runId,sessionId,adoptionId:adopted.receipt.adoptionId,expectedRevision:adopted.receipt.revision,phase:'progress',summary:'已从 iCode 基础协作 CLI 同步工作进度，正在修复资格校验。',evidence:[]})]);assert.equal(sync.ok,true);await page.getByText('已从 iCode 基础协作 CLI 同步工作进度，正在修复资格校验。',{exact:true}).waitFor();
   await page.screenshot({path:output+'/teams-project-delivery.png',fullPage:true});
-  await page.getByRole('button',{name:'节点：验证',exact:true}).click();await page.getByRole('button',{name:'打开 iCode 执行回放'}).click();await click('check-fail');
+  await page.getByRole('button',{name:'节点：验证',exact:true}).click();await click('check-fail');
   assert.equal(await page.locator('button[data-action="submit"]').isEnabled(),false);await page.screenshot({path:output+'/teams-check-failure.png',fullPage:true});
-  await click('fix');await page.getByRole('button',{name:'返回 Teams 质量报告'}).click();await click('submit');
+  await click('fix');await click('submit');
   await role('owner');await page.getByRole('button',{name:'节点：验收',exact:true}).click();
-  for(const action of ['enroll','purchase','deduplicate','uat'])await click(action);
+  for(const action of ['purchase','deduplicate','uat'])await click(action);
   await page.screenshot({path:output+'/teams-acceptance.png',fullPage:true});await click('accept');
   assert.equal((await cli(['session','report','--operation-id',randomUUID(),'--input',JSON.stringify({...scope,runId,sessionId,adoptionId:adopted.receipt.adoptionId,expectedRevision:(await state()).revision})])).ok,true);await visit('/teams#/trace');await page.screenshot({path:output+'/teams-trace.png',fullPage:true});
   await visit('/talent#/sessions');await page.getByText('项目多个需求',{exact:true}).click();await save('analysis.run',page.getByRole('button',{name:'开始轨迹分析'}));
@@ -165,7 +165,7 @@ try{
   await page.getByRole('button',{name:'关闭配置',exact:true}).click();await page.getByRole('button',{name:'实例管理',exact:true}).click();await page.getByText('OpenCode 原生 HTTP 接入',{exact:true}).waitFor();await page.getByRole('button',{name:'关闭实例管理',exact:true}).click();
   assert.equal(await page.getByRole('tab',{name:'基础协作能力',exact:true}).count(),0);assert.equal(await page.getByRole('switch',{name:'启用进度同步',exact:true}).count(),0);
   assert.deepEqual(await state(),final,'read-only Agent configuration and sample inspection must preserve all seven-case workflow state');
-  await visit('/teams#/trace');await page.getByRole('button',{name:/E3.*jsdom/}).click();assert.ok((await page.locator('.trace-layout .evidence-console').textContent())?.includes('EXIT:1'));
+  await visit('/teams#/trace');await page.getByRole('button',{name:/E3.*首次规则检查/}).click();assert.ok((await page.locator('.trace-layout .evidence-console').textContent())?.includes('普通卡'));
   await page.getByRole('button',{name:'切换到深色模式'}).click();await page.waitForTimeout(300);await page.screenshot({path:output+'/teams-trace-dark.png',fullPage:true});
   const layouts:any[]=[];
   for(const width of [1440,1024,768])for(const route of ['/teams#/home','/teams#/projects?tab=delivery&node=prepare','/talent#/sessions','/teams#/projects?project=teams&tab=delivery','/teams#/connections','/teams#/resources','/teams#/subscriptions','/teams#/publications']){

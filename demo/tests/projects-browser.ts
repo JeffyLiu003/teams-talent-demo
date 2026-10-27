@@ -33,7 +33,7 @@ try {
   browser = await chromium.launch({ channel: 'chrome', headless: true });
   page = await browser.newPage({ viewport: { width: 1440, height: 1000 } }); page.setDefaultTimeout(7000);
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
-  const visit = async (path: string) => { await page!.goto(origin + '/teams#/' + path); await page!.getByRole('button', { name: '使用指引' }).waitFor(); };
+  const visit = async (path: string) => { await page!.goto(origin + '/teams#/' + path); await page!.getByRole('combobox', { name: '切换角色' }).waitFor(); };
   const closePanels = async (target = page!) => { for (const selector of ['.owner-project-panel', '.project-knowledge-drawer']) { const panel = target.locator(selector); if (await panel.isVisible()) { await panel.locator('.ant-drawer-close').click(); await panel.waitFor({ state: 'hidden' }); } } };
   const openPanel = async (name: string, target = page!) => { await closePanels(target); await target.getByRole('button', { name, exact: true }).click(); };
   const closeText = async (target = page!) => { await target.locator('.ant-drawer').filter({ has: target.locator('.drawer-console') }).locator('.ant-drawer-close').click(); await target.locator('.drawer-console').waitFor({ state: 'hidden' }); };
@@ -42,7 +42,7 @@ try {
   await page.locator('.project-knowledge').getByText('尚未生成项目知识', { exact: true }).waitFor();
   assert.equal(await page.locator('[data-action="knowledge"]').isEnabled(), true, 'legacy Teams projection must not disable actual Talent build');
   const [built] = await Promise.all([page.waitForResponse(response => response.url() === talentOrigin + '/api/action'), page.locator('[data-action="knowledge"]').click()]); assert.equal(built.status(), 200);
-  await page.getByRole('button', { name: '查看项目知识：报名与资格分别判断', exact: true }).waitFor();
+  await page.getByRole('button', { name: '查看项目知识：白金卡资格独立判断', exact: true }).waitFor();
   assert.deepEqual(await state(), initial, 'same-revision legacy projection stays unchanged while actual results refresh');
   await visit('projects?tab=list');
   await page.getByRole('button', { name: '添加项目', exact: true }).click();
@@ -81,7 +81,7 @@ try {
   await visit('projects?project=carddemo&tab=content'); await page.locator('.breadcrumb strong').getByText(initial.workspace.project.name, { exact: true }).waitFor(); await openPanel('项目资料'); await page.getByRole('button', { name: '关联项目资产' }).waitFor();
   await visit('projects?project=teams&tab=content'); await page.locator('.breadcrumb strong').getByText('iCode Teams', { exact: true }).waitFor(); await openPanel('项目资料'); await page.getByRole('button', { name: '查看 AGENTS.md', exact: true }).waitFor();
   const member = await browser.newPage({ viewport: { width: 1440, height: 1000 } }); await member.addInitScript(() => localStorage.setItem('carddemo-role', 'member'));
-  await member.goto(origin + '/teams#/projects?tab=list'); await member.getByRole('button', { name: '使用指引' }).waitFor(); assert.equal(await member.getByRole('button', { name: '添加项目', exact: true }).count(), 0); assert.equal(await member.locator('[data-project-primary="' + projectId + '"]').innerText(), '进入任务交付');
+  await member.goto(origin + '/teams#/projects?tab=list'); await member.getByRole('combobox', { name: '切换角色' }).waitFor(); assert.equal(await member.getByRole('button', { name: '添加项目', exact: true }).count(), 0); assert.equal(await member.locator('[data-project-primary="' + projectId + '"]').innerText(), '进入任务交付');
   await member.goto(origin + '/teams#/projects?project=' + projectId + '&tab=settings'); await member.getByText('项目成员可查看基础信息，由 Owner 维护。', { exact: true }).waitFor(); assert.equal(await member.getByRole('textbox', { name: '项目名称', exact: true }).isDisabled(), true);
   assert.equal((await request('member', 'project.metadata.update', { ...draft, id: projectId, name: '越权更新' })).status, 403);
   await closePanels(); await page.getByRole('button', { name: '切换到浅色模式' }).click();
@@ -114,7 +114,7 @@ try {
   const [indexed] = await Promise.all([page.waitForResponse(response => response.url() === talentOrigin + '/api/action'), page.locator('[data-action="knowledge"]').click()]); assert.equal(indexed.status(), 200);
   await page.getByRole('button', { name: '查看项目知识：信用卡消费返现 · 来源索引', exact: true }).waitFor();
   await page.locator('.project-knowledge').getByText('当前成果为已关联资料的来源索引，业务规则仍需抽取与确认。', { exact: true }).waitFor();
-  assert.equal(await page.getByRole('button', { name: '查看项目知识：报名与资格分别判断', exact: true }).count(), 0);
+  assert.equal(await page.getByRole('button', { name: '查看项目知识：白金卡资格独立判断', exact: true }).count(), 0);
   assert.deepEqual(await state(), beforeIndex, 'new project indexing must not update CardDemo state');
   await page.route('**/api/knowledge/assets?project=' + projectId, route => route.abort());
   await page.getByRole('button', { name: '刷新成果', exact: true }).click(); await page.getByText('无法读取 Talent 项目知识', { exact: true }).waitFor();

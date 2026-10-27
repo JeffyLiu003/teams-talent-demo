@@ -55,7 +55,7 @@ function configurationPort(tool: Tool, demo: DemoContext): ConfigurationPort {
       model: '由 OpenCode 原生配置选择', scope: '当前工作目录 · 只读配置',
     }, 'OpenCode 配置参考');
     add('skill', 'change-impact', '变更影响分析', 'OpenCode 工作目录', {
-      name: 'change-impact', description: '餐饮返现需求的接口、业务规则与验证影响分析',
+      name: 'change-impact', description: '白金卡消费返现的接口、业务规则与验证影响分析',
       content: '核对需求范围、受影响模块和验证证据。',
       scope: '本地发现路径；未写入 OpenCode',
     }, 'OpenCode 配置参考');
@@ -174,19 +174,13 @@ export function AgentManagement({ nativeControls }: { nativeControls: ReactNode 
               startup: {
                 cwd: current.icode.workspace,
                 terminals: current.terminals ?? [], selectedTerminal: current.selectedTerminal,
-                launchLabel: tool === 'icode' && current.icode.active ? '打开已运行会话' : `启动 ${names[tool]}`,
-                hint: tool === 'icode' && current.icode.active ? `历史会话由 ${current.icode.active.application ?? '已有终端'} 持有，仍进入原终端；选择的终端仅用于新建或恢复未运行会话。${current.terminalError ?? ''}` : current.terminalError ?? `新建与恢复未运行会话使用 ${current.terminalName}；项目和需求启动入口共用此本机偏好。`,
-                disabledReason: tool === 'icode' && current.icode.active && !current.icode.active.application ? '请在原终端继续，未重复启动；当前系统没有可靠的窗口定位。' : tool === 'icode' && current.icode.active ? undefined : current.terminalError ?? (found.installed ? undefined : tool === 'opencode' && current.opencode.unsupportedReason ? current.opencode.unsupportedReason : '当前设备尚未发现此工具。'),
+                launchLabel: `启动 ${names[tool]}`,
+                hint: current.terminalError ?? `新建会话使用 ${current.terminalName}；项目和需求入口共用此本机偏好。`,
+                disabledReason: current.terminalError ?? (found.installed ? undefined : tool === 'opencode' && current.opencode.unsupportedReason ? current.opencode.unsupportedReason : '当前设备尚未发现此工具。'),
                 async chooseDirectory() { throw new Error('当前使用项目工作目录；原 Teams 的目录选择服务尚未接入'); },
                 async selectTerminal(terminal) { await native(latest.current.role, 'terminal', { terminal }); statusPromise = undefined; },
                 async launch(input) {
                   if (input.cwd !== current.icode.workspace) throw new Error('当前仅支持此项目工作目录，请恢复显示的项目路径后启动');
-                  const fresh = await getTools();
-                  if (tool === 'icode' && fresh.icode.active) {
-                    if (!fresh.icode.active.application) throw new Error('请在原终端继续，未重复启动；当前系统没有可靠的窗口定位。');
-                    const receipt = await native(latest.current.role, 'focus');
-                    return { message: receipt.note ?? '已打开现有原生会话。' };
-                  }
                   const receipt = await native(latest.current.role, 'launch', { tool, restore: false, requestId: crypto.randomUUID(), terminal: input.terminal });
                   return { message: receipt.note ?? '已请求本机终端启动。' };
                 },

@@ -70,7 +70,7 @@ try {
   assert.equal((await get(talent, '/api/knowledge/assets?project=' + projectId)).assets.length, 1);
   assert.deepEqual(await readFile(join(env.DEMO_STATE_DIR, 'state.json')), teamBytes);
   await page.getByRole('button', { name: '重新读取业务知识', exact: true }).click();
-  await page.getByRole('button', { name: '报名与资格分别判断', exact: true }).waitFor();
+  await page.getByRole('button', { name: '白金卡资格独立判断', exact: true }).waitFor();
   await page.goto(talent + '/talent?demo-role=owner#/knowledge?project=' + projectId);
   await page.getByText('来源索引', { exact: false }).waitFor();
   await page.screenshot({ path: 'test-results/talent-independent-project.png', fullPage: true, animations: 'disabled' });

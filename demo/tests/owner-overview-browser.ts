@@ -50,7 +50,7 @@ try {
   for (const [action, role] of [['assign', 'owner'], ['prepare', 'member'], ['replay', 'member'], ['check-fail', 'member']] as const) await post('/api/action', { action, role });
   await visit('carddemo'); assert.deepEqual(await metrics(), { all: 5, pending: 0, active: 3, acceptance: 1, delivered: 1, issues: 7, open: 5, closed: 1, unconfirmed: 1, blocking: 3 });
   await page.screenshot({ path: 'test-results/owner-overview-blocking.png', animations: 'disabled' });
-  await page.getByRole('button', { name: '需协调阻塞：未报名时应提供餐饮活动报名入口', exact: true }).click(); await page.getByText('阻塞当前交付', { exact: true }).waitFor();
+  await page.getByRole('button', { name: '需协调阻塞：普通卡不应进入白金卡返现范围', exact: true }).click(); await page.getByText('阻塞当前交付', { exact: true }).waitFor();
   await page.getByRole('button', { name: '关联需求：信用卡消费返现', exact: true }).click(); await page.getByRole('button', { name: '进入交付节点', exact: true }).click();
   await page.getByRole('button', { name: '节点：验证', exact: true }).waitFor(); assert.equal(await page.getByRole('button', { name: '节点：验证', exact: true }).getAttribute('aria-current'), 'step');
   await post('/api/action', { action: 'fix', role: 'member' }); await visit('carddemo'); assert.equal((await metrics()).blocking, 2); assert.equal((await metrics()).open, 4); assert.equal((await metrics()).closed, 2);

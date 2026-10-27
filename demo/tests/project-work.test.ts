@@ -21,7 +21,7 @@ test('work resolves precise Card/Teams/new-project scope and does not substitute
   try {
     const service=new ProjectWorkService(()=>state,fixtures,dir,t.value), before=JSON.stringify(state);
     const plan=await service.plan('member',{projectId:'carddemo',tab:'delivery',nodeId:'prepare'});
-    assert.equal(plan.target.taskId,'DEMO-MKT-001');assert.equal(plan.context.frozen,false);assert.equal(plan.defaultAction,'new');assert.equal(plan.history?.sessionId,sessionId);
+    assert.equal(plan.target.taskId,'DEMO-MKT-001');assert.equal(plan.context.frozen,false);assert.equal(plan.defaultAction,'new');assert.equal(plan.history,undefined);
     const teams=await service.plan('owner',{projectId:'teams',tab:'delivery',taskId:'T104',nodeId:'review'});
     assert.equal(teams.target.taskId,'T104');assert.equal(teams.history,undefined);assert.equal(teams.actions[0].enabled,false);
     assert.throws(()=>resolveProjectWork(state,fixtures,{projectId:'teams',tab:'delivery',taskId:'DEMO-MKT-001'}),/不存在/);
@@ -43,13 +43,13 @@ test('one confirmation pins scope/config, repeated request does not launch again
     assert.equal(t.calls.length,1);
   }finally{await rm(dir,{recursive:true,force:true});}
 });
-test('active historical session enters a verified terminal, never launches a duplicate; uncertainty is retained',async()=>{
-  const dir=await mkdtemp(join(tmpdir(),'work-history-')), t=transport(),state=initialState();t.setActive();
+test('old restore actions are unavailable and launch uncertainty is retained',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'work-current-')), t=transport(),state=initialState();t.setActive();
   try{
     const service=new ProjectWorkService(()=>state,fixtures,dir,t.value),plan=await service.plan('owner',{projectId:'carddemo',tab:'delivery',nodeId:'prepare'});
-    assert.ok(plan.actions.find(a=>a.id==='focus')?.enabled);assert.equal(plan.actions.some(a=>a.id==='resume'),false);
-    const receipt=await service.start('owner',{requestId:randomUUID(),target:plan.target,action:'focus',planToken:plan.planToken});assert.equal(receipt.status,'terminal-focused');assert.equal(t.calls[0].active.pid,123);
-    t.setFail();const body={requestId:randomUUID(),target:plan.target,action:'new' as const,planToken:plan.planToken};await assert.rejects(service.start('owner',body),/待核对/);const again=await service.start('owner',body);assert.equal(again.status,'uncertain');assert.equal(t.calls.length,2);
+    assert.deepEqual(plan.actions.map(a=>a.id),['new']);assert.equal(plan.history,undefined);
+    await assert.rejects(service.start('owner',{requestId:randomUUID(),target:plan.target,action:'focus',planToken:plan.planToken}), /不可用/);
+    t.setFail();const body={requestId:randomUUID(),target:plan.target,action:'new' as const,planToken:plan.planToken};await assert.rejects(service.start('owner',body),/待核对/);const again=await service.start('owner',body);assert.equal(again.status,'uncertain');assert.equal(t.calls.length,1);
   }finally{await rm(dir,{recursive:true,force:true});}
 });
 test('directory binding is role/project scoped, verifies Git origin, and rejects reference checkout',async()=>{
@@ -67,9 +67,9 @@ test('directory binding is role/project scoped, verifies Git origin, and rejects
   }finally{await rm(dir,{recursive:true,force:true});}
 });
 
-test('resume retains historical directory, session and role/model instead of current defaults',async()=>{
+test('old resume request is rejected before launching any native work',async()=>{
   const dir=await mkdtemp(join(tmpdir(),'work-resume-')),t=transport(),state=initialState();
-  try {const service=new ProjectWorkService(()=>state,fixtures,dir,t.value),plan=await service.plan('member',{projectId:'carddemo',tab:'delivery',nodeId:'prepare'});await service.start('member',{requestId:randomUUID(),target:plan.target,action:'resume',planToken:plan.planToken});assert.equal(t.calls[0].terminal,'ghostty');assert.equal(t.calls[0].directory,workspace);assert.equal(t.calls[0].sessionId,sessionId);assert.equal(t.calls[0].agent,'original-role');assert.equal(t.calls[0].model,'original-model');}finally{await rm(dir,{recursive:true,force:true});}
+  try {const service=new ProjectWorkService(()=>state,fixtures,dir,t.value),plan=await service.plan('member',{projectId:'carddemo',tab:'delivery',nodeId:'prepare'});await assert.rejects(service.start('member',{requestId:randomUUID(),target:plan.target,action:'resume',planToken:plan.planToken}), /不可用/);assert.equal(t.calls.length,0);}finally{await rm(dir,{recursive:true,force:true});}
 });
 
 test('changing saved terminal invalidates the confirmation while active focus remains on its original terminal', async () => {
@@ -78,7 +78,7 @@ test('changing saved terminal invalidates the confirmation while active focus re
     const service=new ProjectWorkService(()=>state,fixtures,dir,t.value), plan=await service.plan('owner',{projectId:'carddemo',tab:'delivery'});
     assert.equal(plan.instance.terminal?.name,'Ghostty');t.setTerminal('terminal');
     await assert.rejects(service.start('owner',{requestId:randomUUID(),target:plan.target,action:'new',planToken:plan.planToken}),/依据已变化/);assert.equal(t.calls.length,0);
-    t.setActive();const current=await service.plan('owner',plan.target);assert.equal(current.instance.terminal?.name,'Terminal');assert.equal(current.history?.active?.application,'Ghostty');
-    await service.start('owner',{requestId:randomUUID(),target:current.target,action:'focus',planToken:current.planToken});assert.equal(t.calls.length,1);assert.equal(t.calls[0].active.application,'Ghostty');
+    t.setActive();const current=await service.plan('owner',plan.target);assert.equal(current.instance.terminal?.name,'Terminal');assert.equal(current.history,undefined);
+    await service.start('owner',{requestId:randomUUID(),target:current.target,action:'new',planToken:current.planToken});assert.equal(t.calls.length,1);assert.equal(t.calls[0].terminal,'terminal');
   } finally { await rm(dir,{recursive:true,force:true}); }
 });

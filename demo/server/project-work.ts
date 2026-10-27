@@ -1,13 +1,12 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { access, readFile, readdir, realpath, stat } from 'node:fs/promises';
-import { homedir } from 'node:os';
 import { isAbsolute, join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { DomainError, type DemoState, type Role } from '../src/domain.js';
 import type { Presentation } from '../src/api.js';
 import type { ProjectWorkAction, ProjectWorkPlan, ProjectWorkReceipt, ProjectWorkSelection } from '../src/project-work.js';
-import { activeSession, focusWorkTerminal, locateWorkTerminal, nativeWorkDefaults, startNativeWork } from './native.js';
+import { nativeWorkDefaults, startNativeWork } from './native.js';
 import { codeRoot, root, runtimeDir, sessionId, workspace, origin } from './config.js';
 import { formatShellCommand } from './terminal-launcher.js';
 import { collaborationContext, collaborationSkillPath } from './collaboration-service.js';
@@ -28,7 +27,7 @@ export function resolveProjectWork(state: DemoState, data: Presentation, input: 
       if (!Object.hasOwn(nodeNames, node)) throw new DomainError('交付节点不存在', 400);
       target.taskId = 'DEMO-MKT-001'; target.nodeId = node;
     }
-    return { target, projectName: state.workspace.project.name, title: '信用卡消费返现', location: target.nodeId ? nodeNames[target.nodeId] : stageNames[input.tab], source: 'CardDemo 已有本地源码与真实历史材料', repository: '', assets: state.workspace.project.assets, skills: state.context?.selectedSkills ?? state.workspace.selectedSkills };
+    return { target, projectName: state.workspace.project.name, title: '信用卡消费返现', location: target.nodeId ? nodeNames[target.nodeId] : stageNames[input.tab], source: 'CardDemo 当前源码与项目交付材料', repository: '', assets: state.workspace.project.assets, skills: state.context?.selectedSkills ?? state.workspace.selectedSkills };
   }
   if (input.projectId === 'teams') {
     const snapshot = data.teamsProject;
@@ -84,20 +83,9 @@ export interface WorkTransport {
 }
 const nativeTransport: WorkTransport = {
   defaults: nativeWorkDefaults,
-  async history() {
-    let raw: any;
-    try { raw = JSON.parse(await readFile(join(homedir(), '.chrys/sessions/6b82c08deb3b/session.json'), 'utf8')); }
-    catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { available: false, directory: workspace, title: 'CardDemo 历史会话', active: null }; throw error; }
-    if (raw.meta?.session_id !== sessionId || typeof raw.meta.primary_cwd !== 'string') throw new DomainError('CardDemo 历史会话身份或目录记录损坏');
-    let originalDirectory: string;
-    try { originalDirectory = await realpath(raw.meta.primary_cwd); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; return { available:false,directory:raw.meta.primary_cwd,title:raw.meta.generated_title || '历史会话',active:null,diagnostic:'已有同 ID 历史会话的工作目录不存在；拒绝恢复，请核对原导入位置。' }; }
-    if (originalDirectory !== await realpath(workspace)) return { available:false,directory:raw.meta.primary_cwd,title:raw.meta.generated_title || '历史会话',active:null,diagnostic:'已有同 ID 历史会话绑定另一工作目录：' + raw.meta.primary_cwd + '。拒绝从此副本恢复；请在原工作区继续。' };
-    const active = await activeSession(), title = raw.meta.generated_title || raw.meta.title;
-    const configuration = typeof raw.meta.agent_profile_id === 'string' && typeof raw.meta.model_profile_id === 'string' ? {agent:raw.meta.agent_profile_id,agentLabel:String(raw.meta.agent_display_name),model:raw.meta.model_profile_id,modelLabel:String(raw.meta.model_id)} : undefined;
-    return { available: true, directory: raw.meta.primary_cwd, title, configuration, active: active ? { ...active, ...await locateWorkTerminal(active, title) } : null };
-  },
+  async history() { return { available: false, directory: workspace, title: '', active: null }; },
   start: startNativeWork,
-  focus: focusWorkTerminal,
+  async focus() { throw new Error('历史恢复入口已移除'); },
 };
 interface SavedRequest { identity: string; receipt: ProjectWorkReceipt }
 export class ProjectWorkService {
@@ -125,12 +113,11 @@ export class ProjectWorkService {
       directory = { root: binding ?? null, valid: false, kind: 'git-binding', diagnostic: '尚未绑定本机目录，请先核验并关联一个与项目代码仓一致的 checkout/worktree。' };
       if (binding) try { directory.root = await inspectDirectory(binding, work.repository, this.data.baseline.sourceRoot); directory.valid = true; directory.diagnostic = '本机仓库根目录与项目 origin 已核验。'; } catch (error) { directory.diagnostic = (error as Error).message; }
     }
-    const defaults = await this.transport.defaults(), history = work.target.projectId === 'carddemo' ? await this.transport.history() : undefined;
+    const defaults = await this.transport.defaults();
     const frozen = work.target.projectId === 'carddemo' && !!work.target.taskId && !!state.context;
     const context = { frozen, summary: frozen ? `已冻结 ${state.context!.id}；保持本次需求、资料与采用版本。` : '尚未冻结：本次只提供当前项目与工作位置的快照，不等同于已采用知识或已读取全部资料。', versions: frozen ? `知识 ${state.context!.knowledgeVersion} · Skill ${state.context!.skillVersion} · Agent ${state.context!.agentVersion}` : '当前资料与选择；采用版本尚未冻结', selectedSkills: work.skills, assets: work.assets.map(asset => ({ title: asset.title, location: asset.location })) };
     const actions: ProjectWorkPlan['actions'] = [{ id: 'new', label: '新建当前工作的 iCode 会话', enabled: !!defaults && !defaults.terminal.error && directory.valid, reason: !defaults ? '配套 iCode 未安装' : defaults.terminal.error ?? (!directory.valid ? directory.diagnostic : undefined) }];
-    if (history?.available) actions.push({ id: history.active ? 'focus' : 'resume', label: history.active ? '进入历史会话所在终端' : '恢复 CardDemo 真实历史会话', enabled: !!defaults && (history.active ? !!history.active.terminal : !!history.configuration && !defaults.terminal.error), reason: !history.active && defaults?.terminal.error ? defaults.terminal.error : !history.active && !history.configuration ? '历史角色或模型配置缺失，未改用当前默认配置。' : history.active && !history.active.terminal ? history.active.diagnostic ?? '无法定位持有会话的终端，请在原环境继续；未启动重复实例。' : undefined });
-    const plan: ProjectWorkPlan = { target: work.target, projectName: work.projectName, title: work.title, location: work.location, source: work.source, planToken: '', instance: { installed: !!defaults, name: '本机 iCode 0.31.0', ...defaults }, directory, ...(history ? { history: { ...history, sessionId } } : {}), context, actions, defaultAction: 'new' };
+    const plan: ProjectWorkPlan = { target: work.target, projectName: work.projectName, title: work.title, location: work.location, source: work.source, planToken: '', instance: { installed: !!defaults, name: '本机 iCode 0.31.0', ...defaults }, directory, context, actions, defaultAction: 'new' };
     plan.planToken = hash({ role, plan, revision: state.revision });
     plan.previous = await this.previous(work.target); return plan;
   }

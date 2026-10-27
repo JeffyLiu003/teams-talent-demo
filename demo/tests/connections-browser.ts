@@ -19,7 +19,7 @@ try{
   browser=await chromium.launch({channel:'chrome',headless:true});const page=await browser.newPage({viewport:{width:1440,height:1000}});page.setDefaultTimeout(8000);
   page.on('pageerror',error=>errors.push(error.message));await page.route('**/api/**',route=>{if(route.request().method()==='POST'){writes.push(route.request().url());return route.abort();}return route.continue();});
   let knowledgePhase:'not-built'|'ready'|'error'='not-built';
-  const knowledgeAsset={id:'business-knowledge:carddemo:ui-test-rules',pluginId:'business-knowledge',sourceRecordId:'ui-test-rules',kind:'knowledge',title:'餐饮返现业务知识 · API夹具',summary:'由测试响应提供的已构建知识资产。',detail:'Talent mock 知识资产；此数据仅用于验证连接页面的API读取行为。',sourceProjectId:'carddemo',sourceProjectName:'信用卡营销交付',origin:'plugin-mock',version:'knowledge-v1',references:[],relatedRequirementIds:[]};
+  const knowledgeAsset={id:'business-knowledge:carddemo:ui-test-rules',pluginId:'business-knowledge',sourceRecordId:'ui-test-rules',kind:'knowledge',title:'白金卡返现业务知识 · API夹具',summary:'由测试响应提供的已构建知识资产。',detail:'Talent mock 知识资产；此数据仅用于验证连接页面的API读取行为。',sourceProjectId:'carddemo',sourceProjectName:'信用卡营销交付',origin:'plugin-mock',version:'knowledge-v1',references:[],relatedRequirementIds:[]};
   await page.route('**/api/knowledge/assets*',route=>route.fulfill({status:knowledgePhase==='error'?503:200,headers:{'content-type':'application/json','access-control-allow-origin':origin,'access-control-allow-headers':'*'},body:JSON.stringify(knowledgePhase==='error'?{error:'Talent 服务暂不可用（测试）'}:{assets:knowledgePhase==='ready'?[knowledgeAsset]:[],projects:[{id:'carddemo',name:'信用卡营销交付',status:knowledgePhase==='ready'?'ready':'not-built'},{id:'teams',name:'iCode Teams',status:'not-built'}],origin:'isolated-test-response'})}));
   await page.goto(origin+'/teams#/connections');await page.getByRole('button',{name:'查看代码托管平台数据',exact:true}).waitFor();
   assert.equal(await page.locator('.enterprise-plugin-card').count(),6);
@@ -27,7 +27,7 @@ try{
   const checks=[
     ['repository','代码托管平台','CardDemo Java 项目','carddemo-java-1025',6],
     ['requirements','需求平台','信用卡消费返现','MKT-001',11],
-    ['defects','缺陷平台','未报名时应提供餐饮活动报名入口','CARD-BUG-001',8],
+    ['defects','缺陷平台','普通卡不应进入白金卡返现范围','CARD-BUG-001',8],
     ['design-library','设计文档 / 知识库','营销能力设计','marketing-capability',7],
     ['test-assets','测试资产平台','白金卡客户范围','CARD-TC-01',7],
   ] as const;

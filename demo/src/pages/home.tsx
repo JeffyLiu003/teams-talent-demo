@@ -18,12 +18,12 @@ export function nextStep(state: ReturnType<typeof useDemo>['state']) {
   if (state.stage === 'developing') return { title: '同步开发进度并完成检查', note: '通过基础协作能力回传进展，在 iCode 发起质量检查。', href: '#/projects?tab=delivery&node=develop', role: '项目成员' };
   if (['failed', 'returned'].includes(state.stage)) return { title: '处理问题并重新验证', note: '查看检查或退回依据，保留修复与复测结果。', href: '#/projects?tab=delivery&node=verify', role: '项目成员' };
   if (state.stage === 'fixed') return { title: '提交本次需求交付', note: '将代码、检查结果与未解决事项一起交给 Owner。', href: '#/projects?tab=delivery&node=verify', role: '项目成员' };
-  if (state.stage === 'submitted') return { title: '查看历史餐饮返现验收', note: '当前验收页保留旧流程记录，本次信用卡消费返现细则待明确。', href: '#/projects?tab=delivery&node=accept', role: '项目 Owner' };
+  if (state.stage === 'submitted') return { title: '确认白金卡消费返现结果', note: '核对返现金额、客户资格与周期边界，确认交付结果。', href: '#/projects?tab=delivery&node=accept', role: '项目 Owner' };
   if (!state.workspace.sessionReported) return { title: '上报交付相关会话', note: '将需求、交付结果和已有会话轨迹关联起来。', href: '#/trace', role: '项目成员' };
   if (state.workspace.analysis.status !== 'analyzed') return { title: '分析交付轨迹与业务经验', note: '在 Talent 选择单需求或项目多需求，查看改进机会。', href: talentLink('sessions'), role: '项目 Owner' };
   if (state.evolution === 'none') return { title: '形成 Agent 与业务 Skill 改进', note: '根据分析发现生成可评估的候选。', href: talentLink('evolution'), role: '项目 Owner' };
   if (state.evolution !== 'adopted') return { title: state.evolution === 'published' ? '采用能力新版本' : '评估并发布改进候选', note: '新版本供后续作业使用，本次已采用依据保持不变。', href: state.evolution === 'published' ? '#/resources' : talentLink('evolution'), role: '项目 Owner' };
-  return { title: '查看历史交付与运营记录', note: '历史记录可供参考；本次信用卡消费返现的业务细则与验收标准待明确。', href: '#/team-work', role: '项目 Owner' };
+  return { title: '查看交付与运营记录', note: '本次功能验收已完成，能力新版本可用于后续作业。', href: '#/team-work', role: '项目 Owner' };
 }
 
 type Tool = 'iCode' | 'OpenCode';
@@ -74,7 +74,7 @@ export function Home() {
     {owner && ['overview', 'tools'].includes(tab) && stats}
     {tab === 'overview' && <>
       <TeamsWorkRow title="信用卡消费返现" note={`${state.workspace.project.name} · MKT-001 · 针对白金卡客户未来 3 个月的消费，额外增加 0.5% 的消费返现。`} status={stageLabels[state.stage]} href="#/projects?tab=delivery" />
-      {!owner && <div className="metrics-row ops-metrics"><MiniStat label="分配给我的需求" value={state.assigned ? '01' : '00'} note="信用卡消费返现" /><MiniStat label="当前阶段" value={stageLabels[state.stage]} note={state.context ? '本次上下文已采用' : '等待开发准备'} /><MiniStat label="检查情况" value={state.checks === 'failed' ? '待修复' : state.checks === 'passed' ? '复测通过' : '待执行'} note="历史检查回放" /><MiniStat label="已同步进度" value={timeline.length} note="与项目任务关联" /></div>}
+      {!owner && <div className="metrics-row ops-metrics"><MiniStat label="分配给我的需求" value={state.assigned ? '01' : '00'} note="信用卡消费返现" /><MiniStat label="当前阶段" value={stageLabels[state.stage]} note={state.context ? '本次上下文已采用' : '等待开发准备'} /><MiniStat label="检查情况" value={state.checks === 'failed' ? '待修复' : state.checks === 'passed' ? '复测通过' : '待执行'} note="当前检查结果" /><MiniStat label="已同步进度" value={timeline.length} note="与项目任务关联" /></div>}
       <OverviewLayout main={<>
         <FrameworkCard title={mine ? '待我处理' : '协作进展'} action={<Tag>{next.role}</Tag>}><TeamsWorkRow title={next.title} note={next.note} status={mine ? '待我处理' : '等待' + next.role} href={mine ? next.href : '#/projects?tab=delivery'} /></FrameworkCard>
         <FrameworkCard title="需求交付进展" action={<Button type="link" onClick={() => navigate('projects?tab=delivery')}>打开交付流程</Button>}><DeliverySteps /><p className="ops-subnote">准备、开发、验证与验收沿同一任务推进，保留每次交接的依据。</p></FrameworkCard>
