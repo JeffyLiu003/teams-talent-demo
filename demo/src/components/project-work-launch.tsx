@@ -56,31 +56,43 @@ function WorkResult({ plan, receipt, done, newWork, inspect, check }: {
 }
 
 export function ProjectWorkLaunch({ target }: { target: ProjectWorkSelection }) {
-  const { state, data, role, navigate, showText } = useDemo();
+  const { role } = useDemo();
+  return <ScopedProjectWorkLaunch key={JSON.stringify([role, target])} target={target} />;
+}
+
+function ScopedProjectWorkLaunch({ target }: { target: ProjectWorkSelection }) {
+  const { state, data, role } = useDemo();
+  const [open, setOpen] = useState(false);
   const taskId = target.taskId ?? target.requirementId;
   const task = taskId ? projectDeliveryTasks(state, target.projectId, role).find(item => item.id === taskId) : undefined;
   const sourceTask = target.projectId === 'teams' ? data.teamsProject.tasks.find(item => item.id === taskId) : undefined;
   const disabledReason = !projectTasksVisibleTo(state, target.projectId, role) ? '当前身份不在该项目任务范围内' : !taskId ? undefined : task ? taskExecutableBy(role, task.assigneeId) ? undefined : task.assigneeId ? `由${task.owner}负责，仅交付人可启动` : '任务尚未分配，请先分配交付人' : sourceTask ? `来源任务由${sourceTask.owner}负责，尚未关联本地交付人` : '此项目中不存在该任务';
-  const [open, setOpen] = useState(false), [busy, setBusy] = useState(false), [plan, setPlan] = useState<ProjectWorkPlan>(), [error, setError] = useState('');
+  // Each opening owns its asynchronous state. Closing or changing scope unmounts
+  // it, so late bind/start callbacks cannot update another task or dialog instance.
+  return <><Tooltip title={disabledReason} trigger={['hover', 'focus']}><span className="project-work-entrance" tabIndex={disabledReason ? 0 : undefined} aria-label={disabledReason} title={disabledReason}><Button type="primary" icon={<CodeOutlined />} aria-label="iCode 作业" disabled={!!disabledReason} onClick={() => setOpen(true)}>iCode 作业</Button></span></Tooltip>
+    {open && !disabledReason && <ProjectWorkDialog target={target} close={() => setOpen(false)} />}
+  </>;
+}
+
+function ProjectWorkDialog({ target, close }: { target: ProjectWorkSelection; close: () => void }) {
+  const { role, navigate, showText } = useDemo();
+  const [busy, setBusy] = useState(false), [plan, setPlan] = useState<ProjectWorkPlan>(), [error, setError] = useState('');
   const [action, setAction] = useState<ProjectWorkAction>('new'), [directory, setDirectory] = useState(''), [receipt, setReceipt] = useState<ProjectWorkReceipt>();
   const [reload, setReload] = useState(0), [binding, setBinding] = useState(false);
   const key = JSON.stringify(target);
   useEffect(() => {
-    if (!open || disabledReason) return;
     let active = true; setPlan(undefined); setError(''); setReceipt(undefined);
     void getProjectWork(role, JSON.parse(key)).then(value => { if (active) { setPlan(value); setAction(value.defaultAction); setDirectory(value.directory.root ?? ''); } }).catch(cause => { if (active) setError(cause.message); });
     return () => { active = false; };
-  }, [open, role, key, reload, disabledReason]);
-  useEffect(() => { setOpen(false); setReceipt(undefined); setPlan(undefined); }, [key, role, disabledReason]);
+  }, [role, key, reload]);
   const bind = async () => { setBinding(true); setError(''); try { const value = await bindProjectWork(role, target, directory); setPlan(value); setAction(value.defaultAction); } catch (cause) { setError((cause as Error).message); } finally { setBinding(false); } };
   const chosen = plan?.actions.find(item => item.id === action);
   const pendingPrevious = requestPending(plan?.previous);
   const check = () => { setReceipt(undefined); setReload(value => value + 1); };
-  return <><Tooltip title={disabledReason} trigger={['hover', 'focus']}><span className="project-work-entrance" tabIndex={disabledReason ? 0 : undefined} aria-label={disabledReason} title={disabledReason}><Button type="primary" icon={<CodeOutlined />} aria-label="iCode 作业" disabled={!!disabledReason} onClick={() => { setReceipt(undefined); setPlan(undefined); setError(''); if (!disabledReason) setOpen(true); }}>iCode 作业</Button></span></Tooltip>
-    <Modal className="project-work-modal" open={open && !disabledReason} centered zIndex={1100} title={receipt ? 'iCode 启动结果' : '启动 iCode'} footer={null} maskClosable={false} closable={!busy && !binding} onCancel={() => setOpen(false)} width={640} destroyOnHidden>
+  return <Modal className="project-work-modal" open centered zIndex={1100} title={receipt ? 'iCode 启动结果' : '启动 iCode'} footer={null} maskClosable={false} closable={!busy && !binding} onCancel={close} width={640} destroyOnHidden>
       {error && <Alert type="error" title="工作入口未准备完成" description={displayText(error)} action={<Button onClick={() => setReload(value => value + 1)}>重新读取</Button>} />}
       {!plan && !error && <Spin tip="读取项目目录与 iCode 配置"><div style={{ minHeight: 100 }} /></Spin>}
-      {plan && receipt ? <WorkResult plan={plan} receipt={receipt} done={() => setOpen(false)} inspect={() => showText('本次工作入口', JSON.stringify(receipt, null, 2))} check={check} newWork={() => { setReceipt(undefined); setAction('new'); }} /> : plan && <ConfirmWork key={plan.planToken} title={plan.title + ' · ' + plan.location} instance={plan.instance.name} roleLabel={action === 'new' ? plan.instance.agentLabel : plan.history?.configuration?.agentLabel} modelLabel={action === 'new' ? plan.instance.modelLabel : plan.history?.configuration?.modelLabel} disabled={!chosen?.enabled || binding || pendingPrevious} busyChanged={setBusy} saved={setReceipt} startWork={requestId => startProjectWork(role, { requestId, target: plan.target, action, planToken: plan.planToken })}>
+      {plan && receipt ? <WorkResult plan={plan} receipt={receipt} done={close} inspect={() => showText('本次工作入口', JSON.stringify(receipt, null, 2))} check={check} newWork={() => { setReceipt(undefined); setAction('new'); }} /> : plan && <ConfirmWork key={plan.planToken} title={plan.title + ' · ' + plan.location} instance={plan.instance.name} roleLabel={action === 'new' ? plan.instance.agentLabel : plan.history?.configuration?.agentLabel} modelLabel={action === 'new' ? plan.instance.modelLabel : plan.history?.configuration?.modelLabel} disabled={!chosen?.enabled || binding || pendingPrevious} busyChanged={setBusy} saved={setReceipt} startWork={requestId => startProjectWork(role, { requestId, target: plan.target, action, planToken: plan.planToken })}>
         {pendingPrevious && <Alert type="warning" title="上次启动请求待核对" description="请先核对原终端与请求记录，避免重复启动。重新核对只读取已有结果。" action={<Button onClick={check}>重新核对请求</Button>} />}
         <Descriptions size="small" column={1} items={[{ key: 'project', label: '项目', children: plan.projectName }, { key: 'task', label: '当前工作', children: displayRequirementId([plan.target.taskId ?? plan.target.requirementId, plan.location].filter(Boolean).join(' · ')) }, { key: 'dir', label: '使用目录', children: action === 'new' ? plan.directory.root ?? '尚未绑定' : plan.history?.directory }, { key: 'terminal', label: '使用终端', children: action === 'focus' ? plan.history?.active?.application ?? '原会话终端' : plan.instance.terminal?.name ?? '未配置' }, { key: 'context', label: '上下文', children: plan.context.frozen ? '使用已冻结的输入版本' : '尚未冻结，将读取当前准备资料' }]} />
         {!plan.directory.valid && <div className="page-stack"><Alert type="warning" title="需要本机工作目录" description={displayText(plan.directory.diagnostic)} /><Input aria-label="本机工作目录" placeholder="与项目 origin 一致的 Git checkout/worktree 绝对路径" value={directory} disabled={busy || binding} onChange={event => setDirectory(event.target.value)} /><Button loading={binding} disabled={busy || !directory.trim()} onClick={() => void bind()}>核验并绑定目录</Button><p className="muted">只保存当前角色的本机绑定。不会 clone、修改仓库或启动 iCode。</p></div>}
@@ -96,7 +108,7 @@ export function ProjectWorkLaunch({ target }: { target: ProjectWorkSelection }) 
           ...(action !== 'new' && plan.history ? [{ key: 'session', label: '会话 ID', children: plan.history.sessionId }] : []),
           ...(plan.previous ? [{ key: 'previous', label: '上次请求', children: requestTime(plan.previous.at) + ' · ' + (requestPending(plan.previous) ? '结果待核对' : plan.previous.status === 'terminal-focused' ? '已打开终端' : '请求已提交') }] : []),
         ]} />{plan.previous && <><p className="muted">{displayText(plan.previous.note)}</p><Button type="link" onClick={() => showText('上次工作入口', JSON.stringify(plan.previous, null, 2))}>查看上次请求</Button></>}</> }]} />
-        <Button type="link" onClick={() => { setOpen(false); navigate('agent'); }}>工具配置与诊断</Button>
+        <Button type="link" onClick={() => { close(); navigate('agent'); }}>工具配置与诊断</Button>
       </ConfirmWork>}
-    </Modal></>;
+    </Modal>;
 }
