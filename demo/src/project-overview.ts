@@ -1,3 +1,6 @@
+import { requirementNode } from './delivery-requirements.js';
+import { projectMembers } from './teams-domain.js';
+import { taskAssigneeName } from './task-assignment.js';
 import type { Presentation } from './api.js';
 import type { DemoState } from './domain.js';
 import type { CollaborationEvent } from './collaboration.js';
@@ -34,7 +37,7 @@ export function projectOverview(state: DemoState, data: Presentation, projectId:
   const allWork: OverviewRequirement[] = sources.filter(source => source.kind === 'requirement').map(source => {
     const item: OverviewRequirement = { id: source.id, source, owner: '未分配', phase: '待开展', due: undefined, overdue: false, scope: '已关联来源 · 未纳入 Teams 交付', pendingConfirmation: true, issues: [], quality: unknownQuality() };
     if (projectId === 'carddemo' && source.id === 'requirements:carddemo:DEMO-MKT-001') {
-      item.taskId = 'DEMO-MKT-001'; item.owner = state.assigned ? '陈晨' : '待分配'; item.phase = phases[state.stage]; item.pendingConfirmation = !state.assigned;
+      item.taskId = 'DEMO-MKT-001'; item.owner = taskAssigneeName(state); item.phase = phases[state.stage]; item.pendingConfirmation = !state.assigned;
       item.scope = 'Teams 任务交付'; item.route = route(projectId, state.assigned ? 'delivery' : 'management', state.assigned ? { node: state.stage === 'submitted' || state.stage === 'accepted' ? 'accept' : state.stage === 'failed' || state.stage === 'fixed' ? 'verify' : state.stage === 'developing' || state.stage === 'returned' ? 'develop' : 'prepare' } : {});
       item.quality = [
         { label: '功能', result: state.stage === 'accepted' ? '验收通过' : state.uat ? '边界验收结果已记录' : '待验收', passed: state.stage === 'accepted' },
@@ -61,6 +64,12 @@ export function projectOverview(state: DemoState, data: Presentation, projectId:
     item.overdue = !!item.due && /^\d{4}-\d{2}-\d{2}$/.test(item.due) && item.due < asOf && item.phase !== '已交付';
     return item;
   });
+  for(const task of state.workspace.deliveryRequirements??[])if(task.projectId===projectId){
+    const owner=projectMembers(state,projectId).find(member=>member.id===task.assigneeId)?.name??task.assigneeId;
+    const phase:DeliveryPhase=task.stage==='accepted'?'已交付':task.stage==='awaiting-acceptance'?'待验收':task.stage==='verifying'?'验证':task.stage==='preparing'?'准备':'开发';
+    const source:SourcePluginAsset={id:'teams-task:'+projectId+':'+task.id,pluginId:'requirements',sourceRecordId:task.id,kind:'requirement',title:task.title,summary:task.description,detail:task.description,sourceProjectId:projectId,sourceProjectName:state.workspace.project.name,origin:'teams-task',version:'1',updatedAt:task.updatedAt,references:[],relatedRequirementIds:[]};
+    allWork.push({id:source.id,source,owner,phase,overdue:false,taskId:task.id,route:route(projectId,'delivery',{task:task.id,node:requirementNode(task)}),scope:'Teams需求',pendingConfirmation:false,issues:[],quality:unknownQuality()});
+  }
   const requirements = allWork.filter(item => !item.source.requirement || item.source.requirement.category === 'requirement');
   const research = allWork.filter(item => item.source.requirement?.category === 'research');
   const latestReport = (taskId?: string) => (state.workspace.collaboration?.events ?? []).filter(event => event.projectId === projectId && event.taskId === taskId).reduce<CollaborationEvent | undefined>((latest, event) => !latest || event.revision > latest.revision ? event : latest, undefined);

@@ -1,3 +1,4 @@
+import { collectTaskSessions, finishTaskCollection, mainTask } from '../src/task-automation.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
@@ -12,15 +13,16 @@ import { resourcePublications, resourceSubscriptions } from '../src/resource-sha
 import { readSkillCatalog } from '../server/skill-packages.js';
 import { updateWorkspace } from '../src/workspace.js';
 const flow: [Action, Role][] = [['assign','owner'],['knowledge','owner'],['prepare','member'],['replay','member'],['check-fail','member'],['fix','member'],['submit','member'],['enroll','owner'],['purchase','owner'],['deduplicate','owner'],['uat','owner'],['accept','owner'],['candidate','owner'],['evaluate','owner'],['release','owner'],['adopt','owner']];
-test('two-role delivery and Talent adoption retain frozen historical context and security status', () => {
+test('two-role delivery retains frozen context and local collection never invents a Talent receipt', () => {
   let s = initialState();
-  for (const [action, role] of flow) {if(action==='candidate'){s=updateWorkspace(s,'session.report','member',{});s=updateWorkspace(s,'analysis.run','owner',{scope:'project'});}s = transition(s, action, role);}
-  assert.equal(s.stage,'accepted'); assert.equal(s.evolution,'adopted');
+  for (const [action, role] of flow.slice(0,12)) { if(action==='submit')s=updateWorkspace(s,'session.link','member',{...mainTask,nodeId:'develop',tool:'icode',sessionId:'unit-session'});s = transition(s, action, role,action==='assign'?{assigneeId:'member'}:{}); }
+  finishTaskCollection(s,mainTask,collectTaskSessions(s,mainTask),new Date().toISOString());
+  assert.equal(s.stage,'accepted'); assert.equal(s.evolution,'none');assert.equal(s.workspace.sessionReported,false);assert.throws(()=>updateWorkspace(s,'analysis.run','owner',{scope:'project'}),/上报/);
   assert.equal(s.context?.skillVersion,'1.0.0'); assert.equal(s.context?.agentVersion,'r1');
-  assert.equal(s.adoptedSkill,'1.1.0'); assert.equal(s.adoptedAgent,'r2');
+  assert.equal(s.adoptedSkill,'1.0.0'); assert.equal(s.adoptedAgent,'r1');
   assert.equal(s.security,'unverified'); assert.equal(s.balance,2670.15);
   assert.equal(s.transactions.length,1); assert.equal(s.transactions[0].reward,0.6);
-  assert.equal(s.published,false); assert.equal(s.audit.length,18); assert.equal(s.audit.filter(a=>a.system==='Talent').length,4);
+  assert.equal(s.published,false); assert.equal(s.audit.length,13); assert.equal(s.audit.filter(a=>a.system==='Talent').length,0);
   assert.equal(s.audit.find(a=>a.action==='发起项目知识整合')?.system,'Teams');
 });
 test('permission and prerequisite failures do not mutate state', () => {
@@ -50,16 +52,16 @@ test('usage counts people rather than instances and separates waiting from runni
 });
 test('failed tests prevent delivery and duplicate purchase cannot change ledger', () => {
   let s=initialState();
-  for(const [a,r] of flow.slice(0,5))s=transition(s,a,r);
+  for(const [a,r] of flow.slice(0,5))s=transition(s,a,r,a==='assign'?{assigneeId:'member'}:{});
   assert.throws(()=>transition(s,'submit','member'),/检查未通过/);
-  for(const [a,r] of flow.slice(5,9))s=transition(s,a,r);
+  for(const [a,r] of flow.slice(5,9))s=transition(s,a,r,a==='assign'?{assigneeId:'member'}:{});
   const serialized=JSON.stringify(s);
   assert.throws(()=>transition(s,'purchase','owner'),/只记账一次/);
   assert.equal(JSON.stringify(s),serialized);
 });
 test('Owner returns delivery and member must fix, submit and revalidate', () => {
   let s=initialState();
-  for(const [a,r] of flow.slice(0,11))s=transition(s,a,r);
+  for(const [a,r] of flow.slice(0,11))s=transition(s,a,r,a==='assign'?{assigneeId:'member'}:{});
   s=transition(s,'return','owner',{reason:'补充核验范围'});
   assert.equal(s.uat,false);assert.equal(s.stage,'returned');
   assert.throws(()=>transition(s,'accept','owner'),/未完成/);
@@ -70,8 +72,8 @@ test('atomic persistence, stale revision rejection and deliberate reset',async()
   const dir=await mkdtemp(join(tmpdir(),'teams-demo-store-'));
   try {
     const path=join(dir,'state.json'),store=new Store(path);await store.init();
-    await store.apply(0,'assign','owner',{});
-    await assert.rejects(store.apply(0,'assign','owner',{}),/另一页面/);
+    await store.apply(0,'assign','owner',{assigneeId:'member'});
+    await assert.rejects(store.apply(0,'assign','owner',{assigneeId:'member'}),/另一页面/);
     const restored=new Store(path);await restored.init();assert.equal(restored.state.assigned,true);assert.equal(restored.state.published,false);
     await restored.reset(1);assert.equal(restored.state.revision,2);assert.equal(restored.state.published,false);
     assert.deepEqual(JSON.parse(await readFile(path,'utf8')),restored.state);
@@ -86,7 +88,7 @@ test('native shell arguments quote spaces and apostrophes without interpolation'
 
 test('project knowledge can precede assignment and frozen inputs retain selected skills and materials',()=>{
   let s=initialState();s=transition(s,'knowledge','owner');assert.equal(s.assigned,false);
-  s=transition(s,'assign','owner');
+  s=transition(s,'assign','owner',{assigneeId:'member'});
   s=updateWorkspace(s,'material.add','member',{title:'新增边界',body:'检查普通卡资格边界'});
   s=updateWorkspace(s,'skills.select','member',{skills:['dev-frontend-ui','office-word']});
   s=transition(s,'prepare','member');assert.equal(s.context!.materials.length,1);assert.deepEqual(s.context!.selectedSkills,['dev-frontend-ui','office-word']);assert.equal(s.context!.agentVersion,'r1');assert.equal(s.published,false);
@@ -98,26 +100,27 @@ test('project knowledge can precede assignment and frozen inputs retain selected
 });
 test('team and connection management enforce roles and protect fixed demonstration identities',()=>{
   let s=initialState();assert.throws(()=>updateWorkspace(s,'member.invite','member',{name:'新成员'}),/无权/);
-  s=updateWorkspace(s,'member.invite','owner',{name:'李明'});const id=s.workspace.team.members.at(-1)!.id;
+  s=updateWorkspace(s,'member.invite','owner',{teamId:'carddemo',name:'李明'});const id=s.workspace.team.members.at(-1)!.id;
   assert.equal(s.workspace.team.members.at(-1)!.status,'invited');
-  s=updateWorkspace(s,'member.approve','owner',{id});assert.equal(s.workspace.team.members.at(-1)!.status,'active');
-  assert.throws(()=>updateWorkspace(s,'member.remove','owner',{id:'member'}),/固定/);
-  s=updateWorkspace(s,'member.remove','owner',{id});assert.equal(s.workspace.team.members.length,6);
+  s=updateWorkspace(s,'member.approve','owner',{teamId:'carddemo',id});assert.equal(s.workspace.team.members.at(-1)!.status,'active');
+  assert.throws(()=>updateWorkspace(s,'member.remove','owner',{teamId:'carddemo',id:'member'}),/固定/);
+  s=updateWorkspace(s,'member.remove','owner',{teamId:'carddemo',id});assert.equal(s.workspace.team.members.length,6);
   s=updateWorkspace(s,'connection.update','owner',{id:'talent',enabled:false,description:'暂时停用'});
   assert.throws(()=>transition(s,'knowledge','owner'),/启用 Talent/);
 });
-test('session reporting and analysis require delivery, and candidate scope is fixed',()=>{
-  let s=initialState();assert.throws(()=>updateWorkspace(s,'session.report','member',{}),/提交/);
+test('manual post-delivery reporting is rejected and acceptance queues an independent collection',()=>{
+  let s=initialState();assert.throws(()=>updateWorkspace(s,'session.report','member',{}),/自动归集/);
   assert.throws(()=>updateWorkspace(s,'analysis.run','owner',{scope:'single'}),/上报/);
-  for(const [a,r] of flow.slice(0,12))s=transition(s,a,r);
-  assert.throws(()=>transition(s,'candidate','owner'),/轨迹分析/);
-  s=updateWorkspace(s,'session.report','member',{});
-  assert.throws(()=>updateWorkspace(s,'analysis.run','member',{scope:'single'}),/无权/);
-  s=updateWorkspace(s,'analysis.run','owner',{scope:'project'});s=transition(s,'candidate','owner');
-  assert.throws(()=>updateWorkspace(s,'analysis.run','owner',{scope:'single'}),/保留本次/);
+  for(const [a,r] of flow.slice(0,12))s=transition(s,a,r,a==='assign'?{assigneeId:'member'}:{});
+  assert.equal(s.workspace.taskAutomation?.[0].collection?.status,'queued');
+  assert.equal(s.workspace.sessionReported,false);
+  finishTaskCollection(s,mainTask,collectTaskSessions(s,mainTask),new Date().toISOString());
+  assert.equal(s.workspace.taskAutomation?.[0].collection?.status,'empty');
+  assert.equal(s.stage,'accepted');assert.equal(s.workspace.sessionReported,false);
+  assert.throws(()=>updateWorkspace(s,'session.report','member',{}),/自动归集/);
 });
 test('base collaboration settings govern progress and session report independently of business skills',()=>{
-  let s=initialState();for(const [a,r] of flow.slice(0,4))s=transition(s,a,r);
+  let s=initialState();for(const [a,r] of flow.slice(0,4))s=transition(s,a,r,a==='assign'?{assigneeId:'member'}:{});
   s=updateWorkspace(s,'progress.sync','member',{text:'已确认需求影响范围'});assert.equal(s.workspace.progress.length,1);
   s=updateWorkspace(s,'foundation.update','member',{progressEnabled:false,uploadEnabled:true});
   assert.throws(()=>updateWorkspace(s,'progress.sync','member',{text:'测试'}),/启用/);
@@ -163,7 +166,7 @@ test('resource publishing and subscriptions stay separate from unpublished proje
   assert.throws(()=>updateWorkspace(s,'resource.publish','owner',{id:'office-word'}),/共享范围/);
   assert.throws(()=>updateWorkspace(s,'skills.select','member',{skills:['not-owned']}),/有效的项目或用户/);
   assert.throws(()=>updateWorkspace(s,'skills.select','member',{skills:[]}),/有效的项目或用户/);
-  s=transition(s,'assign','owner');s=transition(s,'knowledge','owner');
+  s=transition(s,'assign','owner',{assigneeId:'member'});s=transition(s,'knowledge','owner');
   assert.throws(()=>transition({...s,workspace:{...s.workspace,selectedSkills:[]}},'prepare','member'),/请选择/);
   s=updateWorkspace(s,'skills.select','member',{skills:['dev-frontend-ui','office-excel']});s=transition(s,'prepare','member');
   const context=structuredClone(s.context);
@@ -193,7 +196,7 @@ test('legacy shared records and old frozen inputs remain usable without rewritin
     await writeFile(path,JSON.stringify(old));const bytes=await readFile(path,'utf8');
     const store=new Store(path);await store.init();assert.deepEqual(store.state,old);
     assert.equal(resourcePublications(store.state).length,14);assert.equal(await readFile(path,'utf8'),bytes);
-    let s=transition(store.state,'assign','owner');s=transition(s,'knowledge','owner');s=transition(s,'prepare','member');
+    let s=transition(store.state,'assign','owner',{assigneeId:'member'});s=transition(s,'knowledge','owner');s=transition(s,'prepare','member');
     assert.equal(s.context?.agentVersion,'r1');assert.deepEqual(s.workspace.acquiredResources,['dev-frontend-ui']);
     s.adoptedSkill='1.1.0';s=updateWorkspace(s,'resource.publish','owner',{id:'dev-frontend-ui'},[],skillCatalog);
     assert.equal(resourcePublications(s).length,14);assert.equal(resourcePublications(s).find(item=>item.id==='dev-frontend-ui')?.version,'1.0.0');
@@ -218,7 +221,7 @@ test('old campaign state remains readable but cannot execute current rules until
 });
 test('purchase needs no enrollment and uses current extra cashback amount', () => {
   let s = initialState();
-  for (const [action, role] of flow.slice(0, 7)) s = transition(s, action, role);
+  for (const [action, role] of flow.slice(0, 7)) s = transition(s, action, role,action==='assign'?{assigneeId:'member'}:{});
   assert.equal(s.enrolled, false);
   s = transition(s, 'purchase', 'owner');
   assert.equal(s.transactions[0].reward, 0.6); assert.equal(s.balance, 2670.15);

@@ -1,3 +1,4 @@
+import { TalentTaskIntakeService } from './talent-intake.js';
 import { createServer } from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { root, talentRuntimeDir, origin, talentOrigin, talentPort } from './config.js';
@@ -21,6 +22,7 @@ async function teamsJson<T>(path: string, init?: RequestInit): Promise<T> {
   return value;
 }
 const context = (projectId: string) => teamsJson<TalentIntegrationContext>('/api/integrations/talent/context?project=' + encodeURIComponent(projectId));
+const taskIntake = new TalentTaskIntakeService(store, context, talentOrigin);
 function checkOwner(body: Record<string, any>) {
   if (body.role !== 'owner') throw new DomainError('此 Talent 操作由项目 Owner 管理', 403);
 }
@@ -89,6 +91,7 @@ const server = createServer(async (request, response) => {
     if (request.method === 'OPTIONS') { response.writeHead(204); response.end(); return; }
     if (request.method === 'GET' && path === '/api/health') { json(200, { app: 'talent-carddemo', service: 'talent', workspaceRoot: root, stateRoot: talentRuntimeDir, version: '0.2.0', pid: process.pid, origin: talentOrigin, teamsOrigin: origin }); return; }
     if (request.method === 'GET' && path === '/api/session') { json(200, { token }); return; }
+    if (request.method === 'GET' && path === '/api/task-inputs') { json(200, await taskIntake.inputs(url.searchParams.get('projectId') ?? '', url.searchParams.get('taskId') ?? '')); return; }
     if (request.method === 'GET' && path === '/teams') { response.writeHead(302, { Location: origin + '/teams' + url.search }); response.end(); return; }
     if (request.method === 'GET' && ['/api/bootstrap', '/api/state', '/api/knowledge/assets'].includes(path)) {
       const ctx = await context(url.searchParams.get('project') ?? 'carddemo');
@@ -104,7 +107,9 @@ const server = createServer(async (request, response) => {
     }
     if (request.method === 'POST' && path.startsWith('/api/')) {
       if (![origin, talentOrigin].includes(request.headers.origin ?? '') || request.headers['x-demo-token'] !== token || !request.headers['content-type']?.startsWith('application/json')) throw new DomainError('请求来源或访问令牌不匹配，请重新打开页面', 403);
-      const body = await bodyJson(request);
+      const body = await bodyJson(request, path === '/api/task-sessions' ? 16 * 1024 * 1024 : 65536);
+      if (path === '/api/task-inputs/register') { checkOwner(body); json(200, await taskIntake.register(body.projectId, body.taskId)); return; }
+      if (path === '/api/task-sessions') { json(200, await taskIntake.receive(body)); return; }
       if (path === '/api/action' && talentActions.includes(body.action)) { json(200, await operate(body, body.action)); return; }
       if (path === '/api/workspace' && body.kind === 'analysis.run' && body.payload && typeof body.payload === 'object') { json(200, await operate(body, 'analysis.run')); return; }
       throw new DomainError('此操作不属于 Talent 服务', 404);

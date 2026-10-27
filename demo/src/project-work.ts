@@ -10,6 +10,7 @@ export interface ProjectWorkSelection {
 export type ProjectWorkAction = 'new' | 'resume' | 'focus';
 export interface ProjectWorkReceipt {
   requestId: string;
+  executionMode?: 'task-file' | 'interactive';
   target: ProjectWorkSelection;
   action: ProjectWorkAction;
   status: 'prepared' | 'terminal-requested' | 'terminal-focused' | 'uncertain';
@@ -22,6 +23,7 @@ export interface ProjectWorkReceipt {
   note: string;
 }
 export interface ProjectWorkPlan {
+  executionMode?: 'task-file' | 'interactive';
   target: ProjectWorkSelection;
   projectName: string;
   title: string;

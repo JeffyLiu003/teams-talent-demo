@@ -64,9 +64,9 @@ try {
   assert.equal(await page.locator('[data-action="knowledge"]').isDisabled(), true); await closePanels();
   await page.screenshot({ path: 'test-results/project-create-content.png' });
   await page.reload(); await page.locator('.breadcrumb strong').getByText(draft.name, { exact: true }).waitFor();
-  const empty = [['任务管理', '尚未创建任务'], ['任务交付', '尚无可交付任务']];
+  const empty = [['任务管理', '尚无项目需求'], ['任务交付', '尚无可交付任务']];
   for (const [tab, text] of empty) { await page.getByRole('tab', { name: tab, exact: true }).click(); await page.getByText(text, { exact: true }).waitFor(); }
-  assert.deepEqual(await page.locator('.project-toolbar [role=tab]').allTextContents(), ['项目内容', '任务管理', '任务交付']);
+  assert.deepEqual(await page.locator('.project-toolbar [role=tab]').allTextContents(), ['项目概览', '任务管理', '任务交付']);
   await visit('projects?project=' + projectId + '&tab=release'); await page.getByText('项目页面不存在', { exact: true }).waitFor();
   await visit('projects?project=' + projectId + '&tab=content');
   await page.getByRole('button', { name: '项目设置', exact: true }).click();

@@ -3,7 +3,7 @@ import { Tabs } from 'antd';
 import '../project.css';
 
 export const projectPages = [
-  { key: 'content', label: '项目内容' },
+  { key: 'content', label: '项目概览' },
   { key: 'management', label: '任务管理' },
   { key: 'delivery', label: '任务交付' },
 ];

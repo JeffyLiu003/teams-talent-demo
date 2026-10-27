@@ -1,0 +1,8 @@
+#demo-team-groups .team-list-heading{margin-bottom:0;flex-wrap:wrap;gap:var(--ui-space-1)}
+#demo-team-groups .team-list-heading h3{margin:0}
+#demo-team-groups .team-invitations{margin-top:var(--ui-space-3);padding:var(--ui-space-3);border:1px solid var(--ui-color-border);border-radius:var(--ui-radius)}
+#demo-team-groups .team-projects>div{display:flex;align-items:center;justify-content:space-between;gap:var(--ui-space-3);padding:var(--ui-space-3) 0;border-bottom:1px solid var(--ui-color-divider)}
+#demo-team-groups .team-projects>div>div{min-width:0;overflow-wrap:anywhere}
+#demo-team-groups .group-toolbar{flex-wrap:wrap}
+.team-transfer-note{margin:var(--ui-space-3) 0}
+@media(max-width:760px){#demo-team-groups .team-projects>div{flex-wrap:wrap}#demo-team-groups .group-layout{min-width:0}}

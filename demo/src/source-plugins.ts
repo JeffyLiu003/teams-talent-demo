@@ -24,7 +24,7 @@ export interface SourcePluginAsset {
   readonly detail: string;
   readonly sourceProjectId: SourceProjectId;
   readonly sourceProjectName: string;
-  readonly origin: 'plugin-mock';
+  readonly origin: 'plugin-mock' | 'teams-task';
   readonly version?: string;
   readonly updatedAt?: string;
   readonly references: readonly SourceAssetReference[];

@@ -1,0 +1,63 @@
+{
+  "purpose": "Identify the external platform represented by each connection; trademarks belong to their respective owners.",
+  "assets": [
+    {
+      "brand": "GitHub",
+      "file": "github-white.svg",
+      "sourcePage": "https://brand.github.com/foundations/logo",
+      "downloadUrl": "https://brand.github.com/GitHub_Logos.zip",
+      "archiveMember": "GitHub Logos/SVG/GitHub_Invertocat_White.svg",
+      "sha256": "ccd84c89b1056345608fc3489357f8acc7397e49a3cdc2d418b6c8016911d47b",
+      "retrievedAt": "2026-10-27",
+      "transformation": "None; original official asset bytes. images.json embeds these bytes unchanged."
+    },
+    {
+      "brand": "GitHub",
+      "file": "github-black.svg",
+      "sourcePage": "https://brand.github.com/foundations/logo",
+      "downloadUrl": "https://brand.github.com/GitHub_Logos.zip",
+      "archiveMember": "GitHub Logos/SVG/GitHub_Invertocat_Black.svg",
+      "sha256": "693d7abe6f899646cc2e96856723b45e95f71885a54910b2749f6decdf7e1ee1",
+      "retrievedAt": "2026-10-27",
+      "transformation": "None; original official asset bytes. images.json embeds these bytes unchanged."
+    },
+    {
+      "brand": "Jira",
+      "file": "jira.svg",
+      "sourcePage": "https://atlassian.design/foundations/logos",
+      "downloadUrl": "https://atlassian.design/assets/c0c41a4db0da/logos/jira_app.zip",
+      "sha256": "ad20a13973de9ff9b4ad7354881c84ba2207b9117b6aad9bfce68b611c6fb9a8",
+      "retrievedAt": "2026-10-27",
+      "transformation": "None; original asset bytes. images.json embeds these bytes unchanged for the existing JS bundler.",
+      "archiveMember": "jira/SVG/Jira_icon.svg"
+    },
+    {
+      "brand": "禅道 ZenTao",
+      "file": "zentao.png",
+      "sourcePage": "https://www.chandao.net/book/saas/logo-24.mhtml",
+      "downloadUrl": "https://www.chandao.net/file.php?f=zentaopm/202211/f_9109066084a4ed70a637d56a6bb7811c&t=png&o=&s=&v=1653033671",
+      "sha256": "a10848a05f0f6b25a5c3bac9ded03a773256e7420e9b9b1637d1accc12178192",
+      "retrievedAt": "2026-10-27",
+      "transformation": "None; original asset bytes. images.json embeds these bytes unchanged for the existing JS bundler."
+    },
+    {
+      "brand": "Confluence",
+      "file": "confluence.svg",
+      "sourcePage": "https://atlassian.design/foundations/logos",
+      "downloadUrl": "https://atlassian.design/assets/c0c41a4db0da/logos/confluence_app.zip",
+      "sha256": "0fbf4dda60719c2518e2943098b68767e386afee220966f5adb45248d814f9d9",
+      "retrievedAt": "2026-10-27",
+      "transformation": "None; original asset bytes. images.json embeds these bytes unchanged for the existing JS bundler.",
+      "archiveMember": "confluence/SVG/Confluence_icon.svg"
+    },
+    {
+      "brand": "TestRail",
+      "file": "testrail.png",
+      "sourcePage": "https://www.testrail.com/",
+      "downloadUrl": "https://www.testrail.com/wp-content/uploads/2025/09/cropped-Testrail-Favicon-192x192.png",
+      "sha256": "5d736ca1dda90a83ce70ef1554978bcda2a9b32eeca3ad13c7ce71150c337dc5",
+      "retrievedAt": "2026-10-27",
+      "transformation": "None; original asset bytes. images.json embeds these bytes unchanged for the existing JS bundler."
+    }
+  ]
+}

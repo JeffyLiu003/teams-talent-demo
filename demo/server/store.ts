@@ -1,3 +1,8 @@
+import { validateDeliveryRequirements } from '../src/delivery-requirements.js';
+import { validateTeams } from '../src/teams-domain.js';
+import { normalizeLegacyTaskAssignment } from '../src/task-assignment.js';
+import { validateTaskAutomation } from '../src/task-automation.js';
+import { validateGenericTasks } from '../src/generic-tasks.js';
 import { mkdir, open, readFile, rename } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -35,6 +40,11 @@ export class Store {
     if (Object.hasOwn(this.state.workspace, 'projects')) validateCreatedProjects(this.state.workspace.projects);
     if (Object.hasOwn(this.state.workspace, 'collaboration')) validateCollaborationState(this.state.workspace.collaboration);
     validateResourceState(this.state);
+    validateTeams(this.state);
+    validateGenericTasks(this.state);
+    validateTaskAutomation(this.state);
+    validateDeliveryRequirements(this.state);
+    normalizeLegacyTaskAssignment(this.state);
   }
   mutate(revision: number, operation: (state: DemoState) => DemoState) {
     const next = this.queue.then(async () => {
@@ -44,7 +54,7 @@ export class Store {
     });
     this.queue = next.catch(() => undefined); return next;
   }
-  apply(revision: number, action: Action, role: Role, payload: { reason?: string }) { return this.mutate(revision, state => transition(state, action, role, payload)); }
+  apply(revision: number, action: Action, role: Role, payload: { reason?: string; assigneeId?: string }) { return this.mutate(revision, state => transition(state, action, role, payload)); }
   update(revision:number,kind:WorkspaceAction,role:Role,payload:Record<string,unknown>,sourceAssets:readonly SourcePluginAsset[]=[],catalog:readonly SkillCatalogEntry[]=[]){return this.mutate(revision,state=>updateWorkspace(state,kind,role,payload,sourceAssets,catalog));}
   reset(revision: number) { return this.mutate(revision, () => ({ ...initialState(), revision: revision + 1, talentGeneration: randomUUID() })); }
   /** Runs idempotency and revision checks together under the same persistence queue. */
