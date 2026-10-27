@@ -185,6 +185,8 @@ try{
   await publishFromTalents(2);await visit('/teams#/projects?tab=content');await page.locator('[data-knowledge-summary="carddemo"]').getByText('已发布 1 项',{exact:true}).waitFor();
   await page.getByRole('button',{name:'查看知识',exact:true}).click();await knowledgeCard.locator('[data-artifact="a-biz"]').getByText(/v2 · 发布于/).waitFor();await page.locator('.project-knowledge-drawer .ant-drawer-close').click();await page.locator('.project-knowledge-drawer').waitFor({state:'hidden'});
   const final=await state();assert.equal(final.published,false);assert.equal(final.workspace.resourcePublications.length,2);assert.equal(final.stage,'accepted');assert.equal(final.evolution,'none');assert.equal(final.workspace.analysis.status,'idle');assert.equal(final.knowledgeVersion,'信用卡营销返现业务知识 v2');assert.equal(final.context.knowledgeVersion,'信用卡营销返现业务知识 v1');assert.equal(final.context.skillVersion,'1.0.0');assert.equal(final.security,'unverified');assert.equal(final.transactions.length,1);assert.equal(final.workspace.sessionReported,false);assert.equal(final.workspace.collaboration.events.length,1);
+  await visit('/teams#/home');await page.locator('.ops-next-action').getByText('分析交付轨迹与业务经验',{exact:true}).waitFor();await page.locator('.ops-requirement-meta').getByText('DEMO-MKT-001',{exact:false}).waitFor();
+  await page.screenshot({path:output+'/teams-owner-home-accepted.png',fullPage:true});
   await visit('/teams#/agent');await page.locator('#agent-management [data-title]').filter({hasText:'iCode'}).waitFor();
   await page.waitForFunction(()=>!(document.querySelector('#agent-management [data-refresh]') as HTMLButtonElement).disabled);
   assert.equal(await page.locator('#agent-management [data-config-entry]').count(),6);
