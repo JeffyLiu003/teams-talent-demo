@@ -1,0 +1,29 @@
+/* Standalone adapter: iCode Teams public design tokens (2026-09-27). */
+:root{
+--ui-font-family:Inter,ui-sans-serif,system-ui,sans-serif;
+--ui-font-size-h1:clamp(2rem,6vw,4rem);--ui-font-size-h2:1.5rem;--ui-font-size-h3:1.17rem;--ui-font-size-body:1rem;--ui-font-size-note:.85rem;--ui-font-size-caption:.75rem;--ui-font-size-eyebrow:.69rem;
+--ui-color-primary:#9470c4;--ui-color-primary-hover:#7a5aad;--ui-color-primary-deep:#6d4a9e;--ui-color-primary-soft:#f0eaf9;--ui-color-primary-faint:#f4f2fa;--ui-color-primary-ghost:#fbfaff;--ui-color-ring:#c0abe4;
+--ui-color-text:#18211c;--ui-color-text-secondary:#3f3f46;--ui-color-nav:#52525b;--ui-color-muted:#526359;--ui-color-faint:#71717a;--ui-color-disabled:#a1a1aa;
+--ui-color-success:#08783e;--ui-color-success-soft:#e2f5e9;--ui-color-online:#16a34a;--ui-color-danger:#a12622;--ui-color-danger-soft:#fde9e7;--ui-color-warning:#b45309;--ui-color-warning-soft:#f9efdb;
+--ui-shadow-block:0 1px 2px #18181b08;
+--ui-color-bg:#fafafa;--ui-color-surface:#fff;--ui-color-surface-sunken:#f7f7f9;--ui-color-fill:#f4f4f6;
+--ui-color-border:#d8e1db;--ui-color-border-block:#d9d9e3;--ui-color-divider:#ececf1;
+--ui-space-1:8px;--ui-space-2:12px;--ui-space-3:16px;
+--ui-space-block:16px;--ui-space-inner:12px;
+--ui-block-padding-y:24px;--ui-block-padding-x:24px;--ui-card-padding:18px;
+--ui-border-block:1px solid var(--ui-color-border-block);
+--ui-radius:9px;--ui-radius-card:12px;--ui-radius-block:16px;
+}
+/* 暗色主题：色系取自 Chrys TUI（chrys/app/tui/theme.py），同名变量覆写、插件自动跟随 */
+:root[data-theme='dark']{
+--ui-color-primary:#af87ff;--ui-color-primary-hover:#c4a9ff;--ui-color-primary-deep:#d9caff;--ui-color-primary-soft:#3e374d;--ui-color-primary-faint:#363240;--ui-color-primary-ghost:#2e2b36;--ui-color-ring:#5f5faf;
+--ui-color-text:#eeeeee;--ui-color-text-secondary:#d0d0d0;--ui-color-nav:#babac6;--ui-color-muted:#949494;--ui-color-faint:#85858e;--ui-color-disabled:#6b6b74;
+--ui-color-success:#5fd75f;--ui-color-success-soft:#1f3325;--ui-color-online:#5fff87;--ui-color-danger:#ff5f5f;--ui-color-danger-soft:#3a2426;--ui-color-warning:#e3b341;--ui-color-warning-soft:#3a3220;
+--ui-shadow-block:0 1px 2px #00000059;
+--ui-color-bg:#1c1c1c;--ui-color-surface:#262626;--ui-color-surface-sunken:#1c1c1c;--ui-color-fill:#303030;
+--ui-color-border:#44444c;--ui-color-border-block:#3f3f47;--ui-color-divider:#33333a;
+}
+
+:root { color-scheme: light; }
+:root[data-theme='dark'] { color-scheme: dark; }
+body { margin: 0; background: var(--ui-color-bg); }
