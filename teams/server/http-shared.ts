@@ -8,7 +8,7 @@ const mime: Record<string, string> = { '.js': 'text/javascript', '.css': 'text/c
 export function headers(request: IncomingMessage, response: ServerResponse) {
   response.setHeader('X-Content-Type-Options', 'nosniff');
   response.setHeader('Referrer-Policy', 'no-referrer');
-  if (request.headers.origin && [origin, talentOrigin].includes(request.headers.origin)) {
+  if (request.headers.origin === origin) {
     response.setHeader('Access-Control-Allow-Origin', request.headers.origin);
     response.setHeader('Vary', 'Origin');
     response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -32,7 +32,7 @@ async function traceMonitor(path: string, response: ServerResponse) {
   if (ext) { try { return await file(response, candidate, mime[ext] ?? 'application/octet-stream'); } catch { return false; } }
   try { return await file(response, join(base, 'index.html'), 'text/html'); } catch { return false; }
 }
-export async function staticFile(path: string, app: 'teams' | 'talent', response: ServerResponse) {
+export async function staticFile(path: string, app: 'teams', response: ServerResponse) {
   if (path === '/trace-monitor' || path.startsWith('/trace-monitor/')) return traceMonitor(path, response);
   if (!['/', '/' + app, '/main.js', '/main.css', '/main.js.map', '/main.css.map'].includes(path)) return false;
   const name = path.startsWith('/main.') ? path.slice(1) : 'index.html';

@@ -14,7 +14,7 @@ import '../enterprise-connections.css';
 
 type Connection = WorkspaceState['connections'][number];
 type PlatformRow = Connection & { pluginId: keyof typeof enterpriseBrands; platform: string; summary: string; dataTypes: readonly string[] };
-const configurationTabs = [{ key: 'quality', label: '质量与安全' }, { key: 'services', label: '模型与工具服务' }, { key: 'talent', label: 'Talent 接入' }];
+const configurationTabs = [{ key: 'quality', label: '质量与安全' }, { key: 'services', label: '模型与工具服务' }];
 /** The upstream enterprise-connection route currently supplies CapabilityState.
  * Keep its route vocabulary and port the existing resource-card/header/meta/footer
  * structure from agent-resources/src/client/ui/index.ts. Platform cards are demo adapters. */

@@ -24,7 +24,7 @@ export function Trace({ initial }: { initial?: string }) {
   const sessions = collectTaskSessions(state, mainTask);
   const collectionStatus = collection ? collectionLabels[collection.status] : state.stage === 'accepted' ? '待归集' : '待验收';
   const reporting = collection?.reporting;
-  const talentStatus = reporting?.status === 'reported' ? '已接收' : reporting?.status === 'failed' ? '上报未完成' : reporting?.status === 'uploading' ? '正在上报' : '尚未上报';
+  const talentStatus = reporting?.status === 'reported' ? '已共享' : reporting?.status === 'failed' ? '共享未完成' : reporting?.status === 'uploading' ? '正在共享' : '尚未共享';
   const activity = [
     ...state.workspace.progress.map(item => ({ id: 'progress-' + item.id, text: item.text, at: item.at, source: '手工进度', color: 'purple', actor: '陈晨' })),
     ...(state.workspace.collaboration?.events ?? []).filter(item => item.projectId === mainTask.projectId && item.taskId === mainTask.taskId).map(item => ({ id: 'event-' + item.id, text: item.summary, at: item.at, source: 'Teams CLI · ' + phaseLabels[item.phase], color: 'green', actor: item.role === 'owner' ? '林悦' : '陈晨' })),
@@ -37,7 +37,7 @@ export function Trace({ initial }: { initial?: string }) {
       <Descriptions size="small" column={2} items={[
         { key: 'project', label: '项目', children: state.workspace.project.name }, { key: 'task', label: '需求 / 交付', children: 'MKT-001 / DELIVERY-MKT-001' },
         { key: 'context', label: '采用上下文', children: state.context?.id ?? '待准备' }, { key: 'sessions', label: '关联会话', children: sessions.length + ' 个' },
-        { key: 'collection', label: '验收后归集', children: collectionStatus }, { key: 'talent', label: 'Talent 接收', children: talentStatus },
+        { key: 'collection', label: '验收后归集', children: collectionStatus }, { key: 'talent', label: 'Talents 共享', children: talentStatus },
       ]} />
       <Space wrap><Button href="#/projects?tab=delivery">打开需求交付</Button></Space>
       <p className="muted">本次关联以任务会话、Teams CLI 回传和自动化回执为准；历史材料在独立页签中展示。</p>
@@ -48,18 +48,18 @@ export function Trace({ initial }: { initial?: string }) {
           <Descriptions column={1} size="small" items={[
             { key: 'knowledge', label: '知识导入', children: automation?.knowledge ? knowledgeLabels[automation.knowledge.status] : '未触发' },
             { key: 'collection', label: '验收后归集', children: collectionStatus },
-            { key: 'talent', label: 'Talent 接收', children: reporting?.status === 'reported' ? '已接收 · ' + reporting.receipt?.id : talentStatus },
+            { key: 'talent', label: 'Talents 共享', children: reporting?.status === 'reported' ? '已共享 · ' + reporting.receipt?.id : talentStatus },
             { key: 'sessions', label: '归集会话', children: (collection?.sessions ?? sessions).length + ' 个' },
           ]} />
           {automation?.knowledge?.error && <Alert type="error" title="知识导入未完成" description={automation.knowledge.error} />}
           {collection?.error && <Alert type="error" title="会话归集未完成" description={collection.error} />}
-          {reporting?.status === 'failed' && <Alert type="error" title="Talent 上报未完成" description={reporting.reason} />}
-          <p className="muted">仅取得真实 Talent 接收回执才标记为已接收；归集失败不改变验收结论。</p>
+          {reporting?.status === 'failed' && <Alert type="error" title="Talents 会话共享未完成" description={reporting.reason} />}
+          <p className="muted">仅以共享目录写入回执确认已共享，不代表 Talents 已完成读取；归集失败不改变验收结论。</p>
         </FrameworkCard></div>
         <FrameworkCard title="本次协作记录" action={<Tag>{activity.length} 条记录</Tag>}>
           {activity.length ? <Timeline items={activity.map(item => ({ key: item.id, color: item.color, title: <Space wrap><Tag color={item.color}>{item.source}</Tag><strong>{displayText(item.text)}</strong></Space>, content: <small className="muted">{item.actor} · {new Date(item.at).toLocaleString('zh-CN', { hour12: false })}</small> }))} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="尚无本次手工进度或 CLI 回传" />}
         </FrameworkCard>
-        {!!state.audit.length && <FrameworkCard title="Teams 与 Talent 工作流" action={<Tag>工作区操作</Tag>}><Timeline items={state.audit.map(item => ({ key: item.id, color: item.system === 'Talent' ? 'blue' : 'purple', title: <Space wrap><strong>{displayText(item.action)}</strong><Tag>{item.system}</Tag><small>{item.role === 'owner' ? '林悦 · Owner' : '陈晨 · 成员'}</small></Space>, content: <><p>{displayText(item.detail)}</p><small className="muted">{new Date(item.at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })}</small></> }))} /></FrameworkCard>}
+        {!!state.audit.length && <FrameworkCard title="Teams 与 Talents 工作流" action={<Tag>工作区操作</Tag>}><Timeline items={state.audit.map(item => ({ key: item.id, color: item.system === 'Talent' ? 'blue' : 'purple', title: <Space wrap><strong>{displayText(item.action)}</strong><Tag>{item.system === 'Talent' ? 'Talents' : item.system}</Tag><small>{item.role === 'owner' ? '林悦 · Owner' : '陈晨 · 成员'}</small></Space>, content: <><p>{displayText(item.detail)}</p><small className="muted">{new Date(item.at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })}</small></> }))} /></FrameworkCard>}
       </div> },
       { key: 'history', label: '历史材料', children: <div className="page-stack">
         <section className="trace-material-summary"><div><span className="trace-section-label">历史材料</span><h3>资格校验 → 修复 → 复测</h3><p>普通卡客户不应获得白金卡专属返现，修复后核对全部规则。材料用于回看问题与处理，不代表本次需求已执行。</p></div><Space wrap><Button onClick={() => selectEvidence('E3')}>首次检查</Button><Button onClick={() => selectEvidence('E4')}>修复说明</Button><Button onClick={() => selectEvidence('E5')}>复测结果</Button></Space><Tag color="gold">安全验证待完成</Tag></section>

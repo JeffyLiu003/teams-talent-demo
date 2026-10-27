@@ -11,4 +11,4 @@ await writeFile('dist/index.html', '<!doctype html><html lang="zh-CN"><head><met
 const traceRoot = 'trace-monitor';
 const viteBin = join(process.cwd(), traceRoot, 'node_modules', 'vite', 'bin', 'vite.js');
 if (existsSync(viteBin)) await promisify(execFile)(process.execPath, [viteBin, 'build'], { cwd: traceRoot });
-else console.warn('跳过 trace-monitor 构建：请先在 demo/trace-monitor 执行 npm ci');
+else console.warn('跳过 trace-monitor 构建：请先在 teams/trace-monitor 执行 npm ci');

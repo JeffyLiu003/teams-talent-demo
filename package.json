@@ -1,0 +1,12 @@
+{
+  "name": "carddemo-teams-talents",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "npm ci --prefix teams && npm ci --prefix teams/trace-monitor && npm ci --prefix talents",
+    "dev": "node scripts/demo.mjs dev --open",
+    "start": "node scripts/demo.mjs start --open",
+    "stop": "node scripts/demo.mjs stop",
+    "test": "npm --prefix teams test && npm --prefix teams run test:http && npm --prefix talents test"
+  }
+}

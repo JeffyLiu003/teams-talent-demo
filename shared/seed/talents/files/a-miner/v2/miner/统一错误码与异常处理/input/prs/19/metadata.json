@@ -1,0 +1,13 @@
+{
+  "number": 19,
+  "url": "https://code.bank.local/carddemo/carddemo-java-1025/pulls/19",
+  "title": "下游不可用统一映射 503",
+  "body": "账户服务宕机时，交易服务原先返回 500 并带出堆栈片段。本 PR 让出站客户端把连接失败、超时和非 2xx 统一转换为 `RemoteServiceException`，全局异常处理映射为 `503 DEPENDENCY_UNAVAILABLE`。下游 404、409 仍按原语义透传。\n\n## Validation\n\n- 新增 `TransactionControllerTest` 用例：账户服务不可用时返回 503。\n- 停掉 account-service 手工验证账单支付页面提示“服务暂不可用，请稍后重试”。",
+  "state": "merged",
+  "mergedAt": "2026-09-25T11:05:00+08:00",
+  "baseRef": "main",
+  "author": "赵宁",
+  "labels": [
+    "error-handling"
+  ]
+}

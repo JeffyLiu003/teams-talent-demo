@@ -124,7 +124,7 @@
       "sourceSha256": "fb4fcbdf295d2eae81965a51cdf2faae54f46c375412fe5de4606f92fb405716",
       "targetSha256": "953a3fa2bb1359a2e25c3f21ccab3f76cff794d6bbf7e42d37125140793c9a1f",
       "mode": "entry-reference-and-demo-extension",
-      "adaptation": "Upstream connections is a pending capability placeholder. External platform cards reuse the existing resource-card/header/meta/footer structure, with independent configuration and status. The read-only source drawer preserves local references. Local official brand assets identify GitHub, Jira, ZenTao, Confluence and TestRail; Talent retains its own mark. Brand provenance is recorded in src/assets/enterprise-brands/sources.json.",
+      "adaptation": "Upstream connections is a pending capability placeholder. External platform cards reuse the existing resource-card/header/meta/footer structure, with independent configuration and status. The read-only source drawer preserves local references. Local official brand assets identify GitHub, Jira, ZenTao, Confluence and TestRail. Brand provenance is recorded in src/assets/enterprise-brands/sources.json.",
       "supportingSources": [
         {
           "source": "business/domain/agent-resources/src/client/ui/index.ts",

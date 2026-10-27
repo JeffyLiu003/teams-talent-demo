@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { isAbsolute, join } from 'node:path';
 
-const pathKeys = new Set(['DEMO_MATERIAL_ROOT', 'DEMO_STATE_DIR', 'DEMO_TALENT_STATE_DIR', 'DEMO_ICODE_BINARY', 'DEMO_ICODE_PYTHON', 'DEMO_OPENCODE_BINARY']);
+const pathKeys = new Set(['DEMO_MATERIAL_ROOT', 'DEMO_STATE_DIR', 'DEMO_TALENT_STATE_DIR', 'DEMO_SHARED_DIR', 'DEMO_ICODE_BINARY', 'DEMO_ICODE_PYTHON', 'DEMO_OPENCODE_BINARY']);
 const portKeys = new Set(['DEMO_PORT', 'DEMO_TALENT_PORT']);
 /** Local machine configuration is optional. Invalid present files always fail explicitly. */
 export function loadLocalConfiguration(root: string, environment: NodeJS.ProcessEnv = process.env) {

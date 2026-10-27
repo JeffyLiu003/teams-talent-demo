@@ -30,7 +30,7 @@ export async function startTraceService() {
     await mkdir(runtimeDir, { recursive: true });
     const logPath = join(runtimeDir, 'trace-server.log');
     const log = await open(logPath, 'a', 0o600);
-    const python = process.env.DEMO_TRACE_PYTHON || 'python';
+    const python = process.env.DEMO_TRACE_PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
     const current = spawn(python, [entry], {
       cwd: traceServerRoot,
       env: {
@@ -51,9 +51,13 @@ export async function startTraceService() {
     });
     child = current;
     await log.close();
+    // 找不到 Python 时 spawn 只触发 error 事件；不监听会让整个 Teams 进程崩溃
+    let spawnError: Error | null = null;
+    current.on('error', error => { spawnError = error; if (child === current) child = null; });
     current.on('exit', () => { if (child === current) child = null; });
     for (let i = 0; i < 40; i++) {
       if (await healthy()) return;
+      if (spawnError) throw new Error(`无法启动 trace-server（${python}）：${(spawnError as Error).message}，可设置 DEMO_TRACE_PYTHON`);
       if (current.exitCode !== null) throw new Error(`trace-server 退出（code=${current.exitCode}），日志：${logPath}`);
       await new Promise(resolve => setTimeout(resolve, 250));
     }

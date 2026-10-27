@@ -41,8 +41,8 @@ export function initialWorkspace(): WorkspaceState {
       { id:'code',title:'白金卡返现规则',kind:'repository',location:'teams/src/cashback.ts',sourceAssetId:'repository:carddemo:carddemo-java-1025' },
       { id:'design',title:'消费返现规则',kind:'document',location:'teams/docs/cashback-contract.md',sourceAssetId:'design-library:carddemo:marketing-capability' },
       { id:'history',title:'白金卡消费返现需求',kind:'requirement',location:'requirements:carddemo:DEMO-MKT-001' },
-      { id:'adr',title:'交易处理边界',kind:'document',location:'teams/docs/cashback-integration.md',sourceAssetId:'design-library:carddemo:ADR-009' },
-      { id:'security',title:'权限与安全范围',kind:'document',location:'teams/docs/security-scope.md',sourceAssetId:'design-library:carddemo:ADR-007' },
+      { id:'adr',title:'交易处理边界',kind:'document',location:'workspace/carddemo-java-1025/docs/design/adr/ADR-009-marketing-integration.md',sourceAssetId:'design-library:carddemo:ADR-009' },
+      { id:'security',title:'权限与安全范围',kind:'document',location:'workspace/carddemo-java-1025/docs/design/adr/ADR-007-authentication-scope.md',sourceAssetId:'design-library:carddemo:ADR-007' },
     ] }, materials: [], selectedSkills: [...defaultSkills], progress: [], sessionReported:false, reportAt:null,
     analysis:{scope:'single',status:'idle'}, foundation:{progressEnabled:true,uploadEnabled:true},
     team:{ name:'信用卡研发团队',members:[['owner','林悦'],['member','陈晨'],['su','苏晴'],['yang','杨帆'],['zhao','赵宁'],['wang','王晓']].map(([id,name])=>({id,name,role:id==='owner'?'owner':'member',status:'active'})) },
@@ -50,7 +50,7 @@ export function initialWorkspace(): WorkspaceState {
       ['repository','代码仓与项目资产','asset','关联当前返现规则与项目代码。'],['requirements','需求与文档','asset','关联项目需求和设计资料。'],
       ['review','代码 Review','quality','检查业务状态、变更影响与事务边界，保留问题与修复依据。'],['test','测试与复测','quality','保留真实退出码、测试范围及结构化报告。'],
       ['security','安全扫描','quality','尚未提供安全扫描报告，需接入报告后核验。'],['model','组织模型服务','model','展示团队模型使用要求，真实凭据由原生工具管理。'],
-      ['mcp','工具与 MCP','tool','按工具声明能力和权限，成员通过 iCode 调用。'],['talent','Talent 知识与演进','talent','依据 Teams 项目资产整合知识，分析轨迹并评估改进候选。'],
+      ['mcp','工具与 MCP','tool','按工具声明能力和权限，成员通过 iCode 调用。'],
     ].map(([id,name,kind,description])=>({id,name,kind,description,enabled:true})),
   };
 }

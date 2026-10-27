@@ -71,7 +71,7 @@ export function finishTaskCollection(state: DemoState, scope: TaskScope, session
   const record = taskAutomation(state, scope)?.collection;
   if ((deliveryRequirement(state,scope.projectId,scope.taskId)?.stage ?? state.stage) !== 'accepted' || !record) throw new DomainError('验收尚未通过或没有归集任务');
   record.sessions = sessions; record.status = sessions.length ? 'collected' : 'empty'; record.finishedAt = at;
-  record.reporting = { status: 'pending', reason: sessions.length ? '会话已归集，Talent 上报接口尚未接入；未取得接收回执。' : '尚无关联会话，未发起 Talent 上报。' };
+  record.reporting = { status: 'pending', reason: sessions.length ? '会话已归集，尚未写入共享目录。' : '尚无关联会话，未共享至 Talents。' };
   // Local collection is not an upload receipt; historical reporting fields are left unchanged.
 }
 export function validateTaskAutomation(state: DemoState) {
