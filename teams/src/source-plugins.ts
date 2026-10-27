@@ -57,8 +57,8 @@ export const sourceAssetId = (pluginId: SourcePluginId, projectId: SourceProject
 const cardRequirement = sourceAssetId('requirements', 'carddemo', 'DEMO-MKT-001');
 const teamRequirement = (id: string) => sourceAssetId('requirements', 'teams', id);
 const marketingDesign = 'teams/docs/cashback-contract.md';
-const marketingIntegration = 'teams/docs/cashback-integration.md';
-const authenticationScope = 'teams/docs/security-scope.md';
+const marketingIntegration = 'workspace/carddemo-java-1025/docs/design/adr/ADR-009-marketing-integration.md';
+const authenticationScope = 'workspace/carddemo-java-1025/docs/design/adr/ADR-007-authentication-scope.md';
 const localFile = (collection: SourceAssetReference['collection'], path: string, label: string): SourceAssetReference => ({
   collection, path, label, extent: collection === 'graph' ? 'excerpt' : 'full-file', origin: 'existing-local-file',
 });
