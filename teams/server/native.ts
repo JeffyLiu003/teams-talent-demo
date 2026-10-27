@@ -25,7 +25,7 @@ export async function toolsStatus() {
   catch (error) { installError = 'iCode 探测失败：' + (error as Error).message; }
   let version: string | null = null, versionError: string | undefined;
   if (installedICode) {
-    try { version = (await execute(binary, ['--version'], { timeout: 15000 })).stdout.trim(); }
+    try { version = (await execute(binary, ['--version'], { timeout: 15000, windowsHide: true })).stdout.trim(); }
     catch (error) { versionError = 'iCode 版本探测失败：' + (error as Error).message; }
   }
   let opencode: string | null = null, openError: string | undefined;
@@ -34,7 +34,7 @@ export async function toolsStatus() {
   const unsupportedReason = openError ?? (process.platform === 'win32' && opencode && !/\.exe$/i.test(opencode) ? '检测到 OpenCode .cmd/.bat；自动启动需设置 DEMO_OPENCODE_BINARY 为 opencode.exe 的绝对路径。' : undefined);
   let openVersion: string | null = null;
   if (opencode && !unsupportedReason) {
-    try { openVersion = (await execute(opencode, ['--version'], { timeout: 15000 })).stdout.trim(); }
+    try { openVersion = (await execute(opencode, ['--version'], { timeout: 15000, windowsHide: true })).stdout.trim(); }
     catch (error) { openError = 'OpenCode 版本探测失败：' + (error as Error).message; }
   }
   const notes = [...icodeBinaryNotes, ...(installError ? [installError] : []), ...(versionError ? [versionError] : [])];

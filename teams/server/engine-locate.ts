@@ -34,7 +34,7 @@ async function isFile(path: string) {
 }
 
 async function defaultProbe(entry: string) {
-  return (await exec(entry, ['--version'], { timeout: 15000, maxBuffer: 65536 })).stdout.trim();
+  return (await exec(entry, ['--version'], { timeout: 15000, maxBuffer: 65536, windowsHide: true })).stdout.trim();
 }
 
 /**
