@@ -99,3 +99,13 @@ test('explicit task input registration preserves exact requirement facts without
   task.description += ' 后续变更'; await assert.rejects(service.register('carddemo', task.id), /不能覆盖/); await assert.rejects(service.inputs('carddemo', task.id), /版本不匹配/); assert.deepEqual(await readFile(path), original);
   const bad = JSON.parse(original.toString()); bad.taskInputRegistrations[0].asset.detail += ' 篡改'; await writeFile(path, JSON.stringify(bad)); await assert.rejects(new TalentStore(path).init(), /摘要不一致/);
 }));
+
+test('before adoption a new Skill selection registers another input version and preserves the original',async()=>using(async(store)=>{
+ const {context,task}=fixture();task.stage='preparing';delete task.preparedAt;
+ const service=new TalentTaskIntakeService(store,async()=>context,'http://127.0.0.1:1');
+ const original=await service.register('carddemo',task.id);task.skillIds=['dev-unit-test'];
+ await assert.rejects(service.inputs('carddemo',task.id),/重新检查任务输入/);
+ const updated=await service.register('carddemo',task.id);assert.notEqual(updated.version,original.version);assert.deepEqual(store.state.taskInputRegistrations?.[0],original);assert.equal(store.state.taskInputRegistrations?.length,2);
+ const inputs=await service.inputs('carddemo',task.id);assert.deepEqual(inputs.skills.map(skill=>skill.id),['dev-unit-test']);assert.equal(inputs.knowledge.taskRegistration?.version,updated.version);
+ task.preparedAt=firstAt;task.skillIds=['dev-frontend-ui'];await assert.rejects(service.register('carddemo',task.id),/不能覆盖/);
+}));

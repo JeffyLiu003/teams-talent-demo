@@ -65,3 +65,7 @@ export const getResourceContent = (role: Role, scope: {resourceId:string;version
 export const triggerTaskAutomation = (role: Role, scope: import('./task-automation.js').TaskScope, step: 'knowledge' | 'collection', retry = false) => tracedJson<DemoState>('teams', '/api/task-automation', { method: 'POST', body: JSON.stringify({ role, ...scope, step, retry }) });
 
 export const deliveryRequirementAction=(state:DemoState,role:Role,input:Record<string,unknown>)=>tracedJson<DemoState>('teams','/api/delivery-requirements',{method:'POST',body:JSON.stringify({revision:state.revision,role,...input})});
+
+export const getTaskSessionStream = (role: Role, query: import('./task-session-stream.js').TaskSessionStreamQuery) => tracedJson<import('./task-session-stream.js').TaskSessionStreamResponse>('teams', '/api/task-session-stream?' + new URLSearchParams({ role, ...query }));
+
+export const getTaskNodeInputs=(role:Role,scope:{projectId:string;taskId:string;nodeId:import('./delivery-requirements.js').RequirementNode})=>tracedJson<import('./talent-node-inputs.js').TalentNodeInputs>('teams','/api/task-node-inputs?'+new URLSearchParams({role,...scope}));

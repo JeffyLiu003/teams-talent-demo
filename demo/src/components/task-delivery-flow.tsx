@@ -1,3 +1,5 @@
+import type {TalentNodeInputs} from '../talent-node-inputs.js';
+import {taskExecutableBy} from '../task-visibility.js';
 import { deliveryRequirement } from '../delivery-requirements.js';
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import { Alert, Button, Descriptions, Drawer, Empty, List, Space, Tag } from 'antd';
@@ -6,23 +8,24 @@ import { triggerTaskAutomation } from '../api.js';
 import { taskAutomation, collectTaskSessions, type TaskScope } from '../task-automation.js';
 import { currentMemberOwnsTask } from '../task-assignment.js';
 import '../task-delivery-flow.css';
-export interface FlowNode { id: string; label: string; role: string; description: string; status: string; complete?: boolean }
+export interface FlowNode { id: string; label: string; role: string; description: string; status: string; complete?: boolean; summary?: string }
 const knowledgeLabels = { running: '正在导入', ready: '输入已就绪', waiting: '等待输入就绪', failed: '导入未完成' };
 const collectionLabels = { queued: '等待自动归集', running: '正在归集', collected: '已归集 · 待上报', empty: '暂无关联会话', failed: '归集未完成' };
-export function TaskDeliveryFlow({ scope, nodes, selected, onSelect, readonly = false, showAutomation = true, ariaPrefix = '节点：' }: { scope: TaskScope; nodes: FlowNode[]; selected: string; onSelect(id: string): void; readonly?: boolean; showAutomation?: boolean; ariaPrefix?: string }) {
+export function TaskDeliveryFlow({ scope, nodes, selected, onSelect, readonly = false, showAutomation = true, ariaPrefix = '节点：', nodeInputs }: { nodeInputs?:TalentNodeInputs;  scope: TaskScope; nodes: FlowNode[]; selected: string; onSelect(id: string): void; readonly?: boolean; showAutomation?: boolean; ariaPrefix?: string }) {
   const { state, role, receiveState } = useDemo();
   const [detail, setDetail] = useState<'knowledge' | 'collection' | null>(null), [pending, setPending] = useState(''), [error, setError] = useState('');
   const record = taskAutomation(state, scope), inFlight = useRef(false);
   const task=deliveryRequirement(state,scope.projectId,scope.taskId);
-  const canWork=task ? task.assigneeId==='member' : currentMemberOwnsTask(state);
-  const canImport = !readonly && role === 'member' && canWork && selected === 'prepare';
+  const canWork=task ? taskExecutableBy(role,task.assigneeId) : role==='member'&&currentMemberOwnsTask(state);
+  const canImport = !readonly && canWork && selected === 'prepare';
   const trigger = async (step: 'knowledge' | 'collection', retry = false) => {
     if (inFlight.current) return; inFlight.current = true; setPending(step); setError('');
     try { receiveState(await triggerTaskAutomation(role, scope, step, retry)); }
     catch (cause) { setError((cause as Error).message); }
     finally { inFlight.current = false; setPending(''); }
   };
-  useEffect(() => { if (canImport && !record?.knowledge) void trigger('knowledge'); }, [canImport, record?.knowledge?.id, scope.projectId, scope.taskId]);
+  // Node inputs are automatically fetched through a read-only Talent request.
+  // Merely viewing a task never records adoption or starts a mutable import job.
   useEffect(() => { if (!readonly && role === 'owner' && record?.collection?.status === 'queued') void trigger('collection'); }, [readonly, role, record?.collection?.status, scope.projectId, scope.taskId]);
   const flow = useRef<HTMLDivElement>(null), refs = useRef(new Map<string, HTMLButtonElement>()), marker = useId().replace(/\W/g, '');
   const [lines, setLines] = useState<{ id: string; d: string; color: string }[]>([]);
@@ -52,23 +55,23 @@ export function TaskDeliveryFlow({ scope, nodes, selected, onSelect, readonly = 
   return <div className="task-delivery-flow" data-flow-task={scope.taskId}>
     <div ref={flow} className={'task-flow-grid' + (!showAutomation ? ' no-automation' : '')} style={{ '--flow-count': nodes.length } as CSSProperties}>
       {/* Card header / status / participant structure adapted from Teams project-real-graph.tsx RealGraphCanvas. */}
-      <div className="task-main-rail" aria-label="任务交付节点">{nodes.map(node => <Button key={node.id} htmlType="button" ref={bind(node.id)} data-flow-node={node.id} aria-label={ariaPrefix+node.label} aria-current={selected === node.id ? 'step' : undefined} aria-pressed={selected === node.id} className={'task-flow-card'+(selected===node.id?' selected':'')} onClick={() => onSelect(node.id)}><strong>{node.label}</strong><span className="task-flow-status"><Tag color={node.complete?'green':selected===node.id?'purple':undefined}>{node.status}</Tag></span><small>{node.role} · {node.complete?'已有产出':'暂无产出'}</small></Button>)}</div>
+      <div className="task-main-rail" aria-label="任务交付节点">{nodes.map(node => <Button key={node.id} htmlType="button" ref={bind(node.id)} data-flow-node={node.id} aria-label={ariaPrefix+node.label} aria-current={selected === node.id ? 'step' : undefined} aria-pressed={selected === node.id} className={'task-flow-card'+(selected===node.id?' selected':'')} onClick={() => onSelect(node.id)}><strong>{node.label}</strong><span className="task-flow-status"><Tag color={node.complete?'green':selected===node.id?'purple':undefined}>{node.status}</Tag></span><small>{node.role} · {node.summary ?? (readonly ? '原项目记录' : node.complete?'已有产出':'暂无产出')}</small></Button>)}</div>
       {showAutomation && <section className="task-talent-rail" aria-label="Talent 自动协作"><div className="task-talent-title"><span>Talent · 自动协作</span><small>后续分析异步进行，不影响任务完成</small></div>
-        <Button htmlType="button" ref={bind('auto-knowledge')} data-flow-node="auto-knowledge" className="task-flow-card task-auto-card" aria-label="知识导入详情" onClick={() => setDetail('knowledge')}><strong>知识导入</strong><span className="task-flow-status"><Tag color={record?.knowledge?.status==='ready'?'green':undefined}>{readonly ? '原项目只读' : record?.knowledge ? knowledgeLabels[record.knowledge.status] : state.assigned ? '待进入准备' : '等待分配'}</Tag></span><small>开始前 · 加载知识与 Skill</small></Button>
+        <Button htmlType="button" ref={bind('auto-knowledge')} data-flow-node="auto-knowledge" className="task-flow-card task-auto-card" aria-label="知识导入详情" onClick={() => setDetail('knowledge')}><strong>知识导入</strong><span className="task-flow-status"><Tag color={record?.knowledge?.status==='ready'?'green':undefined}>{nodeInputs ? nodeInputs.selection.status==='not-configured'?'当前节点未配置':nodeInputs.selection.basis==='recommendation'?'节点建议已读取':'节点采用依据可读' : readonly ? '原项目只读' : record?.knowledge ? knowledgeLabels[record.knowledge.status] : (task?!!task.assigneeId:state.assigned) ? '待进入准备' : '等待分配'}</Tag></span><small>开始前 · 加载知识与 Skill</small></Button>
         <Button htmlType="button" ref={bind('auto-collection')} data-flow-node="auto-collection" className="task-flow-card task-auto-card" aria-label="数据收集详情" onClick={() => setDetail('collection')}><strong>数据收集</strong><span className="task-flow-status"><Tag color={collection?.reporting?.status==='reported'?'green':collection?.reporting?.status==='failed'?'orange':undefined}>{readonly ? '原项目只读' : collectionStatus}</Tag></span><small>通过后 · 归集并上报 Talent</small></Button>
       </section>}
       <svg className="task-flow-connectors" aria-hidden="true"><defs>{['muted','success'].map(color => <marker key={color} id={marker+color} viewBox="0 0 6 6" refX="5" refY="3" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L6 3 L0 6 Z" fill={'var(--ui-color-'+color+')'} /></marker>)}</defs>{lines.map(line => <path key={line.id} data-connection={line.id} d={line.d} fill="none" stroke={'var(--ui-color-'+line.color+')'} strokeWidth="1" markerEnd={'url(#'+marker+line.color+')'} />)}</svg>
     </div>
     {error && <Alert type="error" title="自动步骤未完成" description={error} action={<Button size="small" onClick={() => setDetail(canImport ? 'knowledge' : 'collection')}>查看详情</Button>} />}
     <Drawer title={detail === 'knowledge' ? '知识导入' : '数据收集'} width={650} open={!!detail} onClose={() => setDetail(null)} destroyOnHidden>
-      {readonly ? <Alert type="info" title="原项目任务只读" description="此快照未包含自动导入或归集执行回执，未发起新的执行。原任务身份和节点记录保持不变。" /> : detail === 'knowledge' ? <div className="page-stack">
-        <p>任务已分配后，由当前交付人成员首次进入需求准备时自动获取本项目的 Talent 知识，并核对本需求选用的 Skill。记录按任务保存；切换节点、角色或刷新不会重复导入。</p>
+      {detail==='knowledge'&&nodeInputs?<div className="page-stack"><p>{nodeInputs.selection.note}</p><List size="small" header="当前节点知识" dataSource={nodeInputs.knowledge.assets} locale={{emptyText:'无当前节点相关知识'}} renderItem={item=><List.Item>{item.title} · {item.version}</List.Item>}/><List size="small" header="当前节点 Skill" dataSource={nodeInputs.skills} locale={{emptyText:'无当前节点相关 Skill'}} renderItem={item=><List.Item>{item.name} · {item.version}</List.Item>}/><p className="muted">当前读取不代表已采用或实际执行；历史采用内容保持原版本。</p></div>:readonly ? <Alert type="info" title="原项目任务只读" description="此快照未包含自动导入或归集执行回执，未发起新的执行。原任务身份和节点记录保持不变。" /> : detail === 'knowledge' ? <div className="page-stack">
+        <p>当前节点输入正在读取或暂不可用；页面按项目、任务和节点从 Talent 获取建议，读取不代表采用。下方保留旧任务导入记录，不能将其视为当前节点建议。</p>
         <Descriptions column={1} size="small" items={[{key:'status',label:'状态',children:record?.knowledge ? knowledgeLabels[record.knowledge.status] : '待触发'},{key:'time',label:'最近执行',children:record?.knowledge?.finishedAt ?? record?.knowledge?.startedAt ?? '—'},{key:'knowledge',label:'项目知识',children:inputs ? `${inputs.knowledge.length} 项 · ${inputs.knowledgeStatus === 'available' ? '已有版本可读' : '尚无可用项目知识'}` : '尚未读取'},{key:'skills',label:'可读 Skill',children:inputs?.skills.filter(skill=>skill.available).length ?? 0},{key:'materials',label:'需求与资料',children:inputs ? `${inputs.requirement} · ${inputs.references.length} 项资料 · ${inputs.materials.length} 项补充材料` : '尚未读取'}]} />
         {record?.knowledge?.error && <Alert type="error" title="导入未完成" description={record.knowledge.error} />}
         {record?.knowledge?.status === 'waiting' && <Alert type="info" title="等待输入就绪" description="现有项目知识或可读 Skill 尚未就绪。请核对项目知识与资源后重新检查；此步骤不会发起知识构建。" />}
         {inputs && <><List size="small" header="已读取的知识版本" dataSource={inputs.knowledge} locale={{emptyText:'无可用知识版本'}} renderItem={item=><List.Item>{item.title} · {item.version}</List.Item>} /><List size="small" header="Skill 版本" dataSource={inputs.skills} renderItem={item=><List.Item>{item.id} · {item.version}<Tag>{item.available?'可读':'不可用'}</Tag></List.Item>} /></>}
-        <p className="muted">{task?'知识与 Skill 由 Talent 输入接口返回，Skill 来源保留为已登记的 Teams 源包。':'知识来源：Talent 项目知识；Skill 来源：项目与固定订阅版本。'}</p><p className="muted">导入结果供成员核对，未替成员确认采用、冻结上下文或声明 iCode 已读取。</p>
-        {role === 'member' && canWork && record?.knowledge && record.knowledge.status !== 'ready' && <Button loading={pending==='knowledge'} disabled={!!pending} onClick={()=>void trigger('knowledge',true)}>重新检查输入</Button>}
+        <p className="muted">{task?'知识与 Skill 由 Talent 输入接口返回，Skill 来源保留为已登记的 Teams 源包。':'知识来源：Talent 项目知识；Skill 来源：项目与固定订阅版本。'}</p><p className="muted">导入记录供交付人核对，不代替当前节点的采用确认，也不声明 iCode 已读取。</p>
+        {canWork && record?.knowledge && record.knowledge.status !== 'ready' && <Button loading={pending==='knowledge'} disabled={!!pending} onClick={()=>void trigger('knowledge',true)}>重新检查输入</Button>}
       </div> : <div className="page-stack">
         <p>仅在 Owner 验收通过后自动归集本项目、本任务开发和验证节点的会话；按工具与会话标识去重，并保留全部来源节点。</p>
         <Descriptions column={1} size="small" items={[{key:'status',label:'状态',children:collectionStatus},{key:'count',label:'会话数量',children:collection?.sessions.length ?? 0},{key:'time',label:'归集时间',children:collection?.finishedAt ?? '—'},{key:'upload',label:'Talent 上报',children:collection?.reporting?.status==='reported'?'已接收 · '+collection.reporting.receipt?.id:collection?.reporting?.reason??'尚未上报'}]} />

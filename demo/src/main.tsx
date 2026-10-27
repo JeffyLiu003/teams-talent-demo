@@ -2,9 +2,9 @@ import { displayText } from './display-text.js';
 import { campaign } from './cashback.js';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Alert, Button, ConfigProvider, Descriptions, Drawer, Popconfirm, Select, Space, Spin, Tag, theme } from 'antd';
+import { Alert, Button, ConfigProvider, Descriptions, Drawer, Popconfirm, Select, Space, Spin, Tag, Tooltip, theme } from 'antd';
 import zhCN from 'antd/locale/zh_CN.js';
-import { ApartmentOutlined, ArrowLeftOutlined, ArrowRightOutlined, BookOutlined, CodeOutlined, ExperimentOutlined, FileTextOutlined, QuestionCircleOutlined, ReloadOutlined, RobotOutlined } from '@ant-design/icons';
+import { ApartmentOutlined, ArrowLeftOutlined, ArrowRightOutlined, BookOutlined, CodeOutlined, ExperimentOutlined, FileTextOutlined, MenuFoldOutlined, MenuUnfoldOutlined, QuestionCircleOutlined, ReloadOutlined, RobotOutlined } from '@ant-design/icons';
 import { bootstrap, act, updateWorkspace, getState, reset, type Presentation } from './api.js';
 import type { WorkspaceAction } from './workspace.js';
 import { Context } from './context.js';
@@ -29,6 +29,7 @@ import { Knowledge, TalentSessions, Evolution } from './pages/talent.js';
 import { Heading, Origin } from './components/common.js';
 import { currentSystemContext, systemRuntime, talentLink, teamsLink } from './system-links.js';
 import './style.css';
+import './shell-navigation.css';
 const css = document.createElement('style'); css.textContent = designSystemCss + frameworkCss; document.head.prepend(css);
 const isTalent = systemRuntime().app === 'talent';
 const titles: Record<string, string> = { home: '工作台', projects: '项目', team:'团队', resources: '资源市场', subscriptions: '我的订阅', publications: '我的发布', agent: 'Agent 管理', connections: '企业连接', organization: '企业连接', 'team-work': '团队作业与追溯', trace: '需求执行记录', knowledge: '项目知识', sessions: '轨迹分析与知识挖掘', evolution: '能力演进', account: '个人设置', settings: '个人设置' };
@@ -39,7 +40,12 @@ function App() {
   const [fatal, setFatal] = useState(''), [error, setError] = useState(''), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false);
   const [role, setRole] = useState<Role>(currentSystemContext().role);
   const [mode, setMode] = useState<UiThemeMode>(localStorage.getItem('carddemo-theme') === 'dark' ? 'dark' : 'light');
-  const [current, setCurrent] = useState(route), [width, setWidth] = useState(220);
+  const [current, setCurrent] = useState(route), [width, setWidth] = useState(() => {
+    if (isTalent) return 220;
+    const saved = Number(localStorage.getItem('teams-sidebar-width'));
+    return Number.isFinite(saved) && saved >= 200 && saved <= 480 ? saved : 200;
+  });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => !isTalent && localStorage.getItem('teams-sidebar-collapsed') === 'true');
   const [detail, setDetail] = useState<{ title: string; content: string } | null>(null);
   const resetting = useRef(false);
   useEffect(() => {
@@ -53,6 +59,8 @@ function App() {
     return () => { live = false; clearInterval(timer); window.removeEventListener('hashchange', change); channel.removeEventListener('message', sync); window.removeEventListener('focus', refresh); };
   }, []);
   useEffect(() => { document.documentElement.dataset.theme = mode; localStorage.setItem('carddemo-theme', mode); }, [mode]);
+  useEffect(() => { if (!isTalent) localStorage.setItem('teams-sidebar-collapsed', String(sidebarCollapsed)); }, [sidebarCollapsed]);
+  const resizeSidebar = (value: number) => { setWidth(value); localStorage.setItem('teams-sidebar-width', String(value)); };
   useEffect(() => { localStorage.setItem('carddemo-role', role); const url = new URL(location.href); url.searchParams.set('demo-role', role); history.replaceState(null, '', url); }, [role]);
   useEffect(() => { document.title = (isTalent ? 'Talent' : 'iCode Teams') + ' · ' + (titles[current.path] ?? '项目'); if (current.path === 'talent') location.href = talentLink('knowledge'); }, [current.path]);
   const run = useCallback(async <T,>(work: () => Promise<T>, success?: string): Promise<T | undefined> => {
@@ -95,6 +103,14 @@ function App() {
   const projectName = !isTalent && current.path === 'projects' && projectSelected
     ? importedProject ? data.teamsProject.project.name : projectId === 'carddemo' ? state.workspace.project.name : createdProject?.name
     : undefined;
+  const switchRole = (value: Role) => {
+    const url = new URL(location.href);
+    url.searchParams.set('demo-role', value);
+    // Task selection is shared within the project and survives role changes.
+    setDetail(null); setError(''); setNotice('');
+    history.replaceState(null, '', url); setCurrent(route());
+    localStorage.setItem('carddemo-role', value); setRole(value);
+  };
   let content: React.ReactNode;
   if (isTalent) content = role === 'member' && ['sessions', 'evolution'].includes(current.path) ? <Alert type="info" title="会话分析与能力演进由项目 Owner 管理" action={<Button href={talentLink('knowledge')}>查看项目知识</Button>} /> : current.path === 'knowledge' ? <Knowledge /> : current.path === 'sessions' ? <TalentSessions /> : current.path === 'evolution' ? <Evolution /> : <Alert type="error" title="Talent 页面不存在" action={<Button href={talentLink('knowledge')}>回到项目知识</Button>} />;
   else if (role !== 'owner' && isOwnerPage(current.path)) content = <Alert type="info" title="此页面面向项目 Owner" description="成员可在项目任务中查看自己的执行记录与检查报告。" action={<Button href="#/projects">进入我的项目</Button>} />;
@@ -113,19 +129,20 @@ function App() {
   return <ConfigProvider locale={zhCN} theme={teamsTheme(mode)}><Context.Provider value={{ state, data, role, busy, perform, update, run, showText, showEvidence, navigate, receiveState }}>
     <div onClickCapture={event=>{const link=(event.target as HTMLElement).closest('a');if(!isTalent&&link?.getAttribute('href')==='#/talent'){event.preventDefault();location.href=talentLink('knowledge');}}} className={'framework-root ' + (isTalent ? 'talent-root' : '')} style={{ '--ui-shell-sidebar': width + 'px' } as React.CSSProperties}>
 
-      <div className="framework-shell">{isTalent ? <aside className="talent-sidebar"><div className="talent-workspace"><span className="system-mark talent"><ApartmentOutlined /></span><div><strong>Talent 知识空间</strong><small>{data.talent?.context.name}</small></div></div><span className="eyebrow">项目能力</span><nav>{[{ id: 'knowledge', title: '项目知识', icon: <BookOutlined /> }, ...(role === 'owner' ? [{ id: 'sessions', title: '轨迹分析与知识挖掘', icon: <FileTextOutlined /> }, { id: 'evolution', title: '能力演进', icon: <ExperimentOutlined /> }] : [])].map(n => <a key={n.id} href={talentLink(n.id)} className={current.path === n.id ? 'active' : ''}>{n.icon}{n.title}</a>)}</nav><div className="talent-sidebar-foot"><Origin kind="simulated" /><p>知识资产、构建与自演进<br />独立 Talent 服务</p><a href={teamsLink('projects?tab=content')}><ArrowLeftOutlined /> 返回 Teams 项目</a><Button type="text" onClick={() => setMode(mode === 'dark' ? 'light' : 'dark')}>切换{mode === 'dark' ? '浅色' : '深色'}主题</Button></div></aside> :
-        <FrameworkSidebar pages={teamsPages(role)} navigation={{ projects: <div role="group" aria-label="项目列表">{[{id:'carddemo',name:state.workspace.project.name},{id:'teams',name:data.teamsProject.project.name},...(state.workspace.projects??[])].map(project=><a key={project.id} className={'child'+(projectSelected&&projectId===project.id?' active':'')} href={'#/projects?project='+project.id+'&tab=content'} title={project.name} aria-current={projectSelected&&projectId===project.id?'page':undefined}>{project.name}</a>)}</div> }} selected={selected} context={{ teamId: importedProject ? 'teams' : 'carddemo', projectId: projectSelected ? projectId : undefined }} collapsed={false} width={width} onResize={setWidth} online={true} themeMode={mode} onToggleTheme={() => setMode(mode === 'dark' ? 'light' : 'dark')} account={{ nickname: role === 'owner' ? '林悦 · Owner' : '陈晨 · 成员', color: role === 'owner' ? 'var(--ui-color-avatar-5)' : 'var(--ui-color-avatar-2)' }} />}
+      <div className={'framework-shell' + (!isTalent && sidebarCollapsed ? ' teams-navigation-collapsed' : '')}>{isTalent ? <aside className="talent-sidebar"><div className="talent-workspace"><span className="system-mark talent"><ApartmentOutlined /></span><div><strong>Talent 知识空间</strong><small>{data.talent?.context.name}</small></div></div><span className="eyebrow">项目能力</span><nav>{[{ id: 'knowledge', title: '项目知识', icon: <BookOutlined /> }, ...(role === 'owner' ? [{ id: 'sessions', title: '轨迹分析与知识挖掘', icon: <FileTextOutlined /> }, { id: 'evolution', title: '能力演进', icon: <ExperimentOutlined /> }] : [])].map(n => <a key={n.id} href={talentLink(n.id)} className={current.path === n.id ? 'active' : ''}>{n.icon}{n.title}</a>)}</nav><div className="talent-sidebar-foot"><Origin kind="simulated" /><p>知识资产、构建与自演进<br />独立 Talent 服务</p><a href={teamsLink('projects?tab=content')}><ArrowLeftOutlined /> 返回 Teams 项目</a><Button type="text" onClick={() => setMode(mode === 'dark' ? 'light' : 'dark')}>切换{mode === 'dark' ? '浅色' : '深色'}主题</Button></div></aside> :
+        <FrameworkSidebar pages={teamsPages(role)} navigation={{ projects: <div role="group" aria-label="项目列表">{[{id:'carddemo',name:state.workspace.project.name},{id:'teams',name:data.teamsProject.project.name},...(state.workspace.projects??[])].map(project=><a key={project.id} className={'child'+(projectSelected&&projectId===project.id?' active':'')} href={'#/projects?project='+project.id+'&tab=content'} title={project.name} aria-current={projectSelected&&projectId===project.id?'page':undefined}>{project.name}</a>)}</div> }} selected={selected} context={{ teamId: importedProject ? 'teams' : 'carddemo', projectId: projectSelected ? projectId : undefined }} collapsed={sidebarCollapsed} width={width} onResize={resizeSidebar} online={true} themeMode={mode} onToggleTheme={() => setMode(mode === 'dark' ? 'light' : 'dark')} account={{ nickname: role === 'owner' ? '林悦 · Owner' : '陈晨 · 成员', color: role === 'owner' ? 'var(--ui-color-avatar-5)' : 'var(--ui-color-avatar-2)' }} />}
         <main className="framework-main"><header className="main-topbar compact-topbar">
+          {!isTalent && <Tooltip title={sidebarCollapsed ? '展开左侧导航' : '收起左侧导航'}><Button className="global-navigation-toggle" type="text" aria-label={sidebarCollapsed ? '展开左侧导航' : '收起左侧导航'} aria-expanded={!sidebarCollapsed} icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setSidebarCollapsed(value => !value)} /></Tooltip>}
           <nav className={'breadcrumb' + (projectName ? ' project-breadcrumb' : '')} aria-label="当前位置">
             <Select className="compact-system-switch" aria-label="切换系统" size="small" variant="borderless" value={isTalent ? 'talent' : current.path === 'agent' ? 'tools' : 'teams'} popupMatchSelectWidth={180} onChange={value=>{location.href=value==='talent'?talentLink('knowledge'):value==='tools'?teamsLink('agent'):teamsLink('home');}} options={[{value:'teams',label:'iCode Teams'},{value:'talent',label:'Talent'},{value:'tools',label:'iCode / OpenCode'}]}/>
             <span className="breadcrumb-separator">/</span>{projectName ? <><a className="breadcrumb-parent" href="#/projects?tab=list">项目</a><span className="breadcrumb-separator">/</span><strong aria-current="page" title={projectName}>{projectName}</strong></> : <strong aria-current="page" title={titles[current.path] ?? '项目'}>{titles[current.path] ?? '项目'}</strong>}
           </nav>
           <div className="topbar-right">
 
-            <Select className="compact-role-switch" aria-label="切换角色" size="small" value={role} onChange={value=>{const url=new URL(location.href);url.searchParams.set('demo-role',value);history.replaceState(null,'',url);localStorage.setItem('carddemo-role',value);setRole(value);}} popupMatchSelectWidth={210} options={[{value:'owner',label:'林悦 · 项目 Owner'},{value:'member',label:'陈晨 · 项目成员'}]}/>
+            <Select className="compact-role-switch" aria-label="切换角色" size="small" value={role} onChange={switchRole} popupMatchSelectWidth={210} options={[{value:'owner',label:'林悦 · 项目 Owner'},{value:'member',label:'陈晨 · 项目成员'}]}/>
           </div>
         </header>
-          <div className={'page-scroll' + (projectName ? ' project-page-scroll' : '')} key={isTalent + current.path}>{error && <Alert className="global-alert" type="error" showIcon title={displayText(error)} closable onClose={() => setError('')} />}{notice && <Alert className="global-alert" type="success" showIcon title={displayText(notice)} closable onClose={() => setNotice('')} />}{isTalent && data.talent?.project.projection.status === 'pending' && <Alert type="warning" title="Talent 成果等待回传 Teams" description={data.talent.project.projection.error} action={<Button loading={busy} onClick={()=>{const project=data.talent!.project;void(project.projection.action==='analysis.run'?update('analysis.run',{scope:project.analysis.scope}):perform(project.projection.action as Action));}}>重试回传</Button>} />}{state.campaignId !== campaign.id && <Alert type="warning" title="工作区规则版本已更新" description="当前保存记录属于旧规则，请由 Owner 在 Teams 个人设置中重置工作区后继续。" action={<Button href={isTalent ? teamsLink('account') : '#/account'}>前往个人设置</Button>} />}{content}<footer className="page-foot"><span>{isTalent ? data.talent?.context.name+' · Talent 独立知识服务' : createdProject ? createdProject.name+' · 项目' : importedProject ? 'iCode Teams · 项目' : 'MKT-001 · Teams × iCode × Talent'}</span></footer></div>
+          <div className={'page-scroll' + (projectName ? ' project-page-scroll' : '')} key={isTalent + current.path + role}>{error && <Alert className="global-alert" type="error" showIcon title={displayText(error)} closable onClose={() => setError('')} />}{notice && <Alert className="global-alert" type="success" showIcon title={displayText(notice)} closable onClose={() => setNotice('')} />}{isTalent && data.talent?.project.projection.status === 'pending' && <Alert type="warning" title="Talent 成果等待回传 Teams" description={data.talent.project.projection.error} action={<Button loading={busy} onClick={()=>{const project=data.talent!.project;void(project.projection.action==='analysis.run'?update('analysis.run',{scope:project.analysis.scope}):perform(project.projection.action as Action));}}>重试回传</Button>} />}{state.campaignId !== campaign.id && <Alert type="warning" title="工作区规则版本已更新" description="当前保存记录属于旧规则，请由 Owner 在 Teams 个人设置中重置工作区后继续。" action={<Button href={isTalent ? teamsLink('account') : '#/account'}>前往个人设置</Button>} />}{content}<footer className="page-foot"><span>{isTalent ? data.talent?.context.name+' · Talent 独立知识服务' : createdProject ? createdProject.name+' · 项目' : importedProject ? 'iCode Teams · 项目' : 'MKT-001 · Teams × iCode × Talent'}</span></footer></div>
         </main></div>
     </div>
     <Drawer width={880} open={!!detail} onClose={() => setDetail(null)} title={detail?.title}><pre className="evidence-console drawer-console">{detail?.content}</pre></Drawer>

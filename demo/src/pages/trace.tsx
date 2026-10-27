@@ -1,8 +1,11 @@
 import { TaskSessions } from '../components/task-sessions.js';
+import { preferredDeliveryTask, projectDeliveryTasks } from '../project-delivery-tasks.js';
+import { CollaborationProgress } from '../components/collaboration-progress.js';
+import { displayRequirementId } from '../display-text.js';
 import { displayText } from '../display-text.js';
 import { TeamsPageIntro } from '../components/teams-reuse.js';
 import { useState } from 'react';
-import { Button, Descriptions, Space, Tabs, Tag, Timeline } from 'antd';
+import { Button, Descriptions, Empty, Space, Tabs, Tag, Timeline } from 'antd';
 import { ArrowRightOutlined } from '@ant-design/icons';
 import { useDemo } from '../context.js';
 import { FrameworkCard } from '../vendor/teams/components/page-layout.js';
@@ -10,6 +13,12 @@ import { MiniStat, talentLink } from '../components/common.js';
 export function Trace({ initial }: { initial?: string }) {
   const { data, state, showEvidence, role, update, busy } = useDemo();
   const [selected, setSelected] = useState(initial === 'security' ? 'security' : 'E1');
+  if(state.workspace.deliveryRequirements?.some(task=>task.id==='DEMO-MKT-001'&&task.projectId==='carddemo')){
+    const params=new URLSearchParams(location.hash.split('?')[1]??''),projectId=params.get('project')??'carddemo',requested=params.get('task'),tasks=projectDeliveryTasks(state,projectId,role),task=(requested?tasks.find(item=>item.id===requested):preferredDeliveryTask(tasks,role))?.record;
+    if(!task)return <Empty description="当前范围没有可查看的任务执行记录"/>;
+    const scope={projectId:task.projectId,taskId:task.id};
+    return <div className="page-stack" data-trace-task={task.id}><TeamsPageIntro actions={<Button href={'#/projects?'+new URLSearchParams({project:task.projectId,tab:'delivery',task:task.id})}>返回任务交付</Button>}>{displayRequirementId(task.id)} · {task.title}</TeamsPageIntro><FrameworkCard title="当前任务执行记录"><p>{task.description}</p><Descriptions column={1} items={(['prepare','develop','verify','accept'] as const).map((node,index)=>({key:node,label:['需求澄清','功能开发','测试验证','需求验收'][index],children:task.nodes[node].summary||'尚无执行结果'}))}/></FrameworkCard><TaskSessions scope={scope} readonly/><CollaborationProgress {...scope}/></div>;
+  }
   const evidence = data.evidence.find(e => e.id === selected);
   return <div className="page-stack">
     <TeamsPageIntro actions={role === 'owner' ? <Button href={talentLink('sessions')}>分析交付记录 <ArrowRightOutlined /></Button> : <Button href="#/projects?tab=delivery">返回我的交付</Button>}>MKT-001 · 白金卡消费返现</TeamsPageIntro>

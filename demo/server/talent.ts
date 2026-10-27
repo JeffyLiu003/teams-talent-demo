@@ -1,3 +1,4 @@
+import { checkedNode, talentNodeInputs } from './talent-node-inputs.js';
 import { TalentTaskIntakeService } from './talent-intake.js';
 import { createServer } from 'node:http';
 import { randomBytes } from 'node:crypto';
@@ -91,6 +92,7 @@ const server = createServer(async (request, response) => {
     if (request.method === 'OPTIONS') { response.writeHead(204); response.end(); return; }
     if (request.method === 'GET' && path === '/api/health') { json(200, { app: 'talent-carddemo', service: 'talent', workspaceRoot: root, stateRoot: talentRuntimeDir, version: '0.2.0', pid: process.pid, origin: talentOrigin, teamsOrigin: origin }); return; }
     if (request.method === 'GET' && path === '/api/session') { json(200, { token }); return; }
+    if (request.method === 'GET' && path === '/api/task-node-inputs') { const projectId=url.searchParams.get('projectId')??'',taskId=url.searchParams.get('taskId')??'',node=checkedNode(url.searchParams.get('nodeId')??''); json(200,await talentNodeInputs(await context(projectId),fixtures,taskId,node,talentOrigin,(id,binding)=>taskIntake.skill(id,binding)));return; }
     if (request.method === 'GET' && path === '/api/task-inputs') { json(200, await taskIntake.inputs(url.searchParams.get('projectId') ?? '', url.searchParams.get('taskId') ?? '')); return; }
     if (request.method === 'GET' && path === '/teams') { response.writeHead(302, { Location: origin + '/teams' + url.search }); response.end(); return; }
     if (request.method === 'GET' && ['/api/bootstrap', '/api/state', '/api/knowledge/assets'].includes(path)) {

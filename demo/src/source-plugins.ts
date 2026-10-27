@@ -108,7 +108,7 @@ function asset(data: SourcePluginData, pluginId: SourcePluginId, projectId: Sour
     ...value,
     id: sourceAssetId(pluginId, projectId, value.sourceRecordId), pluginId,
     sourceProjectId: projectId,
-    sourceProjectName: projectId === 'teams' ? data.teamsProject.project.name : '信用卡营销交付',
+    sourceProjectName: projectId === 'teams' ? data.teamsProject.project.name : 'Credit Card',
     origin: 'plugin-mock' as const,
     detail: `来源记录 · ${value.sourceRecordId}\n\n${value.detail}`,
     references: Object.freeze((value.references ?? []).map(reference => Object.freeze({ ...reference }))),

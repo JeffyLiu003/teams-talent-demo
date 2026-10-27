@@ -15,6 +15,16 @@ export class TaskAutomationService {
   private active = new Map<string, Promise<DemoState>>();
   constructor(private store: Store, data: Presentation, private dependencies: Dependencies = {
     async inputs(state, scope) {
+      // Register the already assigned requirement facts, without building project
+      // knowledge or asserting that the agent has adopted/read the inputs.
+      const task=deliveryRequirement(state,scope.projectId,scope.taskId);
+      if(task&&!task.preparedAt){
+        const auth=await fetch(talentOrigin+'/api/session',{signal:AbortSignal.timeout(5000),redirect:'error'});
+        if(!auth.ok)throw new Error('Talent连接失败 HTTP '+auth.status);
+        const {token}=await auth.json();if(typeof token!=='string')throw new Error('Talent连接凭据无效');
+        const registered=await fetch(talentOrigin+'/api/task-inputs/register',{method:'POST',headers:{origin,'content-type':'application/json','x-demo-token':token},body:JSON.stringify({role:'owner',...scope}),signal:AbortSignal.timeout(10000),redirect:'error'});
+        if(!registered.ok){const error=await registered.json();throw new Error(error.error??'Talent任务输入登记失败 HTTP '+registered.status);}
+      }
       const context = await collaborationContext(state, data, { ...scope, nodeId: 'prepare' });
       if (context.knowledge.status === 'unavailable') throw new Error(context.knowledge.error ?? '项目知识暂不可读取');
       return { mode: context.mode as ImportedTaskInputs['mode'], contextId: context.contextId, requirement: context.agreement.title,
@@ -32,7 +42,7 @@ export class TaskAutomationService {
       if(!acceptedAt)throw new Error('缺少验收时间，未发送会话');
       const inputDigest=task?.inputDigest??createHash('sha256').update(JSON.stringify(state.context)).digest('hex');
       const auth=await fetch(talentOrigin+'/api/session',{signal:AbortSignal.timeout(5000),redirect:'error'});if(!auth.ok)throw new Error('Talent连接失败 HTTP '+auth.status);const token=(await auth.json()).token;if(typeof token!=='string')throw new Error('Talent连接凭据无效');
-      const sessionDocuments=task?.workDirectory?await nativeTaskSessionDocuments(runtimeDir,scope,record.sessions):undefined;
+      const sessionDocuments=task&&(task.workDirectory||task.id==='DEMO-MKT-001')?await nativeTaskSessionDocuments(runtimeDir,scope,record.sessions,{id:record.id,acceptedAt}):undefined;
       const response=await fetch(talentOrigin+'/api/task-sessions',{method:'POST',headers:{origin,'content-type':'application/json','x-demo-token':token},body:JSON.stringify({...scope,deliveryId:record.id,idempotencyKey:record.id,acceptedAt,inputDigest,sessions:record.sessions,...(sessionDocuments?{sessionDocuments}:{})}),signal:AbortSignal.timeout(10000),redirect:'error'});
       const value=await response.json();if(!response.ok)throw new Error(value.error??'Talent上报失败 HTTP '+response.status);const receipt=value.receipt??value;
       if(typeof receipt.id!=='string'||receipt.projectId!==scope.projectId||receipt.taskId!==scope.taskId||!Array.isArray(receipt.sessionIds)||!receipt.receivedAt||typeof receipt.payloadSha256!=='string'||JSON.stringify([...receipt.sessionIds].sort())!==JSON.stringify([...new Set(record.sessions.map(item=>item.sessionId))].sort()))throw new Error('Talent接收回执与当前任务不一致');if(sessionDocuments&&JSON.stringify([...(receipt.documentHashes??[])].sort((a,b)=>a.sessionId.localeCompare(b.sessionId)))!==JSON.stringify(sessionDocuments.map(({sessionId,sha256})=>({sessionId,sha256})).sort((a,b)=>a.sessionId.localeCompare(b.sessionId))))throw new Error('Talent正文接收摘要与原生文件不一致');return receipt;
@@ -47,10 +57,10 @@ export class TaskAutomationService {
   }
   prepare(role: Role, scope: TaskScope, retry = false) {
     requireWritableTask(scope,this.store.state);
-    if (role !== 'member') throw new DomainError('知识导入在任务成员进入需求准备时触发', 403);
+
     const task=deliveryRequirement(this.store.state,scope.projectId,scope.taskId);
     if (!task && !this.store.state.assigned) throw new DomainError('需求尚未分配，知识导入等待任务开始');
-    if(task)requireDeliveryMember(this.store.state,task,role);else requireCurrentTaskMember(this.store.state);
+    if(task)requireDeliveryMember(this.store.state,task,role);else {if(role!=='member')throw new DomainError('仅当前交付人可以读取任务输入',403);requireCurrentTaskMember(this.store.state);}
     const key = 'knowledge:' + scope.projectId + '/' + scope.taskId;
     return this.run(key, async () => {
       const existing = taskAutomation(this.store.state, scope)?.knowledge;

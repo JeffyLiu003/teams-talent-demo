@@ -104,7 +104,7 @@ try {
   await visit('projects?project=' + projectId + '&tab=content');
   await openPanel('项目资料'); await page.getByRole('button', { name: '关联项目资产', exact: true }).click();
   await page.getByRole('combobox', { name: '筛选资产来源', exact: true }).click(); await page.locator('.ant-select-item-option-content').getByText('需求平台', { exact: true }).click();
-  const sourcePicker = page.getByRole('combobox', { name: '选择来源资产', exact: true }); await sourcePicker.click(); await sourcePicker.fill('信用卡消费返现'); await page.locator('.ant-select-item-option-content').getByText('信用卡消费返现 · 需求平台 · 信用卡营销交付', { exact: true }).waitFor(); await sourcePicker.press('Enter');
+  const sourcePicker = page.getByRole('combobox', { name: '选择来源资产', exact: true }); await sourcePicker.click(); await sourcePicker.fill('信用卡消费返现'); await page.locator('.ant-select-item-option-content').getByText('信用卡消费返现 · 需求平台 · Credit Card', { exact: true }).waitFor(); await sourcePicker.press('Enter');
   await save('asset.link', '关联所选资产');
   await page.getByRole('button', { name: '查看来源：信用卡消费返现', exact: true }).click();
   assert.ok((await page.locator('.drawer-console').innerText()).includes('来源插件')); await closeText();

@@ -74,7 +74,7 @@ test('atomic persistence, stale revision rejection and deliberate reset',async()
     const path=join(dir,'state.json'),store=new Store(path);await store.init();
     await store.apply(0,'assign','owner',{assigneeId:'member'});
     await assert.rejects(store.apply(0,'assign','owner',{assigneeId:'member'}),/另一页面/);
-    const restored=new Store(path);await restored.init();assert.equal(restored.state.assigned,true);assert.equal(restored.state.published,false);
+    const restored=new Store(path);await restored.init();assert.equal(restored.state.workspace.deliveryRequirements?.find(task=>task.id==='DEMO-MKT-001')?.assigneeId,'member');assert.equal(restored.state.assigned,false);assert.equal(restored.state.published,false);
     await restored.reset(1);assert.equal(restored.state.revision,2);assert.equal(restored.state.published,false);
     assert.deepEqual(JSON.parse(await readFile(path,'utf8')),restored.state);
     await writeFile(path,'broken');await assert.rejects(new Store(path).init());
@@ -186,17 +186,17 @@ test('resource publishing and subscriptions stay separate from unpublished proje
   s=transition(s,'replay','member');assert.equal(s.stage,'developing');
 });
 
-test('legacy shared records and old frozen inputs remain usable without rewriting saved state',async()=>{
+test('legacy shared records and frozen inputs remain unchanged through explicit main-task migration',async()=>{
   const {skillCatalog}=await readSkillCatalog();
   const dir=await mkdtemp(join(tmpdir(),'teams-demo-legacy-resources-'));
   try{
-    const path=join(dir,'state.json'),old=initialState();old.published=true;
+    const path=join(dir,'state.json');let old=initialState();old=transition(old,'assign','owner',{assigneeId:'member'});old=transition(old,'knowledge','owner');old=transition(old,'prepare','member');old.published=true;
     old.audit=[{id:1,at:'2026-10-25T10:00:00.000Z',role:'owner',system:'Teams',action:'发布共享能力包',detail:'原演示共享记录',origin:'simulated'}];old.revision=1;
     old.workspace.acquiredResources=['dev-frontend-ui'];
     await writeFile(path,JSON.stringify(old));const bytes=await readFile(path,'utf8');
-    const store=new Store(path);await store.init();assert.deepEqual(store.state,old);
-    assert.equal(resourcePublications(store.state).length,14);assert.equal(await readFile(path,'utf8'),bytes);
-    let s=transition(store.state,'assign','owner',{assigneeId:'member'});s=transition(s,'knowledge','owner');s=transition(s,'prepare','member');
+    const store=new Store(path);await store.init();const preserved=structuredClone(store.state);delete preserved.workspace.deliveryRequirements;assert.deepEqual(preserved,old);
+    assert.equal(resourcePublications(store.state).length,14);assert.equal(await readFile(path+'.pre-unified-delivery.json','utf8'),bytes);
+    let s=store.state;
     assert.equal(s.context?.agentVersion,'r1');assert.deepEqual(s.workspace.acquiredResources,['dev-frontend-ui']);
     s.adoptedSkill='1.1.0';s=updateWorkspace(s,'resource.publish','owner',{id:'dev-frontend-ui'},[],skillCatalog);
     assert.equal(resourcePublications(s).length,14);assert.equal(resourcePublications(s).find(item=>item.id==='dev-frontend-ui')?.version,'1.0.0');

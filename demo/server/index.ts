@@ -1,3 +1,10 @@
+import { startLocalTraceReceiver } from './local-trace-receiver.js';
+import { nativeTraceEnvironment } from '../scripts/native/tui-trace.mjs';
+import { readTalentNodeInputs } from './talent-node-client.js';
+import { checkedNode } from './talent-node-inputs.js';
+import { projectMembers } from '../src/teams-domain.js';
+import { createTaskSessionStream } from './task-session-stream.js';
+import type { TaskSessionStreamQuery } from '../src/task-session-stream.js';
 import { createDeliveryRequirement, deliveryRequirement, acceptDeliveryRequirement, returnDeliveryRequirement, requireDeliveryMember } from '../src/delivery-requirements.js';
 import { queueTaskCollection } from '../src/task-automation.js';
 import { TaskAutomationService } from './task-automation.js';
@@ -25,6 +32,7 @@ const store = new Store(); await store.init();
 const token = randomBytes(24).toString('hex');
 const fixtures = await readFixtures();
 const work = new ProjectWorkService(() => store.state, fixtures);
+const taskSessionStream = createTaskSessionStream(runtimeDir);
 const taskAutomationService = new TaskAutomationService(store, fixtures);
 const sourceCatalog = createSourcePluginCatalog(fixtures);
 const skillApplications = new SkillApplicationService({
@@ -36,6 +44,12 @@ const skillApplications = new SkillApplicationService({
   },
   discover: readInstalledNativeSkill,
 },join(runtimeDir,'skill-applications'));
+// An explicit endpoint belongs to its existing receiver. The default receiver shares only Teams' lifecycle.
+let localTrace: Awaited<ReturnType<typeof startLocalTraceReceiver>> | undefined;
+if (process.env.DEMO_NATIVE_DISABLED !== '1' && !process.env.DEMO_TRACE_ENDPOINT && !process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT && nativeTraceEnvironment(process.env,{projectId:'pending'}).enabled) {
+  try { localTrace = await startLocalTraceReceiver({runtimeDir,root}); }
+  catch (error) { console.error('本机 trace 接收端未启动，iCode 作业会显示诊断：' + (error as Error).message); }
+}
 const server = createServer(async (request, response) => {
   headers(request, response);
   const json = (code: number, value: unknown) => { response.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); response.end(JSON.stringify(value)); };
@@ -52,12 +66,28 @@ const server = createServer(async (request, response) => {
     if (request.method === 'GET' && path === '/api/health') { json(200, { app: 'teams-talent-carddemo', service: 'teams', workspaceRoot: root, stateRoot: runtimeDir, version: '0.2.0', pid: process.pid, origin, talentOrigin }); return; }
     if (request.method === 'GET' && path === '/api/bootstrap') { json(200, { token, state: store.state, data: fixtures }); return; }
     if (request.method === 'GET' && path === '/api/state') { json(200, store.state); return; }
+    if (request.method === 'GET' && path === '/api/task-node-inputs') {
+      const projectId=url.searchParams.get('projectId')??'',taskId=url.searchParams.get('taskId')??'',role=url.searchParams.get('role');
+      if(!['owner','member'].includes(role??''))throw new DomainError('请选择角色',400);
+      if(projectId!=='teams'&&!projectMembers(store.state,projectId).some(member=>member.id===role&&member.status==='active'))throw new DomainError('无权读取此项目',403);
+      json(200,await readTalentNodeInputs({projectId,taskId,nodeId:checkedNode(url.searchParams.get('nodeId')??'')}));return;
+    }
+    if (request.method === 'GET' && path === '/api/task-session-stream') {
+      const {role,...query}=Object.fromEntries(url.searchParams);
+      if(role!=='owner'&&role!=='member')throw new DomainError('请选择角色',400);
+      json(200,await taskSessionStream(store.state,role,query as unknown as TaskSessionStreamQuery));return;
+    }
     if (request.method === 'GET' && path === '/api/project-work') {
       const { role, ...target } = Object.fromEntries(url.searchParams);
       if (role !== 'owner' && role !== 'member') throw new DomainError('请选择角色', 400);
       json(200, await work.plan(role, target as any)); return;
     }
-    if (request.method === 'GET' && path === '/api/collaboration/context') { json(200, await collaborationContext(store.state, fixtures, Object.fromEntries(url.searchParams))); return; }
+    if (request.method === 'GET' && path === '/api/collaboration/context') {
+      const role=url.searchParams.get('role')??'member',projectId=url.searchParams.get('projectId')??'';
+      if(!['owner','member'].includes(role))throw new DomainError('请选择角色',400);
+      if(projectId!=='teams'&&!projectMembers(store.state,projectId).some(member=>member.id===role&&member.status==='active'))throw new DomainError('无权读取此项目',403);
+      json(200, await collaborationContext(store.state, fixtures, Object.fromEntries(url.searchParams))); return;
+    }
     if (request.method === 'GET' && path === '/api/collaboration/operation') { json(200, collaborationOperation(store.state, url.searchParams.get('operationId') ?? '')); return; }
     if (request.method === 'GET' && path === '/api/resource-content') {
       const {role,resourceId,version,sha256}=Object.fromEntries(url.searchParams);
@@ -147,10 +177,10 @@ const server = createServer(async (request, response) => {
     json(status, { error: error instanceof Error ? error.message : '请求失败' });
   }
 });
-server.on('error', error => { console.error(error.message); process.exitCode = 1; });
+server.on('error', error => { console.error(error.message); process.exitCode = 1; void localTrace?.close(); });
 server.listen(port, '127.0.0.1', async () => {
   await mkdir(runtimeDir, { recursive: true });
   console.log('Teams: ' + origin + '/teams');
   console.log('Talent 独立入口: ' + talentOrigin + '/talent');
 });
-for (const signal of ['SIGTERM', 'SIGINT'] as const) process.on(signal, () => { server.close(() => process.exit(0)); });
+for (const signal of ['SIGTERM', 'SIGINT'] as const) process.on(signal, () => { server.close(() => { void (localTrace?.close() ?? Promise.resolve()).then(() => process.exit(0), error => {console.error(error.message);process.exit(1);}); }); });

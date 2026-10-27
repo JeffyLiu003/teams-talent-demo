@@ -39,7 +39,7 @@ export function linkTaskSession(state: DemoState, role: Role, input: Record<stri
   const scope = { projectId: String(input.projectId ?? ''), taskId: String(input.taskId ?? '') }; requireWritableTask(scope,state);
   const live=deliveryRequirement(state,scope.projectId,scope.taskId);
   if(live)requireDeliveryMember(state,live,role);else requireCurrentTaskMember(state);
-  if (role !== 'member') throw new DomainError('仅任务成员可以关联工作会话', 403);
+  if (!live && role !== 'member') throw new DomainError('仅当前交付人可以关联工作会话', 403);
   if (live ? !live.preparedAt || ['awaiting-acceptance','accepted'].includes(live.stage) : !state.assigned || !state.context || ['submitted', 'accepted'].includes(state.stage)) throw new DomainError('请在需求上下文冻结后、交付提交前关联开发或验证会话');
   if (!['develop', 'verify'].includes(String(input.nodeId))) throw new DomainError('会话应关联到开发或验证节点');
   if (!['icode', 'opencode'].includes(String(input.tool)) || typeof input.sessionId !== 'string' || !input.sessionId.trim() || input.sessionId.length > 200 || /[\x00-\x1f]/.test(input.sessionId)) throw new DomainError('工具或会话标识无效');

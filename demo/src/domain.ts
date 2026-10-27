@@ -1,4 +1,5 @@
 import { projectMembers } from './teams-domain.js';
+import { deliveryRequirement, mainRequirementId } from './delivery-requirements.js';
 import { requireCurrentTaskMember, taskAssigneeName } from './task-assignment.js';
 import { queueTaskCollection } from './task-automation.js';
 import { campaign, calculateCashback, runCashbackChecks } from './cashback.js';
@@ -33,17 +34,21 @@ export const actionLabels: Record<Action, string> = { assign: '确认需求并�
 export function transition(previous: DemoState, action: Action, role: Role, payload: { reason?: string; assigneeId?: string } = {}): DemoState {
   requireCondition(Object.hasOwn(actionLabels, action), '未知操作');
   if (owners.includes(action) && role !== 'owner' || members.includes(action) && role !== 'member') throw new DomainError('当前角色无权执行此操作', 403);
+  const unified=deliveryRequirement(previous,'carddemo',mainRequirementId);
+  if(unified&&['prepare','replay','check-fail','fix','submit','enroll','purchase','deduplicate','uat','accept','return'].includes(action))throw new DomainError('请使用任务节点的 Teams CLI 回传与 Owner 验收；旧演练推进入口已停用');
   requireCondition(previous.campaignId === campaign.id, '当前工作区使用旧活动规则，请由 Owner 在个人设置中重置工作区后继续');
   if (previous.assigned && members.includes(action)) requireCurrentTaskMember(previous);
   const s = structuredClone(previous);
   let detail = '';
   switch (action) {
     case 'assign': {
-      requireCondition(s.stage !== 'accepted', '已验收需求不能调整交付人');
-      const member = projectMembers(s, 'carddemo').find(member => member.id === payload.assigneeId && member.status === 'active' && member.role === 'member');
+      const task=deliveryRequirement(s,'carddemo',mainRequirementId);
+      requireCondition((task?.stage??s.stage) !== 'accepted', '已验收需求不能调整交付人');
+      const member = projectMembers(s, 'carddemo').find(member => member.id === payload.assigneeId && member.status === 'active');
       requireCondition(member, '请选择有效的项目成员作为交付人');
-      requireCondition(!s.assigned || s.assigneeId !== member.id, '该成员已是当前交付人');
-      if (!s.assigned) s.stage = 'assigned'; s.assigned = true; s.assigneeId = member.id;
+      requireCondition(task?task.assigneeId!==member.id:!s.assigned || s.assigneeId !== member.id, '该成员已是当前交付人');
+      if(task){task.assigneeId=member.id;task.updatedAt=new Date().toISOString();}
+      else {if (!s.assigned) s.stage = 'assigned'; s.assigned = true; s.assigneeId = member.id;}
       detail = 'DEMO-MKT-001 → ' + taskAssigneeName(s) + ' · 交付人'; break;
     }
     case 'knowledge': requireCondition(s.workspace.project.assets.length && !s.knowledge, '请先关联项目资产；知识已生成时请使用现有版本'); requireCondition(s.workspace.connections.find(c=>c.id==='talent')?.enabled,'请先启用 Talent 接入'); s.knowledge = true; detail = 'Teams 项目资产 → Talent knowledge-v1 · 项目知识整合'; break;

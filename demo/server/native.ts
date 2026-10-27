@@ -9,11 +9,16 @@ import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { binary, workspace, runtimeDir, codeRoot, root, origin } from './config.js';
 import { atomicJson, atomicText } from './store.js';
+import { nativeTraceRuntime } from './native-trace-runtime.js';
+import { ensureNativeTuiHooks } from './native-tui-hooks.js';
+import { nativeTraceEnvironment, checkNativeTraceReceiver, traceLaunchSettings } from '../scripts/native/tui-trace.mjs';
+import type { ProjectWorkPlan } from '../src/project-work.js';
 import type { DemoState } from '../src/domain.js';
 const execute = promisify(execFile);
 let launchBusy = false;
 const launched = new Map<string, { identity: string; result: Promise<unknown> }>();
 const terminalLauncher = createTerminalLauncher();
+const expectedTraceReceiver = () => process.env.DEMO_TRACE_ENDPOINT || process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ? {} : {workspaceRoot:root,stateRoot:join(runtimeDir,'local-traces')};
 export const shellQuote = posixQuote;
 export async function installed(path: string) { try { await access(path, constants.X_OK); return true; } catch (e) { if ((e as NodeJS.ErrnoException).code === 'ENOENT') return false; throw e; } }
 async function openCodePath() {
@@ -77,7 +82,7 @@ export function launch(tool: 'icode' | 'opencode', restore: boolean, requestId: 
 }
 
 /** Native work entry: caller has validated and pinned the project directory/configuration. */
-export async function nativeWorkDefaults() {
+export async function nativeWorkDefaults(): Promise<(Omit<ProjectWorkPlan['instance'], 'installed' | 'name'> & {agent:string;agentLabel:string;model:string;modelLabel:string;terminal:{id:string;name:string;error?:string}}) | null> {
   if (!await installed(binary)) return null;
   const [agentReply, modelReply] = await Promise.all([
     execute(binary, ['agent', '--json'], { timeout: 10000, maxBuffer: 262144 }),
@@ -91,17 +96,25 @@ export async function nativeWorkDefaults() {
   const matches = models.models.filter((model: any) => model.id === selector || model.name === selector);
   if (matches.length !== 1) throw new Error('iCode 默认角色的模型配置无效');
   const preference = await terminalPreferences.context();
-  return { agent: role.id, agentLabel: role.displayName, model: matches[0].id, modelLabel: matches[0].name, terminal: { id: preference.selectedTerminal, name: preference.terminalName, error: preference.terminalError } };
+  const trace = nativeTraceEnvironment(process.env, { projectId: 'pending' });
+  const traceStatus: NonNullable<ProjectWorkPlan['instance']['trace']> = { endpoint:trace.endpoint,enabled:trace.enabled,sensitiveData:trace.sensitiveData, readiness: trace.enabled && process.env.DEMO_NATIVE_DISABLED !== '1' ? 'unavailable' : 'disabled', diagnostic: process.env.DEMO_NATIVE_DISABLED === '1' ? '此验证实例未开放原生启动' : trace.enabled ? '' : '按本机显式配置关闭 trace' };
+  if (trace.enabled && process.env.DEMO_NATIVE_DISABLED !== '1') try { await nativeTraceRuntime(); await checkNativeTraceReceiver(trace.endpoint, expectedTraceReceiver()); traceStatus.readiness = 'ready'; traceStatus.diagnostic = '接收端已就绪；实际轨迹以接收记录为准'; } catch (error) { traceStatus.diagnostic = '本机 trace 接收端未就绪：' + (error as Error).message; }
+  return { trace: traceStatus, agent: role.id, agentLabel: role.displayName, model: matches[0].id, modelLabel: matches[0].name, terminal: { id: preference.selectedTerminal, name: preference.terminalName, error: preference.terminalError } };
 }
 export async function startNativeWork(input: { directory: string; agent: string; model: string; sessionId?: string; instruction: string; terminal: string; task?: { runId: string; path: string; scope: { projectId: string; taskId: string; nodeId: string } } }) {
+  if (process.env.DEMO_NATIVE_DISABLED === '1') throw new Error('此验证实例未开放真实原生启动');
   if (input.task) {
-    if (input.sessionId || !/^[0-9a-f-]{36}$/i.test(input.task.runId)) throw new Error('自动任务仅支持明确的新会话请求');
+    if (input.sessionId || !/^[0-9a-f-]{36}$/i.test(input.task.runId)) throw new Error('当前任务仅支持明确的新会话请求');
     const output = join(runtimeDir, 'work-contexts', input.task.runId + '.native');
+    const trace = nativeTraceEnvironment(process.env, { ...input.task.scope, runId: input.task.runId });
+    const traceRuntime = trace.enabled ? await nativeTraceRuntime() : undefined;
+    if (trace.enabled) await checkNativeTraceReceiver(trace.endpoint, expectedTraceReceiver());
     await mkdir(output, { recursive: true });
     const manifest = join(output, 'manifest.json');
-    await atomicJson(manifest, { version: 1, runId: input.task.runId, scope: input.task.scope, executable: binary, directory: input.directory, agent: input.agent, model: input.model, taskFile: input.task.path, taskSha256: createHash('sha256').update(await readFile(input.task.path)).digest('hex') });
+    await atomicJson(manifest, { version: 1, executionMode: 'interactive', runId: input.task.runId, scope: input.task.scope, executable: binary, directory: input.directory, agent: input.agent, model: input.model, trace: {...traceLaunchSettings(trace),...expectedTraceReceiver(),runtime:traceRuntime}, taskFile: input.task.path, taskSha256: createHash('sha256').update(await readFile(input.task.path)).digest('hex') });
+    await ensureNativeTuiHooks(join(root, 'scripts/native/tui-work-hook.mjs'), join(runtimeDir, 'native-hook-backups'));
     const terminal = await terminalPreferences.selected(input.terminal);
-    return terminalLauncher.launch({ executable: process.execPath, directory: input.directory, args: [join(root, 'scripts/native/run-project-task.mjs'), manifest], instruction: 'iCode 将读取本次任务文件并执行；运行记录：' + output, terminal: terminal.id });
+    return terminalLauncher.launch({ executable: process.execPath, directory: input.directory, args: [join(root, 'scripts/native/run-project-tui.mjs'), manifest], instruction: '进入 iCode 交互界面；输入工作指令后，当前任务节点上下文将通过原生 Hook 附带。', terminal: terminal.id });
   }
   const args = ['-C', input.directory, '--agent', input.agent, '--model', input.model, ...(input.sessionId ? ['--session', input.sessionId] : [])];
   const terminal = await terminalPreferences.selected(input.terminal);

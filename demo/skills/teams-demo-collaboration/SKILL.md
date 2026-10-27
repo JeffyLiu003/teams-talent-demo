@@ -24,20 +24,25 @@ Windows PowerShell 中，优先复制启动材料给出的 `& 'Node绝对路径'
 开始实际工作时，以及有意义的里程碑、阻塞和收尾时，运行 `progress add` 或 `result submit`。不要按时间高频刷状态。输入保留同一 scope、runId、sessionId、adoptionId 和当前 expectedRevision：
 
 - `progress add`：`phase` 为 started / progress / blocked，`summary` 写实际进展，阻塞时填 `blocker`，`evidence` 为证据引用数组。解除阻塞时明确说明原因并发 progress，最新回报决定当前协作阻塞提示。
-- `result submit`：提供 summary 及至少一个 `evidence`，每项为 `{kind:"reference"|"local-file",value,description}`。本地路径只是一条本机引用，未上传团队存储；引用声明尚未由远端 provider 验真。成员成果报告保持待确认，质量检查和 Owner 验收仍走原流程。
+- `result submit`：提供 summary 及至少一个 `evidence`，每项为 `{kind:"reference"|"local-file",value,description,artifact,version,codeVersion?,source:"actual"|"preset"}`。artifact 和 completedCriteria 使用 `context.nodeContract` 当前节点定义；source=preset 仅用于检查报告，不能把 PRD 或代码提交预置为真实完成。version 是产物版本；代码及其设计、单测、检查报告使用相同 codeVersion。本地路径只是一条本机引用，未上传团队存储；引用声明尚未由远端 provider 验真。交付人成果报告保持待确认，完成标准由交付人回传声明，不代表 Teams 自动验证了文件正文或远端 PR；Owner 最终验收独立进行。
 - 开发/验证进度携带 `sessionId` 时，Teams 自动关联本项目、本任务、当前节点。Owner 验收通过后自动汇总去重；不要在提交后另行执行会话上报。数据归集不代表 Talent 已接收或完成分析。
 
 每次写入使用一个稳定 operationId。CLI 发送前保存完整请求，成功后保存服务回执；默认目录为 demo `.runtime/cli-receipts`，可用 `--receipt-dir` 指定。非零退出码或失败回执必须向会话明确报告。超时/响应丢失时先 `operation get --operation-id OP`；需要重试时保持原 ID 和完整原载荷。revision 冲突时重新读取并判断如何协调，不能换 ID 绕过冲突。相同 ID 不同载荷会被拒绝。
 
 当前角色只用于本机流程校验，不代表企业认证。不要通过 CLI 改 Owner 验收或旧需求的测试、安全字段。独立需求的检查结果按下方明确的 checks 合同回传。启动提示提供这份文件和读取命令；模型是否实际读取由会话执行确认，不能声称自动加载或自动完成同步。
 
-## 独立需求交付任务
+## 统一需求交付任务
 
-若上下文中的需求 ID 是独立任务（例如 `MKT-E2E-001`），必须沿此任务身份回传，不能替换为其他需求 ID。每条写入携带原生会话提供的真实 `sessionId` 与本次 `runId`，不能编造或复用历史会话。启动材料提供 `native-session.json` 时，等待并读取该文件，它由原生进程观察器记录，不是业务完成回执。
+MKT-001（内部 `DEMO-MKT-001`）与新增需求共用以下合同。必须沿启动材料中的任务身份回传，不能替换为其他需求 ID。每条写入携带原生会话提供的真实 `sessionId` 与本次 `runId`，不能编造或复用历史会话。启动材料提供 `native-session.json` 时，等待并读取该文件，它由原生进程观察器记录，不是业务完成回执。
 
-1. 在 `prepare` 节点读取 `context get`，实际核对 Talent 返回的知识与 Skill 正文，然后 `inputs adopt`；只列出实际读过的 `readReferences`。该操作保存本任务输入版本并完成准备，不代表开发完成。
-2. 切换 `develop` 后重新读取上下文并采用当前节点依据；通过 `progress add` 回传 `started`、`progress` 或 `blocked`。真实实施代码变更、执行检查后，用 `result submit` 提交至少一条真实文件/成果引用。开发结果保存后进入验证。
-3. 在 `verify` 节点重新读取与采用，检查回传可以携带 `checks` 数组，每项为 `{ "status": "passed"或"failed", "source": "actual"或"preset", "summary": "实际执行或预置检查的具体范围与结果" }`。允许的预置检查必须写 `preset`；真实命令执行结果写 `actual`，不能混淆。失败后回传阻塞/修复说明，复检通过后 `result submit`。必须有通过的检查结果和成果引用，才能进入待 Owner 验收。
+1. 在 `prepare` 节点读取 `context get`，实际核对 Talent 返回的知识与 Skill 正文，然后 `inputs adopt`；只列出实际读过的 `readReferences`。该操作仅保存本任务输入版本，不代表需求澄清完成。读取 `context.nodeContract` 的输入、交付物和完成标准，编写包含目标、范围、规则、验收标准及待确认项的 PRD。影响开发的关键事项未确认时报告阻塞，不能凭空确认。用 `result submit` 提交 `artifact="prd"` 的引用及明确已满足的 `completedCriteria` ID 后才能进入开发。
+2. 切换 `develop` 后重新读取上下文并采用当前节点依据；通过 `progress add` 回传 `started`、`progress` 或 `blocked`。真实实施代码变更、执行检查后，用 `result submit` 提交至少一条真实文件/成果引用。交付软件设计文档、GitHub PR／提交、单元测试及结果；分别使用 `software-design`、`code-change`、`unit-test-result` 分类，同一实现的 `codeVersion` 必须一致。已确认 PRD 使用原上游引用与版本，不另复制一份字符串。完成标准齐全后提交开发结果进入验证。
+3. 在 `verify` 节点重新读取与采用，检查回传可以携带 `checks` 数组，每项为 `{ "artifact": "functional-test-report"或"code-review-report"或"security-report", "status": "passed"或"failed", "source": "actual"或"preset", "summary": "实际执行或预置检查的具体范围与结果" }`。功能测试、代码检视、安全报告分别作为同类型 evidence；问题与复测记录使用 `issues-retest`（无问题也如实说明）。这些报告必须引用上游代码的同一 `codeVersion`，报告 source 与对应 checks 来源相同。允许的预置检查必须写 `preset`；真实命令执行结果写 `actual`，不能混淆。失败后回传阻塞/修复说明，复检通过后 `result submit`。失败结果可以如实提交为未完成记录，不能声明 `verify.current` 已满足。重新通过时需三类检查结论、四类验证交付物及本节点全部标准，且整批无失败，才能进入待 Owner 验收。Owner 退回或重新开发后必须提交新检查，旧检查仅保留历史。
 4. 停在待 Owner 验收，不得调用 Owner 验收接口或冒充 Owner。验收通过后的会话归集与 Talent 上报由 Teams 自动触发，接收回执与验收状态分开保存。
 
 每次写前使用最新 `revision`；节点变更需重新 `context get`、`inputs adopt`，不能把上一节点的采用记录跨节点使用。遇到明确失败先读取错误及最新上下文，不通过页面或直接改状态文件补成成功。
+
+
+按节点使用输入：`context.nodeInputs` 是 Talent 按项目、需求、节点返回的精确知识与 Skill，`selection` 保留预置场景来源、版本和关联理由。只使用本节点返回的正文与引用，不补读项目全量 Skill 或其他项目输入；未配置/不可读必须明确报告。`historical-subset` 只代表历史已采用内容的相关部分，不能当作新推荐已被采用。每节点 `inputs adopt` 保存本节点版本；读取页面或上下文不自动采用。
+
+执行身份：保留启动材料中的 `--role owner` 或 `--role member`。Owner 也可作为交付人；仅当前角色稳定身份与 task.assigneeId 一致时可以采用、回传或关联会话。项目内他人的任务可读，但不得代其启动或写进度。即使 Owner 本人交付，CLI 仍不可替代人工验收确认。
