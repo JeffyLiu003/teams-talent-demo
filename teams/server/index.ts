@@ -24,7 +24,9 @@ const token = randomBytes(24).toString('hex');
 const fixtures = await readFixtures();
 const work = new ProjectWorkService(() => store.state, fixtures);
 const sourceCatalog = createSourcePluginCatalog(fixtures);
-const exportSnapshot = () => exportTeamsSnapshot(store.state, fixtures, sourceCatalog);
+let exporting: Promise<unknown> = Promise.resolve();
+/** Exports run one after another so an older snapshot never overwrites a newer one. */
+const exportSnapshot = () => (exporting = exporting.catch(() => undefined).then(() => exportTeamsSnapshot(store.state, fixtures, sourceCatalog)));
 /** Talents publishing knowledge for the card project counts as "project knowledge built" in the delivery flow. */
 async function syncKnowledge() {
   try {
@@ -86,8 +88,10 @@ const server = createServer(async (request, response) => {
       const body = await bodyJson(request);
       if (!body || !['owner', 'member'].includes(body.role)) throw new DomainError('请选择角色', 400);
       if (path === '/api/action' && body.action === 'knowledge') throw new DomainError('项目知识由 Talents 发布后自动同步', 400);
+      if (path === '/api/action' && ['candidate', 'evaluate', 'release', 'adopt'].includes(body.action)) throw new DomainError('能力演进已迁移到 Talents', 400);
       if (path === '/api/action') { json(200, await store.apply(body.revision, body.action as Action, body.role as Role, { reason: body.reason })); return; }
       if(path==='/api/workspace'){
+        if (body.kind === 'analysis.run') throw new DomainError('轨迹分析已迁移到 Talents', 400);
         if(!body.payload || typeof body.payload!=='object' || Array.isArray(body.payload))throw new DomainError('工作区请求格式无效',400);
         if(['resource.publish','resource.publish-all'].includes(body.kind)){
           if(body.role!=='owner')throw new DomainError('仅 Owner 可以发布资源',403);

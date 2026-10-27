@@ -81,7 +81,7 @@ try {
   assert.deepEqual((await get(teams, '/api/talents/knowledge?project=carddemo')).artifacts, []);
   await publishFromTalents(1);
   const synced = await state(); assert.equal(synced.knowledge, true); assert.equal(synced.knowledgeVersion, '信用卡营销返现业务知识 v1');
-  assert.equal(synced.audit.at(-1)!.system, 'Talents');
+  assert.equal(synced.audit.at(-1)!.detail, 'Talents 已发布项目知识：信用卡营销返现业务知识 v1');
   assert.equal((await get(teams, '/api/talents/knowledge?project=carddemo')).artifacts.length, 1);
   assert.equal((await get(teams, '/api/talents/file?artifact=a-biz&version=1&path=' + encodeURIComponent('doc-knowledge/业务规则目录.md'))).content, '# 业务规则目录 v1');
   console.log('PASS 2/5: knowledge published by Talents is shown and marks project knowledge as built');

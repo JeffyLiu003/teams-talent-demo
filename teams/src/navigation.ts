@@ -9,7 +9,7 @@ const common: PageDefinition[] = [
   { id: 'resources', route: 'resources', title: '资源市场', groupId: 'shared', icon: 'appstore' },
   { id: 'subscriptions', route: 'subscriptions', title: '我的订阅', groupId: 'shared', icon: 'subscriptions' },
   { id: 'publications', route: 'publications', title: '我的发布', groupId: 'shared', icon: 'publications' },
-  { id: 'talent', route: 'talent', title: 'Talents', groupId: 'custom', icon: 'appstore' },
+  { id: 'talent', route: 'talent', title: 'Talent', groupId: 'custom', icon: 'appstore' },
 ];
 export function teamsPages(role: Role): PageDefinition[] {
   return role === 'member' ? common : [...common.slice(0, 4),

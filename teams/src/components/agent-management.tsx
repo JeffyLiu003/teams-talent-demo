@@ -38,7 +38,7 @@ function configurationPort(tool: Tool, demo: DemoContext): ConfigurationPort {
         : '读取项目上下文 → 分析与实施 → 运行项目检查 → 提交成果与验证依据。',
       model: '沿用原生 iCode 配置；本页未读取模型或凭据',
       scope: '项目共享定义；当前任务采用版本保持冻结',
-      origin: 'Teams 项目定义',
+      origin: 'Teams 项目定义；Talent 提供改进候选与评估',
     }, 'Teams 项目采用记录');
     for (const skill of demo.data.skills.filter(item => demo.state.workspace.selectedSkills.includes(item.name))) {
       add('skill', skill.name, skill.name, `项目选用 · ${project}`, {
@@ -194,7 +194,7 @@ export function AgentManagement({ nativeControls }: { nativeControls: ReactNode 
             }];
           },
           mountAdoption(element) {
-            return mountReact(element, () => <div className="agent-maintenance-detail"><Space><strong>{names[tool]} 接入</strong><Origin kind="simulated" /></Space><Alert type="info" title="本机状态按实际探测呈现" description={tool === 'icode' ? '使用已配置的 iCode 实例，状态以本机探测为准。' : 'OpenCode 保留原生 HTTP、Agent / Model / Variant、权限问答及 Plugin 语义。尚未接入原生 HTTP 服务；配置菜单可浏览只读配置。'} /><p className="ui-note">Teams 管理工具和共享入口；原生工具负责执行；Talents 提供项目知识挖掘与应用。</p></div>);
+            return mountReact(element, () => <div className="agent-maintenance-detail"><Space><strong>{names[tool]} 接入</strong><Origin kind="simulated" /></Space><Alert type="info" title="本机状态按实际探测呈现" description={tool === 'icode' ? '使用已配置的 iCode 实例，状态以本机探测为准。' : 'OpenCode 保留原生 HTTP、Agent / Model / Variant、权限问答及 Plugin 语义。尚未接入原生 HTTP 服务；配置菜单可浏览只读配置。'} /><p className="ui-note">Teams 管理工具和共享入口；原生工具负责执行；Talent 提供知识整合、分析和能力改进。</p></div>);
           },
           dispose() {},
         };

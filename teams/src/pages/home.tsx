@@ -11,7 +11,7 @@ import '../operations.css';
 import { TeamsPageIntro, TeamsQuickEntries, TeamsWorkRow } from '../components/teams-reuse.js';
 
 export function nextStep(state: ReturnType<typeof useDemo>['state']) {
-  if (!state.knowledge) return { title: '在 Talents 挖掘并发布项目知识', note: 'Talents 读取项目已对接的代码仓与设计文档，审阅后发布到项目知识。', href: talentLink('review', { role: 'owner' }), role: '项目 Owner' };
+  if (!state.knowledge) return { title: '在 Talents 挖掘并发布项目知识', note: 'Talents 读取项目已对接的代码仓与设计文档，审阅后发布到项目知识。', href: talentLink('knowledge', { role: 'owner' }), role: '项目 Owner' };
   if (!state.assigned) return { title: '确认并分配信用卡消费返现需求', note: '明确范围与验收标准，将需求交给陈晨。', href: '#/projects?tab=management', role: '项目 Owner' };
   if (!state.context) return { title: '准备 iCode 作业上下文', note: '查看需求背景，选用知识和业务 Skill，再进入开发。', href: '#/projects?tab=delivery&node=prepare', role: '项目成员' };
   if (state.stage === 'assigned') return { title: '进入 iCode 开发作业', note: '启动或恢复 iCode，读取本次作业上下文。', href: '#/projects?tab=delivery&node=develop', role: '项目成员' };
@@ -20,7 +20,10 @@ export function nextStep(state: ReturnType<typeof useDemo>['state']) {
   if (state.stage === 'fixed') return { title: '提交本次需求交付', note: '将代码、检查结果与未解决事项一起交给 Owner。', href: '#/projects?tab=delivery&node=verify', role: '项目成员' };
   if (state.stage === 'submitted') return { title: '确认白金卡消费返现结果', note: '核对返现金额、客户资格与周期边界，确认交付结果。', href: '#/projects?tab=delivery&node=accept', role: '项目 Owner' };
   if (!state.workspace.sessionReported) return { title: '上报交付相关会话', note: '将需求、交付结果和已有会话轨迹关联起来。', href: '#/trace', role: '项目成员' };
-  return { title: '在 Talents 诊断交付会话', note: '交付会话已共享，可在 Talents 做轨迹诊断并沉淀经验与 Skill 改进。', href: talentLink('tasks'), role: '项目 Owner' };
+  if (state.workspace.analysis.status !== 'analyzed') return { title: '分析交付轨迹与业务经验', note: '在 Talent 选择单需求或项目多需求，查看改进机会。', href: talentLink('sessions'), role: '项目 Owner' };
+  if (state.evolution === 'none') return { title: '形成 Agent 与业务 Skill 改进', note: '根据分析发现生成可评估的候选。', href: talentLink('evolution'), role: '项目 Owner' };
+  if (state.evolution !== 'adopted') return { title: state.evolution === 'published' ? '采用能力新版本' : '评估并发布改进候选', note: '新版本供后续作业使用，本次已采用依据保持不变。', href: state.evolution === 'published' ? '#/resources' : talentLink('evolution'), role: '项目 Owner' };
+  return { title: '查看交付与运营记录', note: '本次功能验收已完成，能力新版本可用于后续作业。', href: '#/team-work', role: '项目 Owner' };
 }
 
 type Tool = 'iCode' | 'OpenCode';
@@ -78,7 +81,7 @@ export function Home() {
         <FrameworkCard title={owner ? '最新开发进展' : '我的执行与反馈'}>{state.stage === 'returned' && <div className="ops-feedback"><strong>Owner 要求补充</strong><p>{state.returnReason}</p></div>}{timeline.length ? <div className="ops-feed">{timeline.slice(-3).reverse().map(item => <div key={item.id}><span className="activity-dot" /><div><strong>{displayText(item.text)}</strong><small>陈晨 · {new Date(item.at).toLocaleString('zh-CN')} · 开发节点</small></div></div>)}</div> : <p className="muted">开发进度同步后，会在这里汇集。</p>}<Space wrap><Button onClick={() => navigate('projects?tab=delivery&node=develop')}>查看开发节点</Button><Button onClick={() => navigate('trace')}>查看执行记录</Button></Space></FrameworkCard>
       </>} auxiliary={<>
         <FrameworkCard title="当前用量" action={<Origin kind="simulated" />}><div className="ops-total"><strong>{formatTokens(tokens)}</strong><span>{owner ? '当前筛选范围' : '本人'} · {period === 'today' ? '今日' : '近 7 日'} Token</span></div><Button type="link" onClick={() => navigate('home?tab=tokens')}>查看用量分析 <ArrowRightOutlined /></Button></FrameworkCard>
-        <FrameworkCard title="常用入口"><TeamsQuickEntries entries={[{href:'#/agent',title:'Agent 管理',note:'打开本机 Agent'},{href:'#/projects?tab=content',title:state.workspace.project.name,note:'进入项目空间'},{href:'#/resources',title:'资源市场',note:'发现共享资源'},{href:talentLink('knowledge'),title:'Talents',note:'项目知识挖掘与应用'}]} /></FrameworkCard>
+        <FrameworkCard title="常用入口"><TeamsQuickEntries entries={[{href:'#/agent',title:'Agent 管理',note:'打开本机 Agent'},{href:'#/projects?tab=content',title:state.workspace.project.name,note:'进入项目空间'},{href:'#/resources',title:'资源市场',note:'发现共享资源'},{href:talentLink('knowledge'),title:'Talent',note:'知识、分析与演进'}]} /></FrameworkCard>
         <FrameworkCard title="最近协作"><div className="ops-feed">{state.audit.slice(-3).reverse().map(item => <div key={item.id}><span className="activity-dot" /><div><strong>{displayText(item.action)}</strong><small>{item.system} · {item.role === 'owner' ? '林悦' : '陈晨'}</small></div></div>)}</div>{!state.audit.length && <p className="muted">准备项目知识后，开始本次交付。</p>}</FrameworkCard>
       </>} />
       {owner && <FrameworkCard title="成员使用情况" action={<Button onClick={() => navigate('home?tab=tools')}>查看工具使用</Button>}>{usageTable}<p className="ops-subnote">任务状态随协作进展更新。本机实际连接状态可在 Agent 管理中核验。</p></FrameworkCard>}

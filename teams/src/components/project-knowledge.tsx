@@ -55,6 +55,7 @@ export function ProjectKnowledge({ projectId, compact = false }: { projectId: st
     getTalentsKnowledge(projectId).then(value => { if (live) setArtifacts(value.artifacts); }).catch(error => { if (live) setFailure((error as Error).message); });
     return () => { live = false; };
   }, [projectId, state.revision, attempt]);
+  useEffect(() => setArtifacts(null), [projectId]);
   useEffect(() => { const refresh = () => setAttempt(value => value + 1); window.addEventListener('focus', refresh); return () => window.removeEventListener('focus', refresh); }, []);
   const loading = artifacts === null && !failure, ready = !!artifacts?.length;
   const status = loading ? '读取中' : failure ? '读取失败' : ready ? `已发布 ${artifacts!.length} 项` : '尚未发布';

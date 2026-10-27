@@ -6,8 +6,11 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "start": "node scripts/run-services.mjs",
+    "start:teams": "node scripts/run-services.mjs",
     "launch": "node scripts/launch.mjs --no-open",
+    "launch:teams": "node scripts/launch.mjs --no-open",
     "stop": "node scripts/stop.mjs",
+    "stop:teams": "node scripts/stop.mjs",
     "dev": "npm run build && npm start",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",

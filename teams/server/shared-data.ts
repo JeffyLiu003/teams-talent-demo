@@ -18,6 +18,8 @@ async function readShared(path: string): Promise<Buffer | null> {
 }
 
 const repositoryPath = (path: string) => 'workspace/' + path;
+/** Same "YYYY-MM-DD HH:mm" Beijing-time form as the session fixture. */
+const localMinute = (iso: string) => new Date(new Date(iso).getTime() + 8 * 3600_000).toISOString().slice(0, 16).replace('T', ' ');
 function cardProject(state: DemoState, catalog: SourcePluginCatalog): SharedProject {
   const project = state.workspace.project;
   const documents = project.assets.filter(asset => asset.kind === 'document').map(asset => {
@@ -34,7 +36,7 @@ function sessions(state: DemoState): SharedSession[] {
     ({ ...value, projectId: 'carddemo', memberName: members.get(value.memberId) ?? value.memberId, cwd: repositoryPath(state.workspace.project.repository) });
   const shared = teamSessions.sessions.map(card);
   const delivery = teamSessions.delivery;
-  if (state.workspace.sessionReported) shared.unshift(card({ ...delivery, updatedAt: (state.workspace.reportAt ?? new Date().toISOString()).slice(0, 16).replace('T', ' ') }));
+  if (state.workspace.sessionReported) shared.unshift(card({ ...delivery, updatedAt: localMinute(state.workspace.reportAt ?? new Date().toISOString()) }));
   return shared;
 }
 export function teamsSnapshot(state: DemoState, fixtures: Presentation, catalog: SourcePluginCatalog): TeamsSnapshot {
@@ -69,7 +71,8 @@ export async function projectKnowledge(projectId: string): Promise<PublishedArti
 }
 /** The version Teams records as "project knowledge built": the business knowledge if published, else any artifact. */
 export function knowledgeVersion(artifacts: PublishedArtifact[]) {
-  const main = artifacts.find(artifact => artifact.capability === 'doc-extract') ?? artifacts[0];
+  const sorted = [...artifacts].sort((a, b) => a.id.localeCompare(b.id));
+  const main = sorted.find(artifact => artifact.capability === 'doc-extract') ?? sorted[0];
   return main ? `${main.name} v${main.version}` : undefined;
 }
 export async function readTalentsFile(artifactId: string, version: number, path: string) {

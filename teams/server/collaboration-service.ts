@@ -64,8 +64,9 @@ export async function collaborationContext(state: DemoState, data: Presentation,
   let knowledge: { status: string; origin: string; selectedVersion: string | null; assets: unknown[]; error?: string };
   try {
     // Published Talents artifacts for this project, read from the shared data directory.
-    const assets = await projectKnowledge(scope.projectId);
-    knowledge = { status: assets.length ? 'available' : 'not-built', origin: talentOrigin, selectedVersion: frozen?.knowledgeVersion ?? null, assets };
+    const published = await projectKnowledge(scope.projectId);
+    const assets = frozen ? published.filter(artifact => `${artifact.name} v${artifact.version}` === frozen.knowledgeVersion) : published;
+    knowledge = { status: assets.length ? 'available' : frozen ? 'frozen-version-unavailable' : 'not-built', origin: talentOrigin, selectedVersion: frozen?.knowledgeVersion ?? null, assets };
   } catch (error) { knowledge = { status: 'unavailable', origin: talentOrigin, selectedVersion: frozen?.knowledgeVersion ?? null, assets: [], error: (error as Error).message }; }
   const agreement = card && scope.taskId ? { id: scope.taskId, title: data.blueprint.scenario.slice, background: data.blueprint.scenario.parent_requirement, criteria: data.blueprint.acceptance_criteria, revision: 'demo-r1' } : task ? { id: task.id, title: task.title, background: task.goal, scope: task.scope, criteria: task.criteria, revision: data.teamsProject.sourceCommit } : { id: scope.projectId, title: card ? state.workspace.project.name : teams ? data.teamsProject.project.name : created!.name, background: card ? state.workspace.project.description : teams ? data.teamsProject.project.description : created!.description, criteria: [], revision: 'project-preparation' };
   const basis = { scope, mode: frozen ? 'frozen' : 'preparation', contextId: frozen?.id ?? null, frozenAt: frozen?.createdAt ?? null, agreement, node: node ?? null, assets, materials, references, skills,

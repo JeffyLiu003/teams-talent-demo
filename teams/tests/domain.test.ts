@@ -21,7 +21,7 @@ test('two-role delivery records the Talents knowledge version and keeps security
   assert.equal(s.context?.knowledgeVersion,'信用卡营销返现业务知识 v2');
   assert.equal(s.security,'unverified'); assert.equal(s.balance,2670.15);
   assert.equal(s.transactions.length,1); assert.equal(s.transactions[0].reward,0.6);
-  assert.equal(s.published,false); assert.equal(s.audit.length,12); assert.equal(s.audit.filter(a=>a.system==='Talents').length,1);
+  assert.equal(s.published,false); assert.equal(s.audit.length,12); assert.equal(s.audit.find(a=>a.action==='发起项目知识整合')?.detail,'Talents 已发布项目知识：信用卡营销返现业务知识 v2');
   assert.throws(()=>transition(s,'knowledge','owner',{knowledgeVersion:'信用卡营销返现业务知识 v2'}),/尚未发布新的项目知识/);
 });
 test('permission and prerequisite failures do not mutate state', () => {
