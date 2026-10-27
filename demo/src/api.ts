@@ -22,9 +22,19 @@ export interface NativeStatus {
   terminals?: Array<{ id: string; name: string }>;
   selectedTerminal?: string;
   terminalError?: string;
-  icode: { installed: boolean; path: string; version: string | null; workspace: string; sessionId: string; sessionAvailable: boolean; active: { pid: number; application: string | null; tty: string } | null };
-  opencode: { installed: boolean; path: string | null; version: string | null; unsupportedReason?: string };
+  icode: { installed: boolean; path: string; version: string | null; workspace: string; sessionId: string; sessionAvailable: boolean; active: { pid: number; application: string | null; tty: string } | null; source?: 'override' | 'official' | 'bundled' | 'missing'; notes?: string[] };
+  opencode: { installed: boolean; path: string | null; version: string | null; unsupportedReason?: string; notes?: string[] };
   verification: { status: string; at: string; messageCount: number; note: string } | null;
+}
+export interface EngineLocation {
+  state: 'ready' | 'none' | 'failed';
+  entry?: string;
+  version?: string;
+  environment?: Record<string, string>;
+  config?: string;
+  sessionRoot?: string;
+  reason?: string;
+  notes?: string[];
 }
 const tokens = new Map<string, string>();
 async function tracedJson<T>(service: 'teams' | 'talent', path: string, init?: RequestInit): Promise<T> {
@@ -47,6 +57,7 @@ export async function bootstrap() {
 }
 export const getState = () => tracedJson<DemoState>('teams', '/api/state');
 export const getTools = () => tracedJson<NativeStatus>('teams', '/api/tools');
+export const getEngineLocation = () => tracedJson<{ engine: EngineLocation }>('teams', '/api/engine/locate');
 export const act = (state: DemoState, role: Role, action: Action, reason?: string, assigneeId?: string) => tracedJson<DemoState>(['knowledge', 'candidate', 'evaluate', 'release'].includes(action) ? 'talent' : 'teams', '/api/action', { method: 'POST', body: JSON.stringify({ revision: state.revision, action, reason, assigneeId, ...currentSystemContext(), role }) });
 export const updateWorkspace = (state: DemoState, role: Role, kind: WorkspaceAction, payload: Record<string,unknown>) => tracedJson<DemoState>(kind === 'analysis.run' ? 'talent' : 'teams', '/api/workspace', { method: 'POST', body: JSON.stringify({ revision:state.revision, kind, payload, ...currentSystemContext(), role }) });
 export const reset = (state: DemoState, role: Role) => tracedJson<DemoState>('teams', '/api/reset', { method: 'POST', body: JSON.stringify({ revision: state.revision, role }) });

@@ -9,7 +9,7 @@ npm run dev
 
 Teams：http://127.0.0.1:45970/teams；Talent：http://127.0.0.1:45980/talent。Ctrl+C 停止。状态分别保存在忽略目录 .runtime 和 .talent-runtime，重启保留。
 
-Windows 可运行仓库 start-demo.cmd；macOS 可运行仓库启动/停止 command 文件。原生工具可选，不是网页运行的前提。配置自己的可执行文件时使用 DEMO_ICODE_BINARY 或 DEMO_OPENCODE_BINARY，不在仓库提交密钥。
+Windows 可运行仓库 start-demo.cmd；macOS 可运行仓库启动/停止 command 文件。原生工具可选，不是网页运行的前提。未设置 `DEMO_ICODE_BINARY` 时会依次查找官方安装位置（Windows `%LOCALAPPDATA%\chrys\bin\icode.exe`，macOS/Linux `~/.local/bin/icode`）和仓库开发包；显式路径仍优先。Agent 管理的「引擎定位」展示原生入口、版本、配置目录与会话根。配置自己的可执行文件时使用 DEMO_ICODE_BINARY 或 DEMO_OPENCODE_BINARY，不在仓库提交密钥。
 
 ## 操作顺序
 

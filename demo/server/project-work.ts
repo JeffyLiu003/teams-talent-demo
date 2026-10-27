@@ -137,7 +137,7 @@ export class ProjectWorkService {
       if (['awaiting-acceptance', 'accepted'].includes(requirement.stage) || work.target.nodeId === 'accept') taskStartReason = '当前需求已进入 Owner 验收，不再自动启动开发工作';
     }
     const actions: ProjectWorkPlan['actions'] = [{ id: 'new', label: requirement ? '新建会话并执行当前任务' : '新建当前工作的 iCode 会话', enabled: !!defaults && !defaults.terminal.error && directory.valid && !taskStartReason, reason: !defaults ? '配套 iCode 未安装' : defaults.terminal.error ?? (!directory.valid ? directory.diagnostic : taskStartReason) }];
-    const plan: ProjectWorkPlan = { executionMode: requirement ? 'task-file' : 'interactive', target: work.target, projectName: work.projectName, title: work.title, location: work.location, source: work.source, planToken: '', instance: { installed: !!defaults, name: '本机 iCode 0.31.0', ...defaults }, directory, context, actions, defaultAction: 'new' };
+    const plan: ProjectWorkPlan = { executionMode: requirement ? 'task-file' : 'interactive', target: work.target, projectName: work.projectName, title: work.title, location: work.location, source: work.source, planToken: '', instance: { installed: !!defaults, name: '本机 iCode', ...defaults }, directory, context, actions, defaultAction: 'new' };
     plan.planToken = hash({ role, plan, revision: state.revision });
     plan.previous = await this.previous(work.target); return plan;
   }

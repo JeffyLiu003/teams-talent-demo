@@ -1,4 +1,4 @@
-import { origin, talentOrigin, runtimeDir, talentRuntimeDir, root } from '../server/config.ts';
+import { origin, talentOrigin, runtimeDir, talentRuntimeDir, root } from '../server/service-config.ts';
 export { root };
 
 export const services = [

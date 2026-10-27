@@ -11,10 +11,11 @@ import { terminalPreferences } from './terminal-preferences.js';
 import { createServer } from 'node:http';
 import { mkdir } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
-import { root, runtimeDir, port, origin, talentOrigin } from './config.js';
+import { root, runtimeDir, port, origin, talentOrigin, materialRoot } from './config.js';
 import { Store } from './store.js';
 import { DomainError, type Action, type Role } from '../src/domain.js';
 import { toolsStatus, writeContext, foundationSkill, launch } from './native.js';
+import { locateChrysEngine } from './engine-locate.js';
 import { createSourcePluginCatalog } from '../src/source-plugins.js';
 import type { WorkspaceAction } from '../src/workspace.js';
 import { headers, bodyJson, staticFile, readFixtures } from './http-shared.js';
@@ -73,6 +74,7 @@ const server = createServer(async (request, response) => {
       json(200,await skillApplications.plan(role,scope as any));return;
     }
     if (request.method === 'GET' && path === '/api/tools') { json(200, await toolsStatus()); return; }
+    if (request.method === 'GET' && path === '/api/engine/locate') { json(200, await locateChrysEngine({ materialRoot })); return; }
     if (request.method === 'POST' && path.startsWith('/api/')) {
       if (!([origin, talentOrigin].includes(request.headers.origin ?? '')) || request.headers['x-demo-token'] !== token || !request.headers['content-type']?.startsWith('application/json')) {
         json(403, { error: '请求来源或访问令牌不匹配，请重新打开页面' }); return;
