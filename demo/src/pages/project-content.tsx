@@ -31,12 +31,12 @@ export function RequirementMaterials() {
   const { state, role, update, busy, showText, showEvidence } = useDemo();
   const [adding, setAdding] = useState(false);
   const [form] = Form.useForm();
-  return <><div className="project-material-list"><div className="project-material"><FileTextOutlined /><div><strong>历史餐饮返现需求（参考）</strong><small>iCode 历史会话 · E1</small></div><Button size="small" onClick={() => showEvidence('E1')}>查看</Button></div>
+  return <><div className="project-material-list"><div className="project-material"><FileTextOutlined /><div><strong>白金卡消费返现需求</strong><small>需求材料 · E1</small></div><Button size="small" onClick={() => showEvidence('E1')}>查看</Button></div>
     {state.workspace.materials.map(material => <div className="project-material" key={material.id}><FileTextOutlined /><div><strong>{material.title}</strong><small>成员补充 · 本次需求</small></div><Button size="small" onClick={() => showText(material.title, material.body)}>查看</Button></div>)}</div>
     {role === 'member' && <Button className="project-material-add" icon={<PlusOutlined />} disabled={!!state.context} onClick={() => setAdding(true)}>补充需求材料</Button>}
     {state.context && <p className="muted">本次上下文已冻结，材料与业务 Skill 保留采用时的版本。</p>}
     <Modal open={adding} title="补充需求材料" okText="保存到需求" onCancel={() => setAdding(false)} confirmLoading={busy} onOk={() => form.submit()} destroyOnHidden>
-      <Form form={form} layout="vertical" onFinish={async value => { await update('material.add', value); form.resetFields(); setAdding(false); }}>
+      <Form form={form} layout="vertical" onFinish={async value => { const saved = await update('material.add', value); if (saved) { form.resetFields(); setAdding(false); } }}>
         <Form.Item name="title" label="材料标题" rules={[{ required: true, whitespace: true }]}><Input maxLength={120} placeholder="例如：白金卡返现周期说明" /></Form.Item>
         <Form.Item name="body" label="内容与来源" rules={[{ required: true, whitespace: true }]}><Input.TextArea rows={6} maxLength={5000} placeholder="说明本需求的业务规则、补充资料或来源引用" /></Form.Item>
       </Form>
@@ -48,14 +48,14 @@ export function ProjectManagement() {
   const { state, role, navigate, showEvidence } = useDemo();
   return <div className="page-stack"><Tabs defaultActiveKey="tasks" items={[
     { key: 'sources', label: '信息收集', children: <FrameworkCard title="需求来源与补充材料"><RequirementMaterials /></FrameworkCard> },
-    { key: 'discussion', label: '任务讨论', children: <FrameworkCard title="本次采用的需求约定"><p>针对白金卡客户未来 3 个月的消费，额外增加 0.5% 的消费返现。</p><Descriptions column={1} items={[{ key: 'scope', label: '范围', children: '仅白金卡客户 · 未来 3 个月 · 额外 0.5% 消费返现' }, { key: 'baseline', label: '待确认细则', children: '活动日期、周期起算、消费范围、是否报名、消费门槛、返现上限及结算方式均待确认。' }]} /><Button onClick={() => showEvidence('E1')}>查看历史需求 E1（参考）</Button><p className="muted">验收标准待业务细则明确后补充；历史餐饮返现证据不作为本次需求已完成的依据。</p></FrameworkCard> },
+    { key: 'discussion', label: '任务讨论', children: <FrameworkCard title="本次采用的需求约定"><p>针对白金卡客户未来 3 个月的消费，额外增加 0.5% 的消费返现。</p><Descriptions column={1} items={[{ key: 'scope', label: '范围', children: '仅白金卡客户 · 未来 3 个月 · 额外 0.5% 消费返现' }, { key: 'baseline', label: '待确认细则', children: '活动日期、周期起算、消费范围、是否报名、消费门槛、返现上限及结算方式均待确认。' }]} /><Button onClick={() => showEvidence('E1')}>查看需求说明</Button><p className="muted">验收按本次采用的规则进行，未确认细则保留待办。</p></FrameworkCard> },
     { key: 'tasks', label: '任务列表', children: <FrameworkCard title="信用卡消费返现" action={<Tag color={state.stage === 'accepted' ? 'green' : 'purple'}>{stageLabels[state.stage]}</Tag>}><Descriptions size="small" column={2} items={[{ key: 'id', label: '任务', children: 'MKT-001' }, { key: 'owner', label: '负责人', children: '陈晨 · 项目成员' }, { key: 'confirmer', label: '确认人', children: '林悦 · 项目 Owner' }, { key: 'release', label: '交付范围', children: '信用卡营销 · v0.1' }]} /><p>针对白金卡客户未来 3 个月的消费，额外增加 0.5% 的消费返现。</p><Space wrap>{role === 'owner' && <ActionButton action="assign" role="owner" disabled={state.assigned}>{state.assigned ? '需求已分配给陈晨' : '确认需求并分配给成员'}</ActionButton>}<Button type="primary" onClick={() => navigate('projects?tab=delivery&node=prepare')}>进入任务交付</Button><Button onClick={() => navigate('trace')}>查看任务依据</Button></Space></FrameworkCard> },
   ]} /></div>;
 }
 
 export function ProjectRelease() {
   const { state, navigate } = useDemo();
-  return <div className="page-stack"><FrameworkCard title="信用卡营销 · v0.1" action={<Tag color={state.stage === 'accepted' ? 'green' : 'gold'}>{state.stage === 'accepted' ? '功能交付已确认' : '交付准备中'}</Tag>}><Descriptions column={1} items={[{ key: 'scope', label: '版本范围', children: '信用卡消费返现 · MKT-001' }, { key: 'result', label: '交付状态', children: stageLabels[state.stage] }, { key: 'safety', label: '安全要求', children: <Tag color="gold">待验证</Tag> }, { key: 'release', label: '发布事实', children: '当前未登记部署或上线记录' }]} /><p>本页保留需求归属与历史交付记录。历史餐饮返现的验收结论不表示本次需求已完成。</p><Space wrap><Button type="primary" onClick={() => navigate('projects?tab=delivery&node=accept')}>查看交付与验收</Button><Button onClick={() => navigate('trace')}>查看完整追溯</Button></Space></FrameworkCard></div>;
+  return <div className="page-stack"><FrameworkCard title="信用卡营销 · v0.1" action={<Tag color={state.stage === 'accepted' ? 'green' : 'gold'}>{state.stage === 'accepted' ? '功能交付已确认' : '交付准备中'}</Tag>}><Descriptions column={1} items={[{ key: 'scope', label: '版本范围', children: '信用卡消费返现 · MKT-001' }, { key: 'result', label: '交付状态', children: stageLabels[state.stage] }, { key: 'safety', label: '安全要求', children: <Tag color="gold">待验证</Tag> }, { key: 'release', label: '发布事实', children: '当前未登记部署或上线记录' }]} /><p>本页汇总当前版本的交付范围、验收记录与发布状态。</p><Space wrap><Button type="primary" onClick={() => navigate('projects?tab=delivery&node=accept')}>查看交付与验收</Button><Button onClick={() => navigate('trace')}>查看完整追溯</Button></Space></FrameworkCard></div>;
 }
 
 export function ProjectSettings() {

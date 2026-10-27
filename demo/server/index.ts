@@ -11,7 +11,7 @@ import { randomBytes } from 'node:crypto';
 import { root, runtimeDir, port, origin, talentOrigin } from './config.js';
 import { Store } from './store.js';
 import { DomainError, type Action, type Role } from '../src/domain.js';
-import { toolsStatus, verifySession, writeContext, foundationSkill, launch, focusActive } from './native.js';
+import { toolsStatus, writeContext, foundationSkill, launch } from './native.js';
 import { createSourcePluginCatalog } from '../src/source-plugins.js';
 import type { WorkspaceAction } from '../src/workspace.js';
 import { headers, bodyJson, staticFile, readFixtures } from './http-shared.js';
@@ -102,13 +102,8 @@ const server = createServer(async (request, response) => {
       if (path === '/api/native/terminal') { json(200, await terminalPreferences.select(body.terminal)); return; }
       if (path === '/api/native/work-bind') { json(200, await work.bind(body.role, body.target, body.directory)); return; }
       if (path === '/api/native/work-start') { json(200, await work.start(body.role, { requestId: body.requestId, target: body.target, action: body.action, planToken: body.planToken })); return; }
-      if (path === '/api/native/verify') { json(200, await verifySession()); return; }
       if (path === '/api/native/context') { json(200, await writeContext(store.state)); return; }
       if(path==='/api/native/foundation'){json(200,await foundationSkill());return;}
-      if (path === '/api/native/focus') {
-        if (process.env.DEMO_NATIVE_DISABLED === '1') throw new DomainError('此验证实例未开放本机启动', 403);
-        json(200, await focusActive()); return;
-      }
       if (path === '/api/native/launch') {
         if (process.env.DEMO_NATIVE_DISABLED === '1') throw new DomainError('此验证实例未开放本机启动', 403);
         if (!['icode', 'opencode'].includes(body.tool) || typeof body.restore !== 'boolean' || typeof body.requestId !== 'string' || !/^[a-zA-Z0-9-]{8,80}$/.test(body.requestId)) throw new DomainError('启动请求无效', 400);

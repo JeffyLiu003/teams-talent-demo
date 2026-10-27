@@ -29,7 +29,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } }); page.setDefaultTimeout(10000);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   let role: 'owner' | 'member' = 'owner';
-  const visit = async (path: string) => { await page.goto(origin + '/teams?demo-role=' + role + '#/' + path); await page.getByRole('button', { name: '使用指引', exact: true }).waitFor(); };
+  const visit = async (path: string) => { await page.goto(origin + '/teams?demo-role=' + role + '#/' + path); await page.getByRole('combobox', { name: '切换角色' }).waitFor(); };
   const switchRole = async (next: typeof role) => { role = next; await page.getByRole('combobox', { name: '切换角色' }).click(); await page.locator('.ant-select-item-option-content').getByText(next === 'owner' ? '林悦 · 项目 Owner' : '陈晨 · 项目成员', { exact: true }).click(); };
   const search = async (id: string) => { await page.getByRole('textbox', { name: '搜索资源' }).fill(id); await page.locator('.resource-card h3').getByText(id, { exact: true }).waitFor(); };
   const save = async (kind: string, click: () => Promise<unknown>) => { const [response] = await Promise.all([page.waitForResponse(value => value.url() === origin + '/api/workspace' && value.request().postDataJSON().kind === kind), click()]); assert.equal(response.status(), 200, await response.text()); };

@@ -20,12 +20,12 @@ const nodes = Object.keys(nodeLabels) as DeliveryNode[];
 
 function TaskBackground() {
   const { showEvidence } = useDemo();
-  return <div className="project-task-background"><h3>信用卡消费返现</h3><Tag>MKT-001</Tag><p className="muted">负责人 陈晨 · 确认人 林悦</p><h4>任务目标</h4><p>针对白金卡客户未来 3 个月的消费，额外增加 0.5% 的消费返现。</p><h4>已确定范围</h4><p>仅白金卡客户；未来 3 个月；额外 0.5% 消费返现。</p><h4>待确认细则</h4><p>活动日期、周期起算、消费范围、是否报名、消费门槛、返现上限及结算方式均待确认。</p><h4>历史参考</h4><Button size="small" type="link" onClick={() => showEvidence('E1')}>查看历史需求 E1</Button><p>历史餐饮返现规则与执行记录仅作参考，不代表本次需求约定或完成情况。</p><h4>交付标准</h4><p>待上述细则明确后补充验收标准。</p></div>;
+  return <div className="project-task-background"><h3>信用卡消费返现</h3><Tag>MKT-001</Tag><p className="muted">负责人 陈晨 · 确认人 林悦</p><h4>任务目标</h4><p>白金卡客户在 3 个月期间消费，额外获得 0.5% 返现。</p><h4>交付标准</h4><p>客户资格、周期边界与返现金额正确，同一交易不重复入账。</p><h4>待确认细则</h4><p>正式活动日期、消费范围、限额及退款规则待业务确认。</p><Button size="small" onClick={() => showEvidence('E1')}>查看需求依据</Button></div>;
 }
 
 export function ProjectDelivery({ node }: { node: DeliveryNode }) {
   const { state, navigate } = useDemo();
-  const [details, setDetails] = useState(true), [background, setBackground] = useState(false);
+  const [details, setDetails] = useState(false), [background, setBackground] = useState(false);
   const complete = { prepare: !!state.context, develop: ['fixed', 'submitted', 'accepted'].includes(state.stage), verify: state.checks === 'passed', accept: state.stage === 'accepted' };
   return <div className={'project-delivery-layout' + (!details ? ' without-background' : '')}>
     <aside className="project-task-list"><div className="project-column-title">交付任务 <Tag>1</Tag></div><button className="project-selected-task" onClick={() => navigate('projects?tab=delivery&node=' + node)}><small>MKT-001</small><strong>信用卡消费返现</strong><Tag color={state.stage === 'accepted' ? 'green' : 'purple'}>{stageLabels[state.stage]}</Tag><span>负责人 · 陈晨</span></button><p className="muted">需求、开发、检查和确认沿同一任务关联。</p></aside>
@@ -76,28 +76,23 @@ function DevelopNode() {
   return <>
     {!state.context && <Alert type="info" title="先确认采用需求上下文" action={<Button onClick={() => navigate('projects?tab=delivery&node=prepare')}>进入需求准备</Button>} />}
     {state.stage === 'returned' && <Alert type="warning" title="Owner 要求补充" description={state.returnReason} />}
-    <FrameworkCard title="关联 iCode 作业" action={<Origin kind="historical" />}><p>餐饮消费返现 · COBOL 系统迁移 Java 微服务历史会话</p><p>在顶部「iCode 作业」进入真实工具；下面可回看历史餐饮返现执行过程，不表示本次需求已完成。</p><Space wrap><ActionButton action="replay" role="member" disabled={!state.context || state.stage !== 'assigned'}>开始历史开发回放</ActionButton><Button onClick={() => navigate('trace')}>查看关联会话</Button></Space></FrameworkCard>
+    <FrameworkCard title="关联 iCode 作业" action={<Origin kind="simulated" />}><p>白金卡消费返现 · 当前交付作业</p><p>关联本次上下文，登记开发状态并同步进度。需要原生执行时，可从顶部进入 iCode 作业。</p><Space wrap><ActionButton action="replay" role="member" disabled={!state.context || state.stage !== 'assigned'}>开始开发</ActionButton><Button onClick={() => navigate('trace')}>查看关联会话</Button></Space></FrameworkCard>
     <CollaborationProgress projectId="carddemo" taskId="DEMO-MKT-001" /><FrameworkCard title="工作进展与协作问题" action={<Origin kind="simulated" />}>{state.workspace.progress.length ? <Timeline items={state.workspace.progress.map(item => ({ key: item.id, content: <><p>{displayText(item.text)}</p><small className="muted">iCode 同步 · {new Date(item.at).toLocaleString('zh-CN')} · {item.node}</small></> }))} /> : <p className="muted">尚无进度同步记录。开始开发后，可以向 Teams 回传 iCode 工作进度。</p>}{role === 'member' && <><Input.TextArea aria-label="同步开发进度" rows={3} value={progress} onChange={event => setProgress(event.target.value)} maxLength={1000} disabled={!canSync} /><div className="card-actions"><Button loading={busy} disabled={!canSync || !progress.trim()} onClick={() => void update('progress.sync', { text: progress, node: 'develop' })}>同步开发进度</Button></div></>}{!state.workspace.foundation.progressEnabled && <Alert type="info" title="进度同步尚未启用" description="团队协作进度同步开关已关闭。" />}<p className="muted">此处按钮保存手工进度记录；上方展示 Teams CLI 实际 HTTP 回传。</p></FrameworkCard>
-    <FrameworkCard title="成果与附件"><div className="project-artifact"><CodeOutlined /><div><strong>app.js · offerCard</strong><p>历史报名入口与资格判断调整，关联原有失败、修复和复测记录。</p></div><Button size="small" onClick={() => showEvidence('E4')}>查看历史变更</Button></div><Space wrap><Button type="primary" disabled={!started} onClick={() => navigate('projects?tab=delivery&node=verify')}>进入验证节点</Button><Button onClick={() => navigate('trace')}>查看执行证据</Button></Space></FrameworkCard>
+    <FrameworkCard title="成果与附件"><div className="project-artifact"><CodeOutlined /><div><strong>返现资格与金额计算</strong><p>核对白金卡资格、活动周期与额外返现金额，保留修复和复测依据。</p></div><Button size="small" onClick={() => showEvidence('E4')}>查看变更说明</Button></div><Space wrap><Button type="primary" disabled={!started} onClick={() => navigate('projects?tab=delivery&node=verify')}>进入验证节点</Button><Button onClick={() => navigate('trace')}>查看执行证据</Button></Space></FrameworkCard>
   </>;
 }
 
 function VerifyNode() {
-  const { state, role, navigate, showEvidence } = useDemo();
-  const [replay, setReplay] = useState(false);
+  const { state, navigate, showEvidence } = useDemo();
   const passed = state.checks === 'passed';
   return <>
-    <Alert type="info" title="质量报告由 iCode 执行后回流" description="Teams 在此汇总检视、测试和扫描结果。当前展示历史测试证据和静态问题，安全扫描报告仍待提供。" />
-    <FrameworkCard title="历史检查范围"><Descriptions size="small" column={1} items={[{ key: 'requirement', label: '需求', children: 'MKT-001' }, { key: 'change', label: '变更', children: '活动报名入口 · app.js / offerCard' }, { key: 'source', label: '版本依据', children: '历史 before / after 文件摘要，完整值见追溯' }]} />{role === 'owner' && <Button onClick={() => navigate('organization')}>查看组织质量能力</Button>}</FrameworkCard>
-    <div className="project-quality-reports">
-      <FrameworkCard title="Code Review" action={<Origin kind="static" />}><Tag color="gold">1 项待核验</Tag><p>营销评估的实际事务调用边界与设计约定需要进一步核验。</p><Button onClick={() => navigate('trace?evidence=security')}>查看问题依据</Button></FrameworkCard>
-      <FrameworkCard title="测试与复测" action={<Origin kind="historical" />}><Tag color={passed ? 'green' : state.checks === 'failed' ? 'red' : 'default'}>{passed ? '9 / 9 通过' : state.checks === 'failed' ? '7 / 8 · 待修复' : '待回放检查'}</Tag><p>{passed ? '报名入口修复后历史复测通过，退出码 EXIT:0。' : '历史检查发现未报名时没有“立即报名”入口，退出码 EXIT:1。'}</p><Button disabled={state.checks === 'none'} onClick={() => showEvidence(passed ? 'E5' : 'E3')}>查看原始测试报告</Button></FrameworkCard>
-      <FrameworkCard title="安全扫描" action={<Tag color="gold">待验证</Tag>}><p>素材缺少扫描引擎产出的真实报告。鉴权范围与待验证事项继续纳入交付。</p><Button onClick={() => navigate('trace?evidence=security')}>查看安全依据</Button></FrameworkCard>
-    </div>
-    <FrameworkCard title="问题、修复与复测"><div className="project-evidence-sequence"><Button onClick={() => showEvidence('E3')}>E3 首次失败</Button><ArrowRightOutlined /><Button onClick={() => showEvidence('E4')}>E4 修复变更</Button><ArrowRightOutlined /><Button onClick={() => showEvidence('E5')}>E5 复测通过</Button></div><p>needsEnrollment 将“需要报名”与最终资格判断分开，使用户能够先完成报名动作。</p>{role === 'member' && <Button icon={<ReloadOutlined />} onClick={() => setReplay(true)}>打开 iCode 执行回放</Button>}</FrameworkCard>
-    <FrameworkCard title="提交交付结果"><p>交付包包含冻结上下文、代码变更、检查与复测证据，以及未解决的安全与事务事项。</p><Space wrap><ActionButton action="submit" role="member" disabled={state.stage !== 'fixed' || !passed}>{['submitted', 'accepted'].includes(state.stage) ? '交付包已提交' : '提交交付包'}</ActionButton><Button disabled={!['submitted', 'accepted'].includes(state.stage)} onClick={() => navigate('projects?tab=delivery&node=accept')}>进入 Owner 验收</Button></Space></FrameworkCard>
+    <FrameworkCard title="检查结果" action={<Tag color={passed ? 'green' : state.checks === 'failed' ? 'red' : 'default'}>{passed ? '检查通过' : state.checks === 'failed' ? '需要修复' : '待检查'}</Tag>}>
+      <p>{passed ? '资格、周期、金额精度及重复处理符合当前验收规则。' : state.checks === 'failed' ? '普通卡客户被错误纳入返现范围，需要补充资格判断。' : '查看当前检查记录，并关联处理结果。'}</p>
+      <Space wrap><ActionButton action="check-fail" role="member" disabled={state.stage !== 'developing'}>查看首次检查</ActionButton><ActionButton action="fix" role="member" disabled={!['failed','returned'].includes(state.stage)}>关联修复与复测</ActionButton><Button disabled={state.checks === 'none'} onClick={() => showEvidence(passed ? 'E5' : 'E3')}>查看报告</Button></Space>
+    </FrameworkCard>
+    <FrameworkCard title="变更与复测依据"><div className="project-evidence-sequence"><Button onClick={() => showEvidence('E3')}>首次检查</Button><ArrowRightOutlined /><Button onClick={() => showEvidence('E4')}>修复说明</Button><ArrowRightOutlined /><Button onClick={() => showEvidence('E5')}>复测结果</Button></div><p className="muted">结果按关联记录展示；生产安全扫描尚未验证。</p></FrameworkCard>
+    <FrameworkCard title="提交交付"><StatusLine complete={!!state.context}>采用上下文已冻结</StatusLine><StatusLine complete={passed}>功能检查已通过</StatusLine><StatusLine complete={['submitted','accepted'].includes(state.stage)}>交付包已提交</StatusLine><Space wrap><ActionButton action="submit" role="member" disabled={state.stage !== 'fixed' || !passed}>{['submitted','accepted'].includes(state.stage) ? '交付包已提交' : '提交交付包'}</ActionButton><Button disabled={!['submitted','accepted'].includes(state.stage)} onClick={() => navigate('projects?tab=delivery&node=accept')}>查看验收</Button></Space></FrameworkCard>
     <SessionReport />
-    <Drawer width={620} title="iCode 执行回放" open={replay} onClose={() => setReplay(false)}><div className="page-stack"><Alert type="info" showIcon title="历史开发过程回放" description="这些操作关联原始执行证据并更新任务状态。本轮不重新执行真实测试，也不生成扫描通过结论。" /><FrameworkCard title="首次检查"><p>E3 · 7/8 · 报名入口不可达 · EXIT:1</p><ActionButton action="check-fail" role="member" disabled={state.stage !== 'developing'}>回放首次检查 · 发现缺陷</ActionButton></FrameworkCard><FrameworkCard title="修复并复测"><p>E4 修改报名判断，E5 复测 9/9 · EXIT:0。</p><ActionButton action="fix" role="member" disabled={!['failed', 'returned'].includes(state.stage)}>应用历史修复并复测</ActionButton></FrameworkCard><Button onClick={() => setReplay(false)}>返回 Teams 质量报告</Button></div></Drawer>
   </>;
 }
 

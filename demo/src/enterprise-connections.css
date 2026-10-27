@@ -27,3 +27,5 @@
 .enterprise-source-reference pre{max-height:420px;overflow:auto;padding:var(--ui-space-3);border:var(--ui-border-block);border-radius:var(--ui-radius)}
 .enterprise-source-body section h4{margin-bottom:var(--ui-space-2)}
 .enterprise-source-body>*{min-width:0}.enterprise-source-body .ui-note{overflow-wrap:anywhere}
+
+.connection-search{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.connection-search .ant-input-search{max-width:420px}.connection-advanced{margin-top:16px}

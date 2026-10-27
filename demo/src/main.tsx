@@ -1,4 +1,5 @@
 import { displayText } from './display-text.js';
+import { campaign } from './cashback.js';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Alert, Button, ConfigProvider, Descriptions, Drawer, Popconfirm, Select, Space, Spin, Tag, theme } from 'antd';
@@ -14,7 +15,7 @@ import { teamsTheme, type UiThemeMode } from './vendor/teams/theme.js';
 import { designSystemCss } from './vendor/teams/design-system.js';
 import { frameworkCss } from './vendor/teams/framework-styles.js';
 import { isOwnerPage, teamsPages } from './navigation.js';
-import { Home, nextStep } from './pages/home.js';
+import { Home } from './pages/home.js';
 import { Project } from './pages/project.js';
 import { TeamsProject } from './pages/teams-project.js';
 import { CreatedProjectPage } from './pages/created-project.js';
@@ -38,7 +39,7 @@ function App() {
   const [fatal, setFatal] = useState(''), [error, setError] = useState(''), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false);
   const [role, setRole] = useState<Role>(currentSystemContext().role);
   const [mode, setMode] = useState<UiThemeMode>(localStorage.getItem('carddemo-theme') === 'dark' ? 'dark' : 'light');
-  const [current, setCurrent] = useState(route), [width, setWidth] = useState(220), [guide, setGuide] = useState(false);
+  const [current, setCurrent] = useState(route), [width, setWidth] = useState(220);
   const [detail, setDetail] = useState<{ title: string; content: string } | null>(null);
   useEffect(() => {
     bootstrap().then(b => setBoot(b)).catch(e => setFatal(e.message));
@@ -66,6 +67,7 @@ function App() {
   const perform = async (action: Action, reason?: string) => {
     const result = await run(() => act(state, role, action, reason), actionLabels[action] + '已完成');
     if (result) { if (isTalent) await run(async () => setBoot(await bootstrap())); else setBoot({ ...boot, state: result }); channel.postMessage('state'); }
+    return !!result;
   };
   const update=async(kind:WorkspaceAction,payload:Record<string,unknown>)=>{
     const result=await run(()=>updateWorkspace(state,role,kind,payload),'数据已更新');
@@ -75,7 +77,7 @@ function App() {
   const showText = (title: string, content: string) => setDetail({ title, content });
   const showEvidence = (id: string) => { const e = data.evidence.find(e => e.id === id); if (e) showText(id + ' · ' + e.title, e.body); };
   const resetDemo = async () => {
-    const result = await run(() => reset(state, role), '工作区已重置，原始会话和源码保持不变');
+    const result = await run(() => reset(state, role), '本地工作区已恢复初始状态，源码和本机工具保持不变');
     if (result) { setBoot({ ...boot, state: result }); channel.postMessage('state'); navigate(isTalent ? 'knowledge' : 'home'); }
   };
   const selected = current.path === 'organization' ? 'connections' : current.path === 'trace' ? (role === 'owner' ? 'team-work' : 'projects') : current.path;
@@ -87,7 +89,6 @@ function App() {
   const projectName = !isTalent && current.path === 'projects' && projectSelected
     ? importedProject ? data.teamsProject.project.name : projectId === 'carddemo' ? state.workspace.project.name : createdProject?.name
     : undefined;
-  const next = nextStep(state);
   let content: React.ReactNode;
   if (isTalent) content = role === 'member' && ['sessions', 'evolution'].includes(current.path) ? <Alert type="info" title="会话分析与能力演进由项目 Owner 管理" action={<Button href={talentLink('knowledge')}>查看项目知识</Button>} /> : current.path === 'knowledge' ? <Knowledge /> : current.path === 'sessions' ? <TalentSessions /> : current.path === 'evolution' ? <Evolution /> : <Alert type="error" title="Talent 页面不存在" action={<Button href={talentLink('knowledge')}>回到项目知识</Button>} />;
   else if (role !== 'owner' && isOwnerPage(current.path)) content = <Alert type="info" title="此页面面向项目 Owner" description="成员可在项目任务中查看自己的执行记录与检查报告。" action={<Button href="#/projects">进入我的项目</Button>} />;
@@ -114,15 +115,14 @@ function App() {
           <div className="topbar-right">
 
             <Select className="compact-role-switch" aria-label="切换角色" size="small" value={role} onChange={value=>{const url=new URL(location.href);url.searchParams.set('demo-role',value);history.replaceState(null,'',url);localStorage.setItem('carddemo-role',value);setRole(value);}} popupMatchSelectWidth={210} options={[{value:'owner',label:'林悦 · 项目 Owner'},{value:'member',label:'陈晨 · 项目成员'}]}/>
-            <Button type="text" size="small" aria-label="使用指引" title="使用指引" icon={<QuestionCircleOutlined/>} onClick={()=>setGuide(true)}><span className="compact-action-label">使用指引</span></Button>
-            <Popconfirm title="重置工作区？" description="只清除工作流转与验收状态，不改动原始会话、源码或本机工具。" okText="重置" cancelText="取消" onConfirm={resetDemo} disabled={isTalent||role!=='owner'||importedProject||!!createdProject}><Button type="text" size="small" aria-label="重置工作区" title="重置工作区" icon={<ReloadOutlined/>} disabled={isTalent||role!=='owner'||importedProject||!!createdProject}><span className="compact-action-label">重置工作区</span></Button></Popconfirm>
+            <Popconfirm title="重置工作区？" description="将清除本地项目、材料、成员配置、订阅及交付状态，恢复初始工作区；不改动源码或本机工具。" okText="重置" cancelText="取消" onConfirm={resetDemo} disabled={isTalent||role!=='owner'||importedProject||!!createdProject}><Button type="text" size="small" aria-label="重置工作区" title="重置工作区" icon={<ReloadOutlined/>} disabled={isTalent||role!=='owner'||importedProject||!!createdProject}><span className="compact-action-label">重置工作区</span></Button></Popconfirm>
           </div>
         </header>
-          <div className={'page-scroll' + (projectName ? ' project-page-scroll' : '')} key={isTalent + current.path}>{error && <Alert className="global-alert" type="error" showIcon title={displayText(error)} closable onClose={() => setError('')} />}{notice && <Alert className="global-alert" type="success" showIcon title={displayText(notice)} closable onClose={() => setNotice('')} />}{isTalent && data.talent?.project.projection.status === 'pending' && <Alert type="warning" title="Talent 成果等待回传 Teams" description={data.talent.project.projection.error} action={<Button loading={busy} onClick={()=>{const project=data.talent!.project;void(project.projection.action==='analysis.run'?update('analysis.run',{scope:project.analysis.scope}):perform(project.projection.action as Action));}}>重试回传</Button>} />}{content}<footer className="page-foot"><span>{isTalent ? data.talent?.context.name+' · Talent 独立知识服务' : createdProject ? createdProject.name+' · 项目' : importedProject ? 'iCode Teams · 项目' : 'MKT-001 · Teams × iCode × Talent'}</span></footer></div>
+          <div className={'page-scroll' + (projectName ? ' project-page-scroll' : '')} key={isTalent + current.path}>{error && <Alert className="global-alert" type="error" showIcon title={displayText(error)} closable onClose={() => setError('')} />}{notice && <Alert className="global-alert" type="success" showIcon title={displayText(notice)} closable onClose={() => setNotice('')} />}{isTalent && data.talent?.project.projection.status === 'pending' && <Alert type="warning" title="Talent 成果等待回传 Teams" description={data.talent.project.projection.error} action={<Button loading={busy} onClick={()=>{const project=data.talent!.project;void(project.projection.action==='analysis.run'?update('analysis.run',{scope:project.analysis.scope}):perform(project.projection.action as Action));}}>重试回传</Button>} />}{state.campaignId !== campaign.id && <Alert type="warning" title="工作区规则版本已更新" description="当前保存记录属于旧规则，请由 Owner 在 Teams 重置工作区后继续。" action={isTalent ? <Button href={teamsLink('settings')}>前往工作区设置</Button> : undefined} />}{content}<footer className="page-foot"><span>{isTalent ? data.talent?.context.name+' · Talent 独立知识服务' : createdProject ? createdProject.name+' · 项目' : importedProject ? 'iCode Teams · 项目' : 'MKT-001 · Teams × iCode × Talent'}</span></footer></div>
         </main></div>
     </div>
     <Drawer width={880} open={!!detail} onClose={() => setDetail(null)} title={detail?.title}><pre className="evidence-console drawer-console">{detail?.content}</pre></Drawer>
-    <Drawer width={480} title="信用卡消费返现 · 使用指引" open={guide} onClose={() => setGuide(false)}><Tag>项目协作流程</Tag><h2>{next.title}</h2><p>{next.note}</p><p>当前步骤角色：{next.role}</p><Button type="primary" href={isTalent && next.href.startsWith('#') ? teamsLink(next.href) : next.href} onClick={() => setGuide(false)}>进入下一步 <ArrowRightOutlined /></Button><div className="guide-list">{['Owner 确认并分配需求', 'Owner 在 Teams 关联资产并发起知识整合', '成员冻结上下文，恢复 iCode', '回放开发、检查失败与修复', '成员提交交付包', 'Owner 明确业务细则与验收标准', '成员上报交付会话与轨迹', 'Owner 分析单需求或项目多需求', 'Owner 在 Talent 生成并评估候选', 'Owner 发布、Teams 采用新版'].map((text, i) => <div key={text}><span>{String(i + 1).padStart(2, '0')}</span><p>{text}</p></div>)}</div><Alert type="info" title="作业与交付" description="iCode 作业打开本机工具；任务节点保留交付与验收记录。工具启动不代表任务已完成。" /></Drawer>
+
   </Context.Provider></ConfigProvider>;
 }
 createRoot(document.getElementById('root')!).render(<App />);

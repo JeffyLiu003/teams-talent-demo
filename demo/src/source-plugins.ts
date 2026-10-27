@@ -56,9 +56,9 @@ export const sourceAssetId = (pluginId: SourcePluginId, projectId: SourceProject
 
 const cardRequirement = sourceAssetId('requirements', 'carddemo', 'DEMO-MKT-001');
 const teamRequirement = (id: string) => sourceAssetId('requirements', 'teams', id);
-const marketingDesign = 'docs/design/08-marketing-capability.md';
-const marketingIntegration = 'docs/design/adr/ADR-009-marketing-integration.md';
-const authenticationScope = 'docs/design/adr/ADR-007-authentication-scope.md';
+const marketingDesign = 'demo/docs/cashback-contract.md';
+const marketingIntegration = 'demo/docs/cashback-integration.md';
+const authenticationScope = 'demo/docs/security-scope.md';
 const localFile = (collection: SourceAssetReference['collection'], path: string, label: string): SourceAssetReference => ({
   collection, path, label, extent: collection === 'graph' ? 'excerpt' : 'full-file', origin: 'existing-local-file',
 });
@@ -121,15 +121,15 @@ function repositoryAssets(data: SourcePluginData): readonly SourcePluginAsset[] 
   const repo = data.teamsProject.project.repos[0];
   return [
     card({
-      sourceRecordId: 'carddemo-java-1025', kind: 'repository', title: 'CardDemo Java 项目',
-      summary: '信用卡营销交付使用的本地代码仓快照。', version: '本地导入快照',
-      detail: '代码仓：carddemo-java-1025\n本地位置：workspace/carddemo-java-1025\n范围：活动中心、交易入账、营销评估和账户返现。\n本插件提供代码仓目录记录；已有源码节选通过各代码资产继续阅读。',
+      sourceRecordId: 'carddemo-java-1025', kind: 'repository', title: '白金卡返现规则',
+      summary: '当前返现规则及本地协作流程源码。', version: '当前规则版本',
+      detail: '逻辑位置：demo/src/cashback.ts 与 demo/src/domain.ts\n范围：卡片资格、期间、金额计算和工作流状态。\nJava 快照仅是保留的来源资料，不是当前规则的运行实现。',
       relatedRequirementIds: [cardRequirement],
     }),
     ...(data.graph ?? []).map(source => card({
       sourceRecordId: `code-${source.id}`, kind: 'code', title: `${source.name} · 源码`,
-      summary: source.file, version: '本地源码节选',
-      detail: `代码仓：carddemo-java-1025\n文件：${source.file}\n记录引用已有本地源码节选。阅读范围为已导入的节选，未重新读取或修改工作目录。`,
+      summary: source.file, version: '当前源码节选',
+      detail: `当前规则源码\n文件：${source.file}\n记录引用当前当前源码节选。`,
       references: [localFile('graph', source.file, '阅读已有源码节选')], relatedRequirementIds: [cardRequirement],
     })),
     asset(data, 'repository', 'teams', {
@@ -149,7 +149,7 @@ function requirementAssets(data: SourcePluginData): readonly SourcePluginAsset[]
       sourceRecordId: 'DEMO-MKT-001', kind: 'requirement', title: '信用卡消费返现', version: '需求 r1',
       requirement: { category: 'requirement', owner: '待分配', taskId: 'DEMO-MKT-001' },
       summary: data.blueprint.scenario.slice,
-      detail: `需求范围：${data.blueprint.scenario.slice}\n\n已确认：\n1. 目标客户为白金卡客户。\n2. 消费期间为未来 3 个月。\n3. 消费额外返现比例为 0.5%。\n\n待确认：活动日期、周期起算、消费范围与排除项、是否报名、消费门槛、返现上限、结算入账及退款规则。\n\n关联的餐饮设计与历史需求仅为存量参考，不作为本需求已实现或已验证的证据。`,
+      detail: `需求范围：${data.blueprint.scenario.slice}\n\n已确认：\n1. 目标客户为白金卡客户。\n2. 消费期间为未来 3 个月。\n3. 消费额外返现比例为 0.5%。\n\n待确认：活动日期、周期起算、消费范围与排除项、是否报名、消费门槛、返现上限、结算入账及退款规则。\n\n当前本地规则与正式政策分别记录；正式业务细则需确认。`,
       references: [cardDesignReference()],
     }),
     ...cardAdditionalRequirements.map(item => asset(data, 'requirements', 'carddemo', {
@@ -177,10 +177,10 @@ function defectAssets(data: SourcePluginData): readonly SourcePluginAsset[] {
   const web = data.graph?.find(source => source.id === 'web');
   return [
     asset(data, 'defects', 'carddemo', {
-      sourceRecordId: 'CARD-BUG-001', kind: 'defect', title: '未报名时应提供餐饮活动报名入口', version: '问题 r1',
-      issue: { owner: '陈晨', severity: '未标注', status: '历史已修复', closed: true, confirmed: true, blocksDelivery: false, progress: '已有关联修复；当前处理状态由 Teams 记录补充。' },
-      summary: '区分报名动作与消费奖励资格，避免未报名用户无法开始。',
-      detail: '问题场景：活动有效、要求报名、用户尚未报名。\n问题描述：若把当前奖励资格不满足直接用作报名按钮禁用条件，用户将无法报名。\n期望行为：展示可执行的报名操作；成功后显示已报名。\n范围说明：本条目根据已有报名问题整理；关联代码已包含修复，保留问题与处理依据。',
+      sourceRecordId: 'CARD-BUG-001', kind: 'defect', title: '普通卡不应进入白金卡返现范围', version: '问题 r1',
+      issue: { owner: '陈晨', severity: '未标注', status: '待复核', closed: null, confirmed: true, blocksDelivery: false, progress: '检查卡片等级与金额计算是否正确关联。' },
+      summary: '补充普通卡反向用例，避免只验证白金卡正向输入。',
+      detail: '问题场景：普通卡发生120元消费。\n问题描述：若只检查消费时间而遗漏卡片等级，会错误计算0.60元奖励。\n期望行为：普通卡不参与，奖励为0。\n当前处理状态由本次交付检查记录补充。',
       references: [cardDesignReference(), ...(web ? [localFile('graph', web.file, '阅读已有活动中心源码节选')] : [])], relatedRequirementIds: [cardRequirement],
     }),
     asset(data, 'defects', 'carddemo', {
@@ -206,15 +206,15 @@ function defectAssets(data: SourcePluginData): readonly SourcePluginAsset[] {
 
 function designAssets(data: SourcePluginData): readonly SourcePluginAsset[] {
   const cards = [
-    { sourceRecordId: 'marketing-capability', title: '营销能力设计', path: marketingDesign, summary: '活动、报名、餐饮返现、奖励及接口设计。' },
+    { sourceRecordId: 'marketing-capability', title: '营销能力设计', path: marketingDesign, summary: '白金卡资格、三个月期间、额外0.5%与金额舍入规则。' },
     { sourceRecordId: 'ADR-009', title: '营销集成与入账边界', path: marketingIntegration, summary: '交易入账与营销评估之间的调用、提交及重试约定。' },
     { sourceRecordId: 'ADR-007', title: '鉴权范围设计决策', path: authenticationScope, summary: '已有系统的认证范围与限制说明；属于设计资料。' },
   ];
   return [
     ...cards.map(document => asset(data, 'design-library', 'carddemo', {
       sourceRecordId: document.sourceRecordId, kind: 'document', title: document.title, summary: document.summary,
-      version: '已有本地文件快照',
-      detail: `文档路径：${document.path}\n${document.summary}\n\n插件仅提供文档目录记录；阅读入口返回原有导入文件，未改写正文。`,
+      version: '当前规则文件',
+      detail: `文档路径：${document.path}\n${document.summary}\n\n插件仅提供文档目录记录；阅读入口返回当前规则文档。`,
       references: [localFile('sources', document.path, `阅读${document.title}`)], relatedRequirementIds: [cardRequirement],
     })),
     ...[{ name: '项目规范 AGENTS.md', path: 'AGENTS.md', description: data.teamsProject.project.agentsNote }, ...data.teamsProject.project.docs].map(document => asset(data, 'design-library', 'teams', {

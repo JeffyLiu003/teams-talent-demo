@@ -18,8 +18,8 @@ test('two-role delivery and Talent adoption retain frozen historical context and
   assert.equal(s.stage,'accepted'); assert.equal(s.evolution,'adopted');
   assert.equal(s.context?.skillVersion,'1.0.0'); assert.equal(s.context?.agentVersion,'r1');
   assert.equal(s.adoptedSkill,'1.1.0'); assert.equal(s.adoptedAgent,'r2');
-  assert.equal(s.security,'unverified'); assert.equal(s.balance,2664.75);
-  assert.equal(s.transactions.length,1); assert.equal(s.transactions[0].reward,6);
+  assert.equal(s.security,'unverified'); assert.equal(s.balance,2670.15);
+  assert.equal(s.transactions.length,1); assert.equal(s.transactions[0].reward,0.6);
   assert.equal(s.published,false); assert.equal(s.audit.length,18); assert.equal(s.audit.filter(a=>a.system==='Talent').length,4);
   assert.equal(s.audit.find(a=>a.action==='发起项目知识整合')?.system,'Teams');
 });
@@ -87,7 +87,7 @@ test('native shell arguments quote spaces and apostrophes without interpolation'
 test('project knowledge can precede assignment and frozen inputs retain selected skills and materials',()=>{
   let s=initialState();s=transition(s,'knowledge','owner');assert.equal(s.assigned,false);
   s=transition(s,'assign','owner');
-  s=updateWorkspace(s,'material.add','member',{title:'新增边界',body:'检查未报名状态入口'});
+  s=updateWorkspace(s,'material.add','member',{title:'新增边界',body:'检查普通卡资格边界'});
   s=updateWorkspace(s,'skills.select','member',{skills:['dev-frontend-ui','office-word']});
   s=transition(s,'prepare','member');assert.equal(s.context!.materials.length,1);assert.deepEqual(s.context!.selectedSkills,['dev-frontend-ui','office-word']);assert.equal(s.context!.agentVersion,'r1');assert.equal(s.published,false);
   const snapshot=JSON.stringify(s.context);
@@ -138,9 +138,9 @@ test('new external demo sources save only their own scope and preserve existing 
   const initial=initialState();
   assert.throws(()=>updateWorkspace(initial,'connection.update','member',{id:'test-assets',enabled:false,description:'测试用例'}),/无权/);
   assert.throws(()=>updateWorkspace(initial,'connection.update','owner',{id:'unknown-platform',enabled:true,description:'未知'}),/连接不存在/);
-  const saved=updateWorkspace(initial,'connection.update','owner',{id:'test-assets',enabled:false,description:'餐饮返现测试用例'});
+  const saved=updateWorkspace(initial,'connection.update','owner',{id:'test-assets',enabled:false,description:'白金卡返现测试用例'});
   assert.deepEqual(saved.workspace.connections.filter(c=>c.id!=='test-assets'),initial.workspace.connections);
-  assert.deepEqual(saved.workspace.connections.find(c=>c.id==='test-assets'),{id:'test-assets',name:'测试资产平台',kind:'asset',enabled:false,description:'餐饮返现测试用例'});
+  assert.deepEqual(saved.workspace.connections.find(c=>c.id==='test-assets'),{id:'test-assets',name:'测试资产平台',kind:'asset',enabled:false,description:'白金卡返现测试用例'});
   assert.deepEqual(saved.workspace.foundation,initial.workspace.foundation);assert.equal(saved.knowledge,false);
 });
 
@@ -207,4 +207,19 @@ test('legacy shared records and old frozen inputs remain usable without rewritin
     const bad:any=structuredClone(old);bad.workspace.resourcePublications=null;await writeFile(path,JSON.stringify(bad));
     await assert.rejects(new Store(path).init(),/资源发布记录无效/);
   }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+
+test('old campaign state remains readable but cannot execute current rules until explicit reset', () => {
+  const old = initialState(); delete old.campaignId;
+  assert.throws(() => transition(old, 'assign', 'owner'), /旧活动规则/);
+  assert.throws(() => updateWorkspace(old, 'project.update', 'owner', {}), /旧活动规则/);
+  assert.equal(old.transactions.length, 0);
+});
+test('purchase needs no enrollment and uses current extra cashback amount', () => {
+  let s = initialState();
+  for (const [action, role] of flow.slice(0, 7)) s = transition(s, action, role);
+  assert.equal(s.enrolled, false);
+  s = transition(s, 'purchase', 'owner');
+  assert.equal(s.transactions[0].reward, 0.6); assert.equal(s.balance, 2670.15);
 });

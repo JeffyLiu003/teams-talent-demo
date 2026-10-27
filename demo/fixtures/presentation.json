@@ -8,11 +8,11 @@
       "source_local_time": "2026-10-26 00:39:12 Asia/Shanghai",
       "slice": "针对白金卡客户未来 3 个月的消费，额外增加 0.5% 的消费返现。",
       "why": [
-        "当前仅确认白金卡客户、3 个月、额外 0.5% 三项业务口径。",
-        "活动日期、周期起算、消费范围与排除项、是否报名、消费门槛、返现上限、结算入账及退款规则均待确认。",
-        "原餐饮设计、源码和历史会话仅作存量参考，不能作为本需求已实现或已验证的证据。"
+        "白金卡客户、3 个月、额外 0.5% 是当前需求范围。",
+        "活动日期、金额舍入及测试输入按本地流程参数验证；正式业务细则仍需确认。",
+        "本次交付记录与知识引用当前需求，不复用其他活动的检查结论。"
       ],
-      "seed": "白金卡客户 · 未来 3 个月 · 消费额外返现 0.5%；活动日期、周期起算及其他业务细则待确认。",
+      "seed": "白金卡客户 · 3 个月消费期间 · 额外返现 0.5%",
       "roles": "项目 Owner 和项目成员是 Teams 协作身份；CardDemo 的管理员/持卡人是业务验收用例角色，不与 Teams 权限混同。"
     },
     "steps": [
@@ -26,7 +26,7 @@
         "output": "项目可用资源及版本；按需产生单个资源的共享发布记录。",
         "state": "项目已有资源直接可用；共享发布独立于需求分配和作业准备。",
         "minutes": 1,
-        "basis": "项目资源包括业务 Skill、用户 Skill 与 Agent 配置，分别保留版本与共享范围。"
+        "basis": "当前需求、上下文与本次操作记录。"
       },
       {
         "id": "S02",
@@ -38,19 +38,19 @@
         "output": "当前需求描述、三项已确认口径与待确认事项清单。",
         "state": "需求：待确认 → 已确认 → 已指派。",
         "minutes": 1,
-        "basis": "用户本次确认的需求口径；旧餐饮需求和历史会话仅供存量参考。"
+        "basis": "当前需求、上下文与本次操作记录。"
       },
       {
         "id": "S03",
         "phase": "需求准备",
         "role": "项目成员",
         "place": "Teams / 项目知识",
-        "action": "核对已有五层业务知识，沿“消费入账 → 奖励评估 → 返现冲减欠款”查看代码图谱；将营销影响分析加入项目知识。",
-        "screen": "现有交易、账户与卡片知识；新增 Marketing；点击节点定位 Java 类、业务规则及 ADR。",
-        "output": "本次采用的知识快照、影响范围、尚未解决的问题。",
+        "action": "核对卡片资格、活动期间、金额舍入及重复入账规则。",
+        "screen": "消费记录、奖励计算、账户余额及规则关联。",
+        "output": "本次采用的知识版本与规则。",
         "state": "知识：待核对 → 本次采用；影响范围涵盖前端、交易、营销、账户、数据库。",
         "minutes": 1.5,
-        "basis": "已有知识文档和 Java 源码可核对。COBOL 扫描只有历史记录，原始源码和原始扫描 JSON 未提供。"
+        "basis": "当前需求、上下文与本次操作记录。"
       },
       {
         "id": "S04",
@@ -62,31 +62,31 @@
         "output": "可重看的作业上下文快照 Context-r1。",
         "state": "资源可见 → 项目已采用 → 本次作业已绑定；后续更新不改写本次快照。",
         "minutes": 1,
-        "basis": "从项目资源库选择所需 Skill，保留本次采用的版本与范围。"
+        "basis": "当前需求、上下文与本次操作记录。"
       },
       {
         "id": "S05",
         "phase": "开发与质量",
         "role": "项目成员",
         "place": "iCode / 需求作业",
-        "action": "从 Teams 打开关联 iCode 作业，查看已加载的 Context-r1；回放前后台开发和跨服务集成的关键动作。",
-        "screen": "活动中心报名、奖励查询、营销计算、账户返现、测试文件、设计更新；保留可展开工具记录。",
-        "output": "成果草稿、改动文件、关联作业与工具操作记录。",
+        "action": "开始开发并同步进度，关联当前需求的实现文件。",
+        "screen": "白金卡资格、期间与金额计算，保留操作记录。",
+        "output": "本次成果与关联文件。",
         "state": "任务：已接收 → 开发中；作业：已准备 → 执行中。",
         "minutes": 2,
-        "basis": "关联历史开发、源码及变更记录，按文件与工具操作核对成果。"
+        "basis": "当前需求、上下文与本次操作记录。"
       },
       {
         "id": "S06",
         "phase": "开发与质量",
         "role": "项目成员",
         "place": "iCode / 质量检查",
-        "action": "回放 UI 检查失败：未报名导致“立即报名”消失；打开真实差异，将报名动作与领奖资格分开，重建并复测。并列查看 Review、后端测试与安全检查状态。",
-        "screen": "失败 7/8 → 代码修复 → 复测 9/9；后端历史 197 个测试；安全报告缺失和鉴权已知风险单列。",
-        "output": "失败记录 E3、修复 E4、复测 E5、测试汇总 E6、待处理风险清单。",
+        "action": "检查普通卡资格遗漏，补充卡片等级判断后重新核对七项规则。",
+        "screen": "初检 6/7，修复后 7/7；安全状态独立保留。",
+        "output": "初检 E3、修复 E4、复测 E5 与限制说明。",
         "state": "质量：待检查 → 未通过 → 修复中 → 功能检查通过；生产安全：待补证据。",
         "minutes": 2.5,
-        "basis": "失败、修复和复测分别关联历史证据；安全扫描报告缺失时保持待验证。"
+        "basis": "当前需求、上下文与本次操作记录。"
       },
       {
         "id": "S07",
@@ -98,43 +98,43 @@
         "output": "交付包 Delivery-r1，绑定需求修订、上下文快照与文件摘要。",
         "state": "任务：开发中 → 待验收；成员仍可依据反馈提交 r2。",
         "minutes": 0.5,
-        "basis": "交付包聚合代码、检查及来源记录，并关联本次提交与验收。"
+        "basis": "当前需求、上下文与本次操作记录。"
       },
       {
         "id": "S08",
         "phase": "验收",
         "role": "项目 Owner",
         "place": "Teams / 验收工作台",
-        "action": "对照白金卡客户、未来 3 个月、额外 0.5% 三项口径核对需求描述；其他业务规则待确认，尚不形成相应验收结论。",
-        "screen": "当前需求口径、待确认事项与后续需补充的验证证据；保留既有质量及安全要求。",
-        "output": "已确认需求口径与待确认事项；实现和验证结论待补充。",
+        "action": "完成120元消费、核对0.60元返现与重复处理，再运行七项边界检查。",
+        "screen": "消费、奖励、余额及验收结果。",
+        "output": "本次验收记录。",
         "state": "任务：待验收 → 功能已验收；生产发布条件：未满足。",
         "minutes": 1.5,
-        "basis": "用户确认的三项口径；旧餐饮案例证据不能作为本需求的验证结果。"
+        "basis": "当前需求、上下文与本次操作记录。"
       },
       {
         "id": "S09",
         "phase": "追溯",
         "role": "项目 Owner / 项目成员",
         "place": "Teams / 需求追溯",
-        "action": "从 DEMO-MKT-001 打开来源、上下文、iCode 作业、检查和验收时间线；点击报名缺陷串起失败、代码差异和复测。",
-        "screen": "operation_id 连到轨迹事件；mutation 的 tool_operation_id 连到具体变更；app.js 当前 SHA-256 与历史修复 after_hash 一致。",
-        "output": "从业务需求到文件变更的证据链，支持查看关联依据和缺失关联。",
+        "action": "查看需求、上下文、检查、修复与验收关联。",
+        "screen": "本次操作时间线与记录来源。",
+        "output": "可追溯交付链路。",
         "state": "追溯是交付后的读取视图；已有历史证据不因新版 Skill 而重写。",
         "minutes": 1.5,
-        "basis": "项目索引将需求、会话、工具、变更及验收关系串联起来。"
+        "basis": "当前需求、上下文与本次操作记录。"
       },
       {
         "id": "S10",
         "phase": "能力演进",
         "role": "平台建议 / 项目成员核对",
         "place": "Teams / 能力改进",
-        "action": "基于报名缺陷生成 dev-frontend-ui 1.1.0 候选；基于测试结果与工具退出码不一致，生成 Code Agent 配置 r2 候选。",
-        "screen": "问题证据 → 修改前后 → 适用范围 → 评估案例；两类候选分别显示。",
-        "output": "Skill 候选、Agent 配置候选、评估集与预期结果。",
+        "action": "按卡片资格遗漏创建 Skill 与 Agent 改进候选。",
+        "screen": "问题依据、候选差异和评估范围。",
+        "output": "待评估候选版本。",
         "state": "改进线索 → 候选草稿 → 待评估；本轮并未修改原 Skill 或真实 Agent。",
         "minutes": 1.5,
-        "basis": "根据问题证据创建候选，保留评估范围与结果，改进效果需结合实际验证。"
+        "basis": "当前需求、上下文与本次操作记录。"
       },
       {
         "id": "S11",
@@ -146,27 +146,27 @@
         "output": "发布记录、新版采用记录、下一需求的上下文快照。",
         "state": "待评估 → 评估通过 → Owner确认 → 已发布 → 后续需求采用；失败候选返回修订。",
         "minutes": 1,
-        "basis": "经评估和 Owner 确认后发布版本；采用记录与历史需求分别保存。"
+        "basis": "当前需求、上下文与本次操作记录。"
       }
     ],
     "acceptance_criteria": [
       {
         "id": "AC-01",
         "given": "目标客户：白金卡客户",
-        "expected": "当前需求针对白金卡客户；客户资格的具体认定规则待确认。",
-        "evidence": "用户已确认需求口径；当前实现与验证证据待补充。"
+        "expected": "白金卡进入奖励计算，普通卡不参与；正式资格认定细则待确认。",
+        "evidence": "本地规则检查 CB-01、CB-02；正式服务证据待补充。"
       },
       {
         "id": "AC-02",
         "given": "消费期间：未来 3 个月",
-        "expected": "需求期间为未来 3 个月；活动统一起止日期及周期起算方式待确认。",
-        "evidence": "用户已确认需求口径；当前实现与验证证据待补充。"
+        "expected": "按配置的三个月窗口检查，开始包含、结束不包含；正式日期待确认。",
+        "evidence": "本地规则检查 CB-03 至 CB-05；正式服务证据待补充。"
       },
       {
         "id": "AC-03",
         "given": "消费返现：额外增加 0.5%",
-        "expected": "消费额外返现比例为 0.5%；消费范围、报名、门槛、上限、结算入账及退款规则待确认。",
-        "evidence": "用户已确认需求口径；当前实现与验证证据待补充。"
+        "expected": "120.00 元额外返现0.60元，以整数分计算；其他正式业务细则待确认。",
+        "evidence": "本地规则检查 CB-01、CB-06、CB-07；正式服务证据待补充。"
       }
     ],
     "skill_groups": [
@@ -214,93 +214,79 @@
         "name": "dev-frontend-ui",
         "baseline_version": "1.0.0",
         "candidate_version": "1.1.0-candidate",
-        "status": "设计草案，未修改或发布原 Skill",
+        "status": "候选定义，由 Owner 确认后发布",
         "evidence": [
           "E3",
           "E4",
           "E5"
         ],
-        "reason": "缺少对“可采取的下一步动作”和“最终业务资格”的显式分离检查。",
+        "reason": "卡片资格遗漏导致普通卡进入奖励计算。",
         "changes": [
-          "新增状态—动作矩阵：未报名、已报名、活动过期/暂停、资格不满足、请求失败分别定义可见操作。",
-          "区分可恢复前置条件与不可满足业务条件：仅缺报名时保留报名入口；活动过期、无权限等条件不能被报名优先级覆盖。",
-          "实现完成前核对端到端动作可达性，记录失败输入、修复差异、复测结果，并关联需求标准。"
+          "补充白金卡与普通卡正反向规则检查。",
+          "覆盖三个月期间的开始、结束边界。",
+          "以整数分核对额外0.5%及舍入，保留重复处理检查。"
         ],
         "evaluation": [
-          "回放历史未报名夹具：必须显示报名入口并能完成报名。",
-          "保留案例：过期/暂停活动不能误显为可参与；已报名不得重复提交。",
-          "新案例：满次数或余额服务失败有明确状态与下一步，不能统一显示“立即报名”。"
+          "白金卡120元返现0.60元。",
+          "普通卡不返现。",
+          "活动结束时刻不返现。"
         ],
-        "comparison": "同一固定代码输入、模型、上下文与工具配置，对照旧版和候选 Skill；候选产物独立验证，不根据提示文字自评通过。"
+        "comparison": "固定规则输入核对候选定义；外部模型对照评估未执行。"
       },
       "agent": {
         "name": "Code Agent",
         "baseline_revision": "r1",
         "candidate_revision": "r2-candidate",
-        "status": "设计草案，非原历史配置版本；不改变基础模型",
+        "status": "配置候选，不改变基础模型",
         "evidence": [
           "E3",
           "E5"
         ],
-        "reason": "UI 测试输出 7/8、EXIT:1，但包装 shell 与轨迹记录 exit_code=0/outcome=success；工具成功不足以证明测试通过。",
+        "reason": "提交前需要独立核对所有验收规则，避免仅覆盖正向输入。",
         "changes": [
-          "改用保留被测进程退出码并产出结构化测试报告的执行方式，缺报告或报告不一致时阻断完成。",
-          "涉及状态驱动页面时选择新版前端 Skill，并安排独立的状态—动作校验环节。",
-          "完成前收齐验收条目、代码摘要、测试和安全结果；保留原失败，修复后重新校验受影响项。",
-          "区分业务功能验收与生产放行；Agent 产出候选和评估，Owner 决定项目采用。"
+          "按验收条目生成正向与反向检查清单。",
+          "保存输入、实际结果与规则版本，不将固定记录冒充真实模型运行。",
+          "区分功能验收和生产安全放行。"
         ],
         "evaluation": [
-          "包装进程0、内层测试1：必须阻断。",
-          "包装进程0、报告缺失或截断：必须显示待验证。",
-          "完整报告9/9且内层进程0：允许进入功能待验收。",
-          "仍有安全缺口：可提交功能验收，生产放行保持阻断。"
+          "规则缺失时阻止提交。",
+          "缺少执行报告时保留待验证。",
+          "七项规则通过后可进入功能验收，安全状态保持未验证。"
         ],
-        "comparison": "先固定 Skill 版本比较 Agent r1/r2，再验证二者组合；记录模型、输入、工具、次数与人工判断，避免把一次成功当成整体提升。"
+        "comparison": "分别保存规则核对和模型实验状态，不把流程操作视为真实 Agent 实验。"
       }
     },
     "trace": {
-      "request_id": "a2aad7e1f6b5cd6af7b1f978adc3449e",
+      "request_id": "REQ-PLATINUM-001",
       "demo_requirement_id": "DEMO-MKT-001",
-      "session_id": "6b82c08d-eb3b-4bdc-b373-54fed16a7fcd",
-      "turn_id": "cf1b4e63783a72364d53c50c6b7e3ff4",
-      "failure_operation_id": "8f7a8c6fd4784ad7857943f5e88c6904",
-      "fix_operation_id": "15348763c4f1028f6be6ee6e8b59d5fe",
-      "retest_operation_id": "6981515fb5fefd520a116a9dbe3424c1",
-      "file": "services/web-ui/src/main/resources/static/app.js",
-      "current_sha256": "91b731eda5f1632c943fae5daf3fb31c476419f303fe30d21f1f0e78aa521304",
-      "mutation_after_sha256": "91b731eda5f1632c943fae5daf3fb31c476419f303fe30d21f1f0e78aa521304",
-      "join_rule": "请求来源 → 会话/回合 → 工具 operation_id → mutation.tool_operation_id → 文件 before/after_hash → 复测；Teams 需求编号与验收关联另存项目索引。"
+      "session_id": "WORK-PLATINUM-001",
+      "turn_id": "TURN-PLATINUM-001",
+      "failure_operation_id": "CHECK-PLATINUM-001",
+      "fix_operation_id": "FIX-PLATINUM-001",
+      "retest_operation_id": "CHECK-PLATINUM-002",
+      "file": "demo/src/cashback.ts",
+      "current_sha256": "2b61c0da081b662bedd3cf09cb41ea0d39247557bf73f0c5130521f02b294316",
+      "mutation_after_sha256": "2b61c0da081b662bedd3cf09cb41ea0d39247557bf73f0c5130521f02b294316",
+      "join_rule": "需求 → 上下文 → 检查记录 → 修复 → 复测 → 验收；记录来源为本地工作流 fixture，不关联原生历史会话。"
     },
     "gaps": [
       {
-        "name": "安全扫描证据",
-        "fact": "未发现该营销交付的 SAST/DAST/依赖扫描原始报告；sec-scan-review 脚本读取并分级既有结果，不执行安全扫描。",
-        "demo": "安全扫描报告待补充；已知鉴权风险关联 ADR-007。",
-        "limit": "不能展示为真实扫描零风险或生产安全通过。"
+        "name": "生产安全",
+        "fact": "未接入真实企业身份认证及安全扫描。",
+        "demo": "安全状态保持未验证。",
+        "limit": "功能验收不等于生产放行。"
       },
       {
-        "name": "事务提交边界",
-        "fact": "ADR-009 要求本地入账提交后评估营销；PostingService 类标注 @Transactional，post 方法在返回前调用 evaluateRewards。",
-        "demo": "作为本轮静态 Review 风险，展示设计约束与调用位置对照。",
-        "limit": "当前未跑失败注入验证；不能据现有成功路径测试宣称跨服务一致性已经充分证明。"
+        "name": "业务细则",
+        "fact": "正式活动日期、清算、退款、限制规则仍需确认。",
+        "demo": "当前仅验证明确列出的本地规则参数。",
+        "limit": "不得推断未定义规则为生产无限制。"
       },
       {
-        "name": "存量与版本材料",
-        "fact": "Java 工程及知识文档齐备；原始 COBOL 工程、扫描 JSON、Git 仓库和 /tmp/ui-e2e 原脚本未提供。",
-        "demo": "Java 图谱由源码映射；COBOL 资料显示历史来源；UI 用例可依据日志和差异重新制作。",
-        "limit": "历史 commit f92dcb7/cb787c3 只能作为会话中的记录，当前不能本地 git checkout 校验。"
-      },
-      {
-        "name": "能力使用与演进",
-        "fact": "59 个 Skill 的目录元数据已整理；完整会话中明确 Skill 调用仅见 cobol-legacy-knowledge 与 arch-adr-writing。",
-        "demo": "本次新引入其它 Skill；保留导入摘要，并创建带来源的演进候选。",
-        "limit": "未找到真实 Skill/Agent 优化、对照评估或新版发布记录。"
-      },
-      {
-        "name": "历史证据完整性",
-        "fact": "本次只读取代码与历史，未重跑 Maven、Docker 或安全扫描。历史工具输出含 197 个测试统计、UI 9/9 和真实返现链路。",
-        "demo": "分别保留历史检查、静态分析及当前操作记录。",
-        "limit": "不使用未核验的效率提升、成本下降或质量百分比。"
+        "name": "执行与评估",
+        "fact": "工作流使用固定输入与操作记录；未调用外部模型、支付或原生 Agent。",
+        "demo": "保留来源标识和独立评估状态。",
+        "limit": "不将固定记录表述为真实历史执行。"
       }
     ],
     "mock_contract": {
@@ -330,7 +316,7 @@
         "质量失败阻止当前交付通过；允许查看之前失败。",
         "安全缺报告保持未验证；功能通过不自动变为生产放行。",
         "评估与发布是不同动作；候选失败可回到修订。",
-        "每条证据携带 origin=historical/static-analysis/simulated。"
+        "每条记录保留来源类型；固定 fixture 与真实运行结果分别保存。"
       ],
       "navigation": [
         "共享能力",
@@ -773,82 +759,82 @@
   "evidence": [
     {
       "id": "E1",
-      "title": "原始需求",
-      "body": "来源：session.json / state.compressed_msgs[0].messages[292]\n原文：把当前的代码提交保存为dev分支。   然后帮我设计一下增加信用卡营销能力的场景，修改前后台的功能\n请求ID：a2aad7e1f6b5cd6af7b1f978adc3449e\n时间：2026-10-26 00:39:12（北京时间）"
+      "title": "白金卡消费返现需求",
+      "body": "来源：本地工作流 fixture；不是外部执行报告。\n\n白金卡客户，三个月消费期间，额外返现0.5%。正式业务细则需确认。"
     },
     {
       "id": "E2",
-      "title": "验证入账触发返现、报名后二次返现与幂等评估",
-      "body": "来源：state.compressed_msgs[0].messages[358]\noperation_id：18765fcd7af557928c13adbf42dd8642\n工具：zsh\n=== 入账（卡6 消费 120，未报名餐饮）===\n{\"status\":\"COMPLETED\",\"processed\":1,\"posted\":1,\"rejected\":0,\"rejections\":[],\"duplicates\":[]}\n=== 卡6 奖励（应 1 条：首刷 20）===\ntotal 1\n开卡首刷礼 20.0 GRANTED\n=== 报名餐饮活动 ===\n{\"enrollmentId\":\"734151f5-e53e-4372-8646-f26a85f616d9\",\"campaignId\":\"c0000000-0000-0000-0000-000000000002\",\"cardNumber\":\"•••• •••• •••• 9900\",\"accountId\":\"00000000\n=== 再消费 120（应再返 6）===\n{\"status\":\"COMPLETED\",\"processed\":1,\"posted\":1,\"rejected\":0,\"rejections\":[],\"duplicates\":[]}\n=== 卡6 奖励（应 2 条：20 + 6）===\ntotal 2\n餐饮消费 5% 返现 6.0 GRANTED\n开卡首刷礼 20.0 GRANTED\n=== 账户6余额（2450.75 + 240 - 26 = 2664.75）===\n2664.75\n=== 直接评估（账户1，模拟已入账交易）===\ngrants [('开卡首刷礼', 20.0, 'GRANTED'), ('餐饮消费 5% 返现', 6.0, 'GRANTED')]\nskipped [('现金预支双倍积分', 'CATEGORY_MISMATCH')]\n=== 账户1余额（1940 - 26 = 1914）===\n1914.0\n\n[exit_code: 0]"
+      "title": "消费与返现核对",
+      "body": "来源：本地工作流 fixture；不是外部执行报告。\n\n输入：白金卡，2026-11-15T12:00:00+08:00，12000分。预期：额外奖励60分，欠款267015分。"
     },
     {
       "id": "E3",
-      "title": "用 jsdom 验证营销页面端到端流程",
-      "body": "来源：state.compressed_msgs[0].messages[364]\noperation_id：8f7a8c6fd4784ad7857943f5e88c6904\n工具：zsh\nPASS  管理员登录并看到营销菜单\nFAIL  活动中心展示可报名按钮\nPASS  奖励记录展示返现与状态\nPASS  活动管理列表展示预算与状态\nPASS  新建活动进入详情且为草稿\nPASS  草稿活动提供发布按钮\nPASS  发布活动成功\nPASS  营销会话无前端脚本错误\n\n7/8 项通过\nEXIT:1\n\n[exit_code: 0]"
+      "title": "首次规则检查",
+      "body": "来源：本地工作流 fixture；不是外部执行报告。\n\n初始实现遗漏卡片等级判断。普通卡120元被错误计算60分奖励；预期0分。6/7项符合，资格检查失败。"
     },
     {
       "id": "E4",
-      "title": "edit_file",
-      "body": "来源：state.compressed_msgs[0].messages[366]\noperation_id：15348763c4f1028f6be6ee6e8b59d5fe\n工具：edit_file\n旧逻辑：function offerCard(offer) {\n    const enrolledBadge = offer.enrolled\n        ? '<span class=\"badge ok\">已报名</span>'\n        : offer.eligible\n            ? '<span class=\"badge neutral\">可参与</span>'\n            : '<span class=\"badge warn\">暂不可参与</span>';\n    const action = !offer.eligible\n        ? `<div class=\"alert info\" style=\"margin:14px 0 0\">${esc(reasonText(offer.reason))}</div>`\n        : offer.enrollmentRequired && !offer.enrolled\n            ? `<div class=\"form-actions\"><button class=\"btn primary small\" data-enroll=\"${esc(offer.campaignId)}\">立即报名</button></div>`\n            : '<div class=\"hint mt-16\">已满足参与条件，达标消费会自动发放奖励。</div>';\n新逻辑：function offerCard(offer) {\n    const needsEnrollment = offer.enrollmentRequired && !offer.enrolled;\n    const enrolledBadge = offer.enrolled\n        ? '<span class=\"badge ok\">已报名</span>'\n        : needsEnrollment\n            ? '<span class=\"badge warn\">需报名</span>'\n            : offer.eligible\n                ? '<span class=\"badge neutral\">可参与</span>'\n                : '<span class=\"badge warn\">暂不可参与</span>';\n    const action = needsEnrollment\n        ? `<div class=\"alert info\" style=\"margin:14px 0 0\">该活动需要报名，报名后消费达标即可获得奖励。</div>\n           <div class=\"form-actions\"><button class=\"btn primary small\" data-enroll=\"${esc(offer.campaignId)}\">立即报名</button></div>`\n        : !offer.eligible\n            ? `<div class=\"alert info\" style=\"margin:14px 0 0\">${esc(reasonText(offer.reason))}</div>`\n            : '<div class=\"hint mt-16\">已满足参与条件，达标消费会自动发放奖励。</div>';"
+      "title": "补充卡片资格检查",
+      "body": "来源：本地工作流 fixture；不是外部执行报告。\n\n新增 cardTier !== 'platinum' 时返回0分奖励。保留期间判断与整数分金额计算。"
     },
     {
       "id": "E5",
-      "title": "重建 web-ui 并重跑营销页面端到端验证",
-      "body": "来源：state.compressed_msgs[0].messages[368]\noperation_id：6981515fb5fefd520a116a9dbe3424c1\n工具：zsh\nPKG:0\n Container carddemo-postgres Healthy \n Container carddemo-web-ui Starting \n Container carddemo-web-ui Started \nPASS  管理员登录并看到营销菜单\nPASS  活动中心展示可报名按钮\nPASS  活动报名成功并刷新为已报名\nPASS  奖励记录展示返现与状态\nPASS  活动管理列表展示预算与状态\nPASS  新建活动进入详情且为草稿\nPASS  草稿活动提供发布按钮\nPASS  发布活动成功\nPASS  营销会话无前端脚本错误\n\n9/9 项通过\nEXIT:0\n\n[exit_code: 0]"
+      "title": "规则复测",
+      "body": "来源：本地工作流 fixture；不是外部执行报告。\n\n七项规则：白金卡、普通卡、开始时刻、结束前一毫秒、结束时刻、半分舍入、零金额。当前运行时可由runCashbackChecks重新执行。"
     },
     {
       "id": "E6",
-      "title": "回归基线 UI 端到端并统计各服务测试数",
-      "body": "来源：state.compressed_msgs[0].messages[372]\noperation_id：b71c04be1c693072ce9b31a209d3f0fb\n工具：zsh\nPASS  用户编辑页渲染（密码留空不改）\nPASS  管理员会话无前端脚本错误\nPASS  普通用户登录成功\nPASS  普通用户不显示用户管理菜单\nPASS  普通用户访问用户管理被拒绝\nPASS  普通用户会话无前端脚本错误\n\n18/18 项通过\nUI_EXIT:0\nservices/account-service tests=13 failures=0\nservices/authorization-service tests=26 failures=0\nservices/card-service tests=29 failures=0\nservices/customer-service tests=30 failures=0\nservices/iam-service tests=35 failures=0\nservices/marketing-service tests=30 failures=0\nservices/transaction-service tests=30 failures=0\nservices/web-ui tests=4 failures=0\n\n[exit_code: 0]"
+      "title": "交付范围与限制",
+      "body": "来源：本地工作流 fixture；不是外部执行报告。\n\n本地状态机覆盖分配、准备、开发、修复、交付、消费、去重与验收。未执行真实Java服务或外部模型实验；生产安全未验证。"
     },
     {
       "id": "E7",
-      "title": "验证奖励幂等与活动创建发布流程",
-      "body": "来源：state.compressed_msgs[0].messages[360]\noperation_id：3b053fcbf49053718a02b51119525fce\n工具：zsh\n=== 幂等：重复评估同一交易 ===\ngrants 0 skipped [('开卡首刷礼', 'ALREADY_EVALUATED'), ('餐饮消费 5% 返现', 'ALREADY_EVALUATED'), ('现金预支双倍积分', 'CATEGORY_MISMATCH')]\n=== 新建活动（草稿）===\n7d9c345e-ffba-4217-9681-9cd355d01b95 DRAFT 周末加油立减\n=== 发布 ===\nACTIVE\n=== 效果 ===\n{'enrolledCount': 0, 'grantedCount': 0, 'cashbackTotal': 0.0, 'budgetUtilization': 0.0}\n=== 列表总数 ===\n5\n\n[exit_code: 0]"
+      "title": "重复处理检查",
+      "body": "来源：本地工作流 fixture；不是外部执行报告。\n\n同一交易只写入一次。再次purchase操作应被拒绝；transactions保持1条，余额保持2670.15。"
     }
   ],
   "graph": [
     {
       "id": "web",
-      "name": "活动中心",
-      "file": "services/web-ui/src/main/resources/static/app.js",
-      "description": "报名状态、操作入口与奖励展示",
-      "excerpt": "1259  function offerCard(offer) {\n1260      const needsEnrollment = offer.enrollmentRequired && !offer.enrolled;\n1261      const enrolledBadge = offer.enrolled\n1262          ? '<span class=\"badge ok\">已报名</span>'\n1263          : needsEnrollment\n1264              ? '<span class=\"badge warn\">需报名</span>'\n1265              : offer.eligible\n1266                  ? '<span class=\"badge neutral\">可参与</span>'\n1267                  : '<span class=\"badge warn\">暂不可参与</span>';\n1268      const action = needsEnrollment\n1269          ? `<div class=\"alert info\" style=\"margin:14px 0 0\">该活动需要报名，报名后消费达标即可获得奖励。</div>\n1270             <div class=\"form-actions\"><button class=\"btn primary small\" data-enroll=\"${esc(offer.campaignId)}\">立即报名</button></div>`\n1271          : !offer.eligible\n1272              ? `<div class=\"alert info\" style=\"margin:14px 0 0\">${esc(reasonText(offer.reason))}</div>`\n1273              : '<div class=\"hint mt-16\">已满足参与条件，达标消费会自动发放奖励。</div>';\n1274      return `\n1275          <div class=\"card\">\n1276              <div class=\"section-title\">\n1277                  <h3>${esc(offer.name)}</h3>${enrolledBadge}\n1278              </div>\n1279              <p class=\"muted\" style=\"margin:0 0 12px\">${esc(offer.description || '')}</p>\n1280              <dl class=\"dl\">\n1281                  <dt>奖励</dt><dd><strong>${esc(offer.rewardSummary)}</strong></dd>\n1282                  <dt>有效期</dt><dd>${dateText(offer.startAt)} ~ ${dateText(offer.endAt)}</dd>\n1283                  <dt>参与门槛</dt><dd>单笔 ≥ ${money(offer.minTransactionAmount)}${offer.categoryCode\n1284                      ? ` · 类别 ${esc(offer.categoryCode)}` : ''}</dd>\n1285                  <dt>次数限制</dt><dd>${offer.maxRewardsPerCard ? `每卡 ${offer.maxRewardsPerCard} 次` : '不限'}</dd>\n1286                  <dt>报名要求</dt><dd>${offer.enrollmentRequired ? '需要报名' : '无需报名'}</dd>\n1287                  ${offer.remainingBudget !== null && offer.remainingBudget !== undefined\n1288                      ? `<dt>剩余预算</dt><dd>${money(offer.remainingBudget)}</dd>` : ''}\n1289              </dl>\n1290              ${action}\n1291          </div>`;\n1292  }\n1293  "
+      "name": "消费输入",
+      "file": "demo/src/cashback.ts#PurchaseInput",
+      "description": "卡片等级、消费时间与整数分金额。",
+      "excerpt": "export interface PurchaseInput { amountCents: number; cardTier: 'platinum' | 'standard'; purchasedAt: string }\nexport interface CashbackResult { eligible: boolean; rewardCents: number; reason: 'ELIGIBLE' | 'CARD_TIER' | 'OUTSIDE_WINDOW' }\n"
     },
     {
       "id": "posting",
-      "name": "交易入账",
-      "file": "services/transaction-service/src/main/java/com/carddemo/transaction/application/PostingService.java",
-      "description": "入账后调用营销评估；事务提交时点需要进一步核验",
-      "excerpt": "98              if (rejection.isPresent()) {\n99                  RejectReason reason = rejection.get();\n100                  rejected++;\n101                  rejections.add(new PostingRejection(transactionId, reason.getCode(), reason.getDescription()));\n102                  dailyTransactions.saveDailyTransaction(DailyTransaction.rejected(transactionId,\n103                          command.cardNumber(), command.typeCode(), command.categoryCode(), command.source(),\n104                          command.description(), command.amount(), command.merchantId(), command.merchantName(),\n105                          command.merchantCity(), command.merchantZip(), originalTimestamp, processedTimestamp,\n106                          reason));\n107                  continue;\n108              }\n109  \n110              TranCategoryBalance balance = balances\n111                      .find(account.accountId(), command.typeCode(), command.categoryCode())\n112                      .orElseGet(() -> new TranCategoryBalance(account.accountId(), command.typeCode(),\n113                              command.categoryCode(), ZERO));\n114              balance.apply(command.amount());\n115              balances.saveBalance(balance);\n116  \n117              accountClient.applyPosting(account.accountId(), command.amount());\n118  \n119              TransactionRecord record = new TransactionRecord(transactionId, account.accountId(),\n120                      command.cardNumber(), command.typeCode(), command.categoryCode(), command.source(),\n121                      command.description(), command.amount(), command.merchantId(), command.merchantName(),\n122                      command.merchantCity(), command.merchantZip(), originalTimestamp, processedTimestamp,\n123                      TransactionStatus.POSTED);\n124              transactions.saveTransaction(record);\n125              dailyTransactions.saveDailyTransaction(DailyTransaction.posted(record));\n126              evaluateRewards(record, card, command);\n127              posted++;\n128          }\n129  \n130          String status = rejected > 0 ? \"COMPLETED_WITH_REJECTS\" : \"COMPLETED\";\n131          return new PostingResult(status, commands.size(), posted, rejected, rejections, duplicates);\n132      }\n133  \n134      /**\n135       * ADR-009：入账是资金事实，营销是附加权益。评估失败只告警，不影响入账结果。"
+      "name": "交易处理",
+      "file": "demo/src/domain.ts#purchase",
+      "description": "提交后处理单笔交易，拒绝重复写入。",
+      "excerpt": "case 'purchase': { requireCondition(s.stage === 'submitted' && !s.transactions.length, '请先提交交付；该交易只记账一次'); const result = calculateCashback({ amountCents: 12000, cardTier: 'platinum', purchasedAt: campaign.purchaseAt }); s.transactions.push({ id: 'TX-PLATINUM-120', amount: 120, reward: result.rewardCents / 100 }); s.balance = (255075 + 12000 - result.rewardCents) / 100; detail = '消费记录 120.00 → 额外返现 0.60 → 欠款 2670.15'; break; }"
     },
     {
       "id": "reward",
-      "name": "营销评估",
-      "file": "services/marketing-service/src/main/java/com/carddemo/marketing/application/RewardEvaluationService.java",
-      "description": "报名、门槛、预算、去重与奖励发放",
-      "excerpt": "52      public EvaluationOutcome evaluate(EvaluationCommand command) {\n53          validate(command);\n54          List<RewardView> grants = new ArrayList<>();\n55          List<EvaluationOutcome.Skipped> skipped = new ArrayList<>();\n56  \n57          AccountSnapshot account = accountClient.findAccount(command.accountId()).orElse(null);\n58          if (account == null) {\n59              skipped.add(new EvaluationOutcome.Skipped(null, null, EligibilityPolicy.ACCOUNT_NOT_FOUND));\n60              return new EvaluationOutcome(grants, skipped);\n61          }\n62  \n63          LocalDateTime now = LocalDateTime.now(clock);\n64          for (Campaign campaign : campaigns.findActiveAt(now)) {\n65              if (rewards.existsByCampaignAndTransaction(campaign.getCampaignId(), command.transactionId())) {\n66                  skipped.add(new EvaluationOutcome.Skipped(campaign.getCampaignId(), campaign.getName(),\n67                          \"ALREADY_EVALUATED\"));\n68                  continue;\n69              }\n70              boolean enrolled = enrollments\n71                      .findEnrollment(campaign.getCampaignId(), command.cardNumber())\n72                      .isPresent();\n73              long rewardsOnCard = rewards.countByCampaignAndCard(campaign.getCampaignId(), command.cardNumber());\n74              EligibilityPolicy.Evaluation evaluation = EligibilityPolicy.evaluateTransaction(\n75                      campaign, account, command.amount(), command.categoryCode(), enrolled,\n76                      rewardsOnCard, now);\n77              if (!evaluation.eligible()) {\n78                  skipped.add(new EvaluationOutcome.Skipped(campaign.getCampaignId(), campaign.getName(),\n79                          evaluation.reason()));\n80                  continue;\n81              }\n82  \n83              RewardComputation computation = evaluation.reward();\n84              try {\n85                  campaign.consumeCashback(computation.amount());\n86              } catch (BusinessRuleException ex) {\n87                  skipped.add(new EvaluationOutcome.Skipped(campaign.getCampaignId(), campaign.getName(),\n88                          EligibilityPolicy.BUDGET_EXHAUSTED));\n89                  continue;\n90              }\n91  \n92              RewardGrant grant = new RewardGrant(UUID.randomUUID().toString(),\n93                      campaign.getCampaignId(), command.transactionId(), command.cardNumber(),\n94                      command.accountId(), command.customerId(), computation, now);\n95              if (grant.isCashback()) {\n96                  try {\n97                      accountClient.creditCashback(command.accountId(), grant.getRewardId(),\n98                              campaign.getCampaignId(), grant.getRewardAmount());\n99                      grant.markGranted(now);\n100                  } catch (RemoteServiceException ex) {\n101                      grant.markPending(\"Cashback credit pending: \" + ex.getMessage());\n102                  }\n103              } else {\n104                  grant.markGranted(now);\n105              }\n106              rewards.saveReward(grant);\n107              campaigns.saveCampaign(campaign);\n108              grants.add(new RewardView(grant, campaign.getName()));\n109          }\n110          return new EvaluationOutcome(grants, skipped);\n111      }\n112  \n113      public RewardView fulfill(String rewardId) {\n114          RewardGrant grant = rewards.findReward(rewardId)\n115                  .orElseThrow(() -> new NotFoundException(\"REWARD_NOT_FOUND\",\n116                          \"Reward \" + rewardId + \" not found\"));\n117          Campaign campaign = campaigns.findCampaign(grant.getCampaignId()).orElse(null);\n118  \n119          if (!grant.isGranted()) {\n120              if (!grant.isCashback()) {\n121                  grant.markGranted(LocalDateTime.now(clock));\n122              } else {\n123                  try {\n124                      accountClient.creditCashback(grant.getAccountId(), grant.getRewardId(),\n125                              grant.getCampaignId(), grant.getRewardAmount());\n126                      grant.markGranted(LocalDateTime.now(clock));\n127                  } catch (RemoteServiceException ex) {\n128                      grant.markPending(ex.getMessage());\n129                      rewards.saveReward(grant);\n130                      throw ex;\n131                  }\n132              }\n133              rewards.saveReward(grant);\n134          }\n135          return new RewardView(grant, campaign == null ? grant.getCampaignId() : campaign.getName());\n136      }\n137  \n138      private static void validate(EvaluationCommand command) {\n139          if (command.transactionId() == null || command.transactionId().isBlank()) {\n140              throw new InvalidRequestException(\"VALIDATION_FAILED\", \"Transaction ID must be supplied.\");"
+      "name": "返现计算",
+      "file": "demo/src/cashback.ts#calculateCashback",
+      "description": "白金卡资格、三个月期间与额外0.5%整数分计算。",
+      "excerpt": "/** Local workflow contract. Dates and rounding are fixture assumptions, not approved production policy. */\nexport const campaign = Object.freeze({\n  id: 'platinum-extra-cashback-v1',\n  start: '2026-11-01T00:00:00+08:00',\n  endExclusive: '2027-02-01T00:00:00+08:00',\n  purchaseAt: '2026-11-15T12:00:00+08:00',\n  extraBasisPoints: 50,\n  origin: 'fixture' as const,\n});\nexport interface PurchaseInput { amountCents: number; cardTier: 'platinum' | 'standard'; purchasedAt: string }\nexport interface CashbackResult { eligible: boolean; rewardCents: number; reason: 'ELIGIBLE' | 'CARD_TIER' | 'OUTSIDE_WINDOW' }\nexport function calculateCashback(input: PurchaseInput): CashbackResult {\n  if (!Number.isSafeInteger(input.amountCents) || input.amountCents <= 0) throw new RangeError('消费金额必须为正整数分');\n  if (!['platinum', 'standard'].includes(input.cardTier)) throw new RangeError('卡片等级无效');\n  if (!/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?(?:Z|[+-]\\d{2}:\\d{2})$/.test(input.purchasedAt)) throw new RangeError('消费时间必须包含时区');\n  const date = input.purchasedAt.slice(0, 10);\n  const calendarDay = Date.parse(date + 'T00:00:00Z');\n  if (!Number.isFinite(calendarDay) || new Date(calendarDay).toISOString().slice(0, 10) !== date) throw new RangeError('消费日期无效');\n  const instant = Date.parse(input.purchasedAt);\n  if (!Number.isFinite(instant)) throw new RangeError('消费时间无效');\n  if (input.cardTier !== 'platinum') return { eligible: false, rewardCents: 0, reason: 'CARD_TIER' };\n  if (instant < Date.parse(campaign.start) || instant >= Date.parse(campaign.endExclusive)) return { eligible: false, rewardCents: 0, reason: 'OUTSIDE_WINDOW' };\n  // 0.5% = 1/200. Integer half-up rounding avoids floating-point amount drift.\n  const rewardCents = Number((BigInt(input.amountCents) + 100n) / 200n);\n  return { eligible: true, rewardCents, reason: 'ELIGIBLE' };\n}\n\n"
     },
     {
       "id": "account",
-      "name": "账户返现",
-      "file": "services/account-service/src/main/java/com/carddemo/account/application/AccountApplicationService.java",
-      "description": "以 rewardId 去重，冲减账户欠款",
-      "excerpt": "65          return accounts.saveAccount(account);\n66      }\n67  \n68      /**\n69       * 营销返现入账（幂等）：同一 rewardId 重复调用只入账一次。\n70       */\n71      public Account creditCashback(String accountId, String rewardId, String campaignId, BigDecimal amount) {\n72          if (rewardCredits.existsByRewardId(rewardId)) {\n73              return getById(accountId);\n74          }\n75          Account account = getById(accountId);\n76          account.applyCashback(amount);\n77          Account saved = accounts.saveAccount(account);\n78          rewardCredits.saveCredit(new RewardCredit(rewardId, accountId, campaignId, amount,\n79                  LocalDateTime.now()));\n80          return saved;\n81      }\n82  }"
+      "name": "余额更新",
+      "file": "demo/src/domain.ts#balance",
+      "description": "原欠款加消费再减奖励，功能状态独立于安全放行。",
+      "excerpt": "原欠款255075分 + 消费12000分 - 奖励60分 = 267015分\n重复处理不会产生第二笔奖励或更新余额。"
     }
   ],
   "sources": [
     {
-      "file": "docs/design/08-marketing-capability.md",
-      "content": "# 新增能力设计：信用卡营销（Marketing）\n\n> 定位：存量 CardDemo 没有任何营销能力，这是**新增支撑域**，不是遗留迁移项。\n> 目标：让发卡行可以配置营销活动、让持卡人报名参与、消费后自动返现/积分，并可查看活动效果。\n> 关联：ADR-009（奖励评估与入账集成方式）、`05-api-catalog.md` §8、`02-bounded-contexts.md` §2.7。\n\n## 1. 业务场景\n\n| 场景 | 活动类型 | 规则 | 奖励 | 是否需要报名 |\n|---|---|---|---|---|\n| S1 开卡首刷礼 | `FIRST_PURCHASE_CASHBACK` | 活动期内首笔消费 ≥ 100 | 固定返现 20 | 否（自动） |\n| S2 餐饮消费返现 | `CATEGORY_CASHBACK` | 餐饮类（类别 0001）单笔 ≥ 50，返 5%，单笔上限 30，每卡最多 5 次 | 比例返现 | 是 |\n| S3 现金预支双倍积分 | `POINTS_MULTIPLIER` | 现金预支（类别 0002）积分 2 倍，每卡最多 10 次 | 积分 | 否 |\n| S4 双十一餐饮加码 | `CATEGORY_CASHBACK` | 11/01–11/15 餐饮返 10%，单笔上限 50 | 比例返现 | 是（草稿，演示发布流程） |\n\n**为什么是这四个**：覆盖\"固定金额 / 比例封顶 / 积分倍数\"三种计价方式，以及\"报名制 / 自动参与\"\n两种参与方式；S4 用来演示 `DRAFT → ACTIVE → PAUSED → ENDED` 生命周期。\n\n**明确不做**（写入 §8 延后项）：分期手续费优惠（需要分期能力）、优惠券核销、积分兑换商城、\n人群画像/个性化推荐、跨活动互斥编排、预算实时熔断以外的风控。\n\n## 2. 领域模型\n\n### 2.1 聚合与不变量\n\n| 聚合根 | 关键字段 | 不变量 |\n|---|---|---|\n| `Campaign` | 名称、类型、状态、起止时间、目标账户组、类别码、最低金额、返现率/固定额/积分倍数、单笔上限、每卡次数、预算、已消耗、是否需报名 | 名称必填 ≤80；`startAt < endAt`；类型与计价字段匹配；状态迁移合法；`consumedAmount ≤ budget`；预算耗尽不再发奖 |\n| `Enrollment` | 活动、卡号、账户、客户、报名时间 | 同一活动同一卡号唯一 |\n| `RewardGrant` | 活动、交易号、卡号、账户、客户、奖励类型/金额/积分、状态、失败原因 | 同一活动同一交易号唯一（幂等）；现金返现必须最终 `GRANTED` 或可重试 `PENDING` |\n\n状态机（`CampaignStatus`）：\n\n```\nDRAFT --activate--> ACTIVE --pause--> PAUSED --activate--> ACTIVE\nACTIVE/PAUSED --end--> ENDED\n（ENDED 为终态；只有 DRAFT 可编辑规则）\n```\n\n### 2.2 计价规则\n\n```\nCASHBACK:\n  fixedRewardAmount > 0 时：reward = fixedRewardAmount\n  否则：reward = round(transactionAmount × rewardRate, 2)\n  若 maxRewardPerTransaction 非空：reward = min(reward, maxRewardPerTransaction)\nPOINTS:\n  points = floor(transactionAmount × pointsMultiplier)\n奖励必须 > 0，否则不发放。\n```\n\n### 2.3 资格判定顺序（MK-ELI）\n\n1. 活动状态为 `ACTIVE` 且当前时间在 `[startAt, endAt)`（MK-ELI-01）\n2. 账户状态为 `Y`（MK-ELI-02）\n3. 目标账户组为空或等于账户 `groupId`（MK-ELI-03）\n4. 类别码为空或等于交易类别（MK-ELI-04）\n5. 交易金额 ≥ `minTransactionAmount`（MK-ELI-05）\n6. 需报名时存在该卡报名记录（MK-ELI-06）\n7. 该卡在本活动的已发奖励次数 < `maxRewardsPerCard`（MK-ELI-07）\n8. `FIRST_PURCHASE_CASHBACK` 要求该卡在本活动无历史奖励（MK-ELI-08）\n9. 现金返现预算剩余 ≥ 本次奖励（MK-ELI-09）\n\n命中第一个不满足的条件即返回原因码；活动中心页对用户展示原因文案。\n\n## 3. 限界上下文与集成\n\n- 新上下文 **Marketing**（支撑域），服务 `marketing-service` :8087，数据库 `carddemo_marketing`。\n- 上游依赖：Account（账户组、账户状态、返现入账）。\n- 下游调用方：Transaction（消费入账后触发奖励评估）、Web UI（活动/奖励/活动管理）。\n- 不在 Marketing 保存账户余额或交易账本：奖励金额由 Marketing 计算，**入账由 Account 执行**。\n\n### 3.1 集成时序（消费入账 → 返现）\n\n```\nTransaction.posting\n  └─ 本地事务提交（交易 + 类别累计 + 账户余额）\n       └─ 同步调用 POST /api/v1/reward-evaluations（2s 超时，失败仅告警）\n            └─ Marketing 计算奖励 → 保存 RewardGrant(PENDING)\n                 └─ 调 Account POST /accounts/{id}/cashback-credits（幂等键 rewardId）\n                      └─ 成功：RewardGrant=GRANTED；失败：保持 PENDING，可人工重试\n```\n\n- 奖励评估失败**不回滚入账**：消费是事实，营销是附加权益（ADR-009）。\n- 幂等：`(campaign_id, transaction_id)` 唯一；Account 侧 `reward_credit.reward_id` 唯一。\n- 人工重试：`POST /api/v1/rewards/{rewardId}/fulfill`。\n\n## 4. API（详见 05-api-catalog §8）\n\n| 方法 | 路径 | 用途 |\n|---|---|---|\n| GET | `/api/v1/campaigns?status=&page=&size=` | 活动列表 |\n| GET | `/api/v1/campaigns/{id}` | 活动详情 |\n| POST | `/api/v1/campaigns` | 新建（DRAFT） |\n| PUT | `/api/v1/campaigns/{id}` | 编辑（仅 DRAFT） |\n| POST | `/api/v1/campaigns/{id}/activate` / `pause` / `end` | 状态迁移 |\n| GET | `/api/v1/campaigns/{id}/performance` | 活动效果（报名数/发奖数/返现额/预算使用率） |\n| POST | `/api/v1/campaigns/{id}/enrollments` | 报名（幂等） |\n| GET | `/api/v1/campaigns/{id}/enrollments` | 报名列表 |\n| GET | `/api/v1/eligibilities?cardNumber=&accountId=&customerId=` | 活动中心：可参与活动与原因 |\n| POST | `/api/v1/reward-evaluations` | 奖励评估（交易入账后调用，幂等） |\n| GET | `/api/v1/rewards?accountId=&cardNumber=&page=&size=` | 奖励记录 |\n| POST | `/api/v1/rewards/{id}/fulfill` | 重试返现入账 |\n| GET | `/api/v1/marketing/summary` | 首页看板汇总 |\n\n## 5. 数据模型\n\n```sql\ncampaign(campaign_id PK, name, description, campaign_type, status, start_at, end_at,\n         target_group_id, category_code, min_transaction_amount, reward_rate,\n         fixed_reward_amount, max_reward_per_transaction, max_rewards_per_card,\n         budget, consumed_amount, points_multiplier, enrollment_required,\n         created_at, updated_at, version)\nenrollment(enrollment_id PK, campaign_id, card_number, account_id, customer_id,\n           enrolled_at, version, UNIQUE(campaign_id, card_number))\nreward_grant(reward_id PK, campaign_id, transaction_id, card_number, account_id, customer_id,\n             reward_type, reward_amount, reward_points, status, failure_reason,\n             created_at, granted_at, version, UNIQUE(campaign_id, transaction_id))\n```\n\nAccount 侧新增（保证返现幂等）：\n\n```sql\nreward_credit(reward_id PK, account_id, campaign_id, amount, created_at)\n```\n\n## 6. 前后台改造清单\n\n### 6.1 后台（服务）\n\n| 模块 | 改动 |\n|---|---|\n| 新增 marketing-service | 活动、报名、奖励、效果查询；AccountClient |\n| account-service | 新增 `POST /api/v1/accounts/{id}/cashback-credits`（幂等返现入账）+ `reward_credit` 表 |\n| transaction-service | `PostingService` 入账成功后调用营销评估（2s 超时，失败告警不回滚）+ `MarketingClient` |\n| web-ui | 代理营销路径；新增「活动中心」「我的奖励」「活动管理」页面 |\n| docker-compose | 新增 marketing-service（8087）、初始化 `carddemo_marketing` 库、注入服务地址 |\n\n### 6.2 前台（Web 界面）\n\n| 页面 | 角色 | 功能 |\n|---|---|---|\n| 活动中心 `#/offers` | 全部 | 按账户/卡查看可参与活动、资格原因、报名按钮、已报名状态 |\n| 我的奖励 `#/rewards` | 全部 | 奖励记录（返现/积分）、状态、失败重试 |\n| 活动管理 `#/campaigns` | 管理员 | 列表、新建、编辑草稿、发布/暂停/结束、效果指标 |\n| 首页 | 全部 | 新增营销入口卡片 |\n\n## 7. 指标与验收\n\n| 指标 | 口径 | 验收 |\n|---|---|---|\n| 报名转化率 | 报名数 / 曝光活动数 | 活动详情可见 |\n| 奖励成本 | Σ 已发放返现 | 预算使用率 ≤ 100% |\n| 发放成功率 | GRANTED / (GRANTED+PENDING+FAILED) | ≥ 99%（演示环境 100%） |\n| 幂等性 | 同一交易重复评估 | 只产生 1 条奖励、只入账 1 次 |\n| 隔离性 | 营销不可用 | 入账成功、奖励可重试 |\n\n## 8. 延后项与风险\n\n| 项 | 说明 |\n|---|---|\n| 分期手续费优惠 | 需要先有分期能力 |\n| 积分兑换/商城 | 需要积分账户与核销 |\n| 人群分层/个性化 | 需要客户标签平台 |\n| 活动互斥与叠加策略 | 当前允许叠加（S1+S2 可同时触发），生产需按业务确认 |\n| 预算并发 | `@Version` + 条件更新，极端并发下可能超发 1 笔，需对账 |\n| 事件化 | 当前同步调用；后续改为 Outbox → MQ，见 ADR-009 |\n"
+      "file": "demo/docs/cashback-contract.md",
+      "content": "# 白金卡消费额外返现\n\n已确认范围：白金卡客户，3 个月消费期间，额外返现 0.5%。\n\n本地流程参数用于验证产品交互，不是已批准的正式活动政策：\n- 起止时间：2026-11-01 00:00:00 +08:00（含）至 2027-02-01 00:00:00 +08:00（不含）。\n- 金额以整数分计算；额外返现为消费金额的 1/200，半分向上舍入至整分。\n- 白金卡消费 120.00 元，额外返现 0.60 元；原欠款 2550.75 元，结果欠款 2670.15 元。\n- 普通卡与期间外消费不适用；无效或非正整数分金额拒绝处理。\n- 此范围没有报名步骤；未定义消费类别、门槛、封顶或退款规则，不能据此推断正式政策不设限制。\n\n当前可执行规则位于 demo/src/cashback.ts，流程状态位于 demo/src/domain.ts。\n静态检查记录为 fixture，用于完整交付工作流；不代表真实 iCode 会话、Java 服务测试或模型评估已运行。\n"
     },
     {
-      "file": "docs/design/adr/ADR-009-marketing-integration.md",
-      "content": "# ADR-009: 营销奖励的评估与入账集成方式\n\n| 项 | 内容 |\n|----|------|\n| 编号 | ADR-009 |\n| 日期 | 2026-10-26 |\n| 状态 | 已接受 |\n| 关联需求 | `docs/design/08-marketing-capability.md`、MK-REW-* |\n\n## 背景\n\n新增营销能力后，消费入账需要触发奖励评估，返现需要真正进入账户余额。系统现状是：\n交易入账在 transaction-service 的本地事务内完成，账户余额在 account-service，二者通过同步\nREST 调用协作（ADR-005），没有消息中间件。必须决定：\n\n1. 奖励评估在入账链路的哪个位置触发；\n2. 营销不可用时是否影响入账；\n3. 返现入账如何保证幂等与可重试。\n\n## 候选方案\n\n| 方案 | 描述 | 优点 | 缺点 |\n|---|---|---|---|\n| A：入账后同步调用 + 失败告警 + 幂等重试 | 入账事务提交后调用 marketing 评估；失败只记日志；返现由 marketing 调 account 幂等入账，失败保留 PENDING 可重试 | 无中间件；链路短；资金事实不受营销影响 | 营销不可用时奖励延迟，需要重试入口 |\n| B：事务性 Outbox + MQ 事件驱动 | 入账写 outbox，营销订阅 `TransactionPosted` | 彻底解耦；可重放 | 需要 MQ、消费幂等、积压与死信治理；演示环境成本高 |\n| C：日终批量结算 | 每天扫描当日交易批量发奖 | 实现简单；与账务批处理一致 | 奖励非实时；用户感知差；活动预算反馈滞后 |\n\n## 量化权衡表\n\n| 方案 | 实现成本 | 性能开销 | 运维时效 | 审计性 | 风险 |\n|---|---|---|---|---|---|\n| A | 低 | 入账 +2s 最坏（超时） | 秒级；失败可立即重试 | 高（奖励记录含交易号） | 中（营销短暂不可用时奖励延迟） |\n| B | 高 | 入账无额外阻塞 | 分钟级最终一致 | 高（事件可追溯） | 低（需治理） |\n| C | 低 | 无在线开销 | 次日 | 中 | 中高（预算/用户体验差） |\n\n## 决策\n\n采用方案 A，并落实以下约束：\n\n1. **营销不阻塞账务**：入账本地事务先提交，再调用 `POST /api/v1/reward-evaluations`；\n   调用异常只记 `WARN`（日志只含 transactionId），不回滚交易、不影响入账结果。\n2. **幂等**：`reward_grant` 对 `(campaign_id, transaction_id)` 唯一；重复评估返回既有奖励\n   （`duplicate=true`），不重复发奖。\n3. **返现入账幂等**：account-service 新增 `reward_credit.reward_id` 唯一键，\n   同一 `rewardId` 重复调用返回当前账户，不重复扣减欠款。\n4. **失败可重试**：现金奖励下游失败时保留 `PENDING`，通过\n   `POST /api/v1/rewards/{rewardId}/fulfill` 人工重试；重试仍幂等。\n5. **可见性**：活动效果接口展示发放成功率与预算使用率，PENDING 数量纳入监控。\n\n方案 B 作为下一阶段演进：入账写 outbox，营销订阅事件；届时保留现有幂等键与接口语义。\n\n## 理由\n\n1. 消费入账是资金事实，营销是附加权益，二者失败域必须分离。\n2. 现有架构没有 MQ，引入方案 B 会显著扩大本次范围；方案 A 与 ADR-005 的同步调用风格一致。\n3. 幂等键（交易号、奖励号）同时服务同步重试与未来事件重放，不返工。\n\n## 后果（影响与回退路径）\n\n- 影响：入账链路最坏增加 2 秒（营销超时）；营销不可用时奖励延迟，需人工重试或后续补偿作业。\n- 回退：关闭 transaction-service 的 `marketing.enabled` 开关即可停止调用；营销数据独立库，\n  不影响账务；如需彻底解耦，按方案 B 增加 outbox 与订阅，接口与幂等键不变。\n\n## 证据\n\n- `docs/design/08-marketing-capability.md` §3.1\n- `docs/design/adr/ADR-005-cross-service-consistency.md`\n- `docs/design/05-api-catalog.md` §8\n"
+      "file": "demo/docs/cashback-integration.md",
+      "content": "# 交易与返现处理边界\n\n本地工作流以单笔 TX-PLATINUM-120 作为验收输入。先计算整数分奖励，再写入一条交易并更新欠款。重复 purchase 被拒绝，不得再次改动交易或余额。\n\n并发写入使用服务端队列及 revision 乐观锁。Talent 在独立状态目录保存知识与候选；回传失败保留 pending，重试沿用同一操作与 generation，避免重复采用。\n\n真实支付、账户系统与外部模型不在当前实现范围。退款、重试账务、清算和生产事务一致性尚未验证。\n"
     },
     {
-      "file": "docs/design/adr/ADR-007-authentication-scope.md",
-      "content": "# ADR-007: 鉴权强制校验的范围（POC 阶段）\n\n| 项 | 内容 |\n|----|------|\n| 编号 | ADR-007 |\n| 日期 | 2026-10-25 |\n| 状态 | 已接受（有已知风险） |\n| 关联需求 | BR-SGN-01..05、BR-USER-* |\n\n## 背景\n\n遗留系统通过 CICS 终端会话 + USRSEC 文件实现登录，菜单分流管理员/普通用户，但**没有服务端\n细粒度授权**：COADM01C 不校验 `CDEMO-USER-TYPE`（`COADM01C.cbl:86-158`），普通用户菜单的\n\"A\" 标记全部为 \"U\"，权限差异只体现在登录后进入哪个菜单（`COMEN02Y.cpy:21-90`）。\n\n目标系统是 HTTP 微服务，没有终端会话。完整方案需要网关 + OAuth2/JWT 资源服务器 + 权限模型，\n工作量与验证成本超出本次范围。\n\n## 候选方案\n\n| 方案 | 描述 | 优点 | 缺点 |\n|---|---|---|---|\n| 方案A：iam 签发 HMAC token，资源服务本期不强制校验 | 登录可用；token 可被网关/后续迭代校验 | 范围可控；契约先行 | 存在未授权访问风险（仅限本地演示） |\n| 方案B：每个服务内置 token 校验过滤器 | 资源服务自校验 | 无网关也可防护 | 6 份重复代码；密钥轮换复杂；测试与联调成本高 |\n| 方案C：引入 Spring Cloud Gateway + JWT 资源服务器 | 统一鉴权、限流、路由 | 架构完整；生产可演进 | 新增组件与依赖；增加部署与排障复杂度 |\n\n## 量化权衡表\n\n| 方案 | 实现成本 | 性能开销 | 运维时效 | 审计性 | 风险 |\n|---|---|---|---|---|---|\n| A | 低 | 无 | 即时 | 中（登录与签发有日志） | 高（默认拒绝缺失） |\n| B | 中 | 低（每请求一次校验） | 即时 | 中 | 低 |\n| C | 高 | 低（网关一跳） | 需网关发版 | 高（统一访问日志） | 低 |\n\n## 决策\n\n采用方案 A，并且**只在环回地址/本地 Compose 演示环境暴露端口**；生产化前必须实施方案 C。\niam-service 提供 `POST /api/v1/auth/login` 与 `POST /api/v1/auth/verify`，token 为\n`base64(payload).base64(HMAC-SHA256(payload, secret))`，payload 含 userId、userType、过期时间。\n\n风险登记：`docs/ops/01-docker-runbook.md` §7「已知安全缺口」，明确\"未鉴权 API 不得暴露公网\"。\n\n## 理由\n\n1. 本期目标是验证领域拆分与业务语义迁移，不是生产安全基线。\n2. 鉴权是横切关注点，必须由网关统一实施，逐服务重复实现会形成不可维护的安全碎片。\n3. token 契约先行，后续接网关无需改业务服务。\n\n## 后果（影响与回退路径）\n\n- 影响：本地可直接 curl 调用；生产部署前必须增加网关与 mTLS/内网隔离。\n- 回退：若必须立即上线，采用方案 B 作为过渡（在 6 个服务加同一份 `TokenValidationFilter`）。\n\n## 证据\n\n- `COSGN00C.cbl:209-257`\n- `COADM01C.cbl:86-158`（无身份校验）\n- `COMEN02Y.cpy:21-90`（权限标记全为 U）\n"
+      "file": "demo/docs/security-scope.md",
+      "content": "# 权限与安全范围\n\nOwner 管理项目、分配、验收及发布；成员准备上下文、提交工作与交付成果。两种本地角色共用状态，但所有写接口检查角色、Origin、访问令牌与 revision。\n\n浏览器角色选择不等于企业身份认证。本地 HTTP 服务只监听127.0.0.1；真实企业登录、生产鉴权、安全扫描及支付能力尚未接入。功能验收不改变 security=unverified。\n"
     }
   ],
   "baseline": {

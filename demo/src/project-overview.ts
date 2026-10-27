@@ -72,7 +72,7 @@ export function projectOverview(state: DemoState, data: Presentation, projectId:
     let blocking = issue?.blocksDelivery ?? false;
     if (projectId === 'carddemo' && source.id === 'defects:carddemo:CARD-BUG-001' && state.checks !== 'none') {
       item.closed = state.checks === 'passed'; item.status = item.closed ? '已修复关闭' : '待修复'; blocking = !item.closed;
-      item.progress = item.closed ? '历史修复 E4 与复测 E5 已采用' : '历史检查 E3：7/8，等待修复与复测';
+      item.progress = item.closed ? '修复 E4 与复测 E5 已关联' : '规则检查 E3：6/7，等待修复与复测';
     }
     item.blocksDelivery = item.closed === false && blocking && requirements.some(requirement => item.relatedIds.includes(requirement.id) && requirement.phase !== '已交付' && (requirement.taskId || requirement.source.sourceProjectId === projectId && requirement.source.requirement?.delivery));
     return item;

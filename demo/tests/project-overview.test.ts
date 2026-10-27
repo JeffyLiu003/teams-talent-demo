@@ -16,7 +16,7 @@ test('CardDemo main requirement changes within one deduplicated project set; qua
     const result = overview({ ...state, stage, checks, assigned: stage !== 'draft' });
     assert.equal(result.requirements.length, 5); assert.equal(result.requirements[0].taskId, 'DEMO-MKT-001'); assert.equal(result.requirements[0].phase, phase);
     assert.equal(result.counts.open, open + 4); assert.equal(result.counts.blocking, blocked + 2); assert.equal(result.issues.length, 7);
-    assert.equal(result.counts.closed, 2 - open); assert.equal(result.counts.unconfirmed, 1);
+    assert.equal(result.counts.closed, checks === 'none' ? 1 : 2 - open); assert.equal(result.counts.unconfirmed, checks === 'none' ? 2 : 1);
     assert.equal(result.counts.pending, stage === 'draft' ? 1 : 0);
     assert.equal(result.counts.delivered, stage === 'accepted' ? 2 : 1);
     assert.equal(result.requirements[0].quality.find(item => item.label === '安全')?.passed, false);
@@ -72,7 +72,7 @@ test('task reports use exact project/task scope and never turn a developer resul
 
 test('source-backed project requirements and issues have exact initial totals without borrowing iCode evidence', () => {
   const result = overview(initialState());
-  assert.deepEqual(result.counts, { all: 5, pending: 1, active: 2, acceptance: 1, delivered: 1, issues: 7, open: 4, closed: 2, unconfirmed: 1, blocking: 2 });
+  assert.deepEqual(result.counts, { all: 5, pending: 1, active: 2, acceptance: 1, delivered: 1, issues: 7, open: 4, closed: 1, unconfirmed: 2, blocking: 2 });
   assert.deepEqual(result.requirements.map(item => item.source.sourceRecordId), ['DEMO-MKT-001', 'MKT-002', 'MKT-003', 'MKT-004', 'MKT-005']);
   assert.deepEqual(result.requirements.slice(1).map(item => [item.source.title, item.owner, item.phase]), [
     ['返现明细查询', '陈晨', '开发'], ['账单返现汇总', '苏晴', '验证'], ['返现到账通知', '杨帆', '待验收'], ['历史权益查询', '赵宁', '已交付'],
@@ -86,8 +86,8 @@ test('source-backed project requirements and issues have exact initial totals wi
   assert.match(result.requirements[0].source.summary, /白金卡客户未来 3 个月.*额外增加 0\.5%/);
   assert.match(result.requirements[0].source.detail, /待确认：活动日期/);
   assert.deepEqual(filterIssues(result, 'blocking').map(item => item.source.sourceRecordId), ['CARD-BUG-003', 'CARD-BUG-004']);
-  assert.deepEqual(filterIssues(result, 'closed').map(item => item.source.sourceRecordId), ['CARD-BUG-001', 'CARD-BUG-007']);
-  assert.deepEqual(filterIssues(result, 'unconfirmed').map(item => item.source.sourceRecordId), ['CARD-BUG-002']);
+  assert.deepEqual(filterIssues(result, 'closed').map(item => item.source.sourceRecordId), ['CARD-BUG-007']);
+  assert.deepEqual(filterIssues(result, 'unconfirmed').map(item => item.source.sourceRecordId), ['CARD-BUG-001', 'CARD-BUG-002']);
   for (const item of result.issues.slice(2)) {
     assert.equal(item.source.pluginId, 'defects'); assert.deepEqual(item.source.references, []);
     assert.equal(item.relatedIds.length, 1); assert.ok(result.requirements.some(requirement => item.relatedIds.includes(requirement.id)));

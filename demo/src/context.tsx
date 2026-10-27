@@ -4,7 +4,7 @@ import type { Presentation } from './api.js';
 import type { WorkspaceAction } from './workspace.js';
 export interface DemoContext {
   state: DemoState; data: Presentation; role: Role; busy: boolean;
-  perform(action: Action, reason?: string): Promise<void>;
+  perform(action: Action, reason?: string): Promise<boolean>;
   update(kind: WorkspaceAction, payload: Record<string, unknown>): Promise<DemoState | undefined>;
   run<T>(work: () => Promise<T>, success?: string): Promise<T | undefined>;
   showEvidence(id: string): void; showText(title: string, content: string): void;

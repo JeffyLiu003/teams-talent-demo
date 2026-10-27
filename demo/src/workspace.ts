@@ -1,3 +1,4 @@
+import { campaign } from './cashback.js';
 import { availableSkillIdsFor, projectSkillIds, resourcePublications, resourcePublicationHistory, resourceSubscriptions, resourceVersion, shareableResourceIds, type ResourcePublication, type ResourceSubscription, type SkillCatalogEntry } from './resource-sharing.js';
 import { externalPlatformDefault } from './external-platforms.js';
 import { DomainError, type DemoState, type Role } from './domain.js';
@@ -27,15 +28,16 @@ export const defaultSkills = projectSkillIds;
 export function initialWorkspace(): WorkspaceState {
   return {
     acquiredResources:[],project: { name: '信用卡营销交付', description: '针对白金卡客户未来 3 个月的消费，额外增加 0.5% 的消费返现。', repository: 'carddemo-java-1025', assets: [
-      { id:'code',title:'CardDemo Java 项目',kind:'repository',location:'workspace/carddemo-java-1025' },
-      { id:'design',title:'营销能力设计',kind:'document',location:'docs/design/08-marketing-capability.md' },
-      { id:'history',title:'信用卡营销历史需求',kind:'requirement',location:'iCode / 6b82c08d-eb3b-4bdc-b373-54fed16a7fcd' },
-      { id:'adr',title:'营销集成与鉴权范围',kind:'document',location:'ADR-009 / ADR-007' },
+      { id:'code',title:'白金卡返现规则',kind:'repository',location:'demo/src/cashback.ts',sourceAssetId:'repository:carddemo:carddemo-java-1025' },
+      { id:'design',title:'消费返现规则',kind:'document',location:'demo/docs/cashback-contract.md',sourceAssetId:'design-library:carddemo:marketing-capability' },
+      { id:'history',title:'白金卡消费返现需求',kind:'requirement',location:'requirements:carddemo:DEMO-MKT-001' },
+      { id:'adr',title:'交易处理边界',kind:'document',location:'demo/docs/cashback-integration.md',sourceAssetId:'design-library:carddemo:ADR-009' },
+      { id:'security',title:'权限与安全范围',kind:'document',location:'demo/docs/security-scope.md',sourceAssetId:'design-library:carddemo:ADR-007' },
     ] }, materials: [], selectedSkills: [...defaultSkills], progress: [], sessionReported:false, reportAt:null,
     analysis:{scope:'single',status:'idle'}, foundation:{progressEnabled:true,uploadEnabled:true},
     team:{ name:'信用卡研发团队',members:[['owner','林悦'],['member','陈晨'],['su','苏晴'],['yang','杨帆'],['zhao','赵宁'],['wang','王晓']].map(([id,name])=>({id,name,role:id==='owner'?'owner':'member',status:'active'})) },
     connections: [
-      ['repository','代码仓与项目资产','asset','使用导入的 CardDemo 代码快照。'],['requirements','需求与文档','asset','关联项目需求和设计资料。'],
+      ['repository','代码仓与项目资产','asset','关联当前返现规则与项目代码。'],['requirements','需求与文档','asset','关联项目需求和设计资料。'],
       ['review','代码 Review','quality','检查业务状态、变更影响与事务边界，保留问题与修复依据。'],['test','测试与复测','quality','保留真实退出码、测试范围及结构化报告。'],
       ['security','安全扫描','quality','尚未提供安全扫描报告，需接入报告后核验。'],['model','组织模型服务','model','展示团队模型使用要求，真实凭据由原生工具管理。'],
       ['mcp','工具与 MCP','tool','按工具声明能力和权限，成员通过 iCode 调用。'],['talent','Talent 知识与演进','talent','依据 Teams 项目资产整合知识，分析轨迹并评估改进候选。'],
@@ -50,6 +52,7 @@ function need(ok:unknown,message:string):asserts ok { if(!ok)throw new DomainErr
 function text(p:Record<string,unknown>,key:string,max=1000){ const value=p[key];need(typeof value==='string'&&value.trim().length>0&&value.length<=max,`${key} 不能为空或超出长度`);return value.trim(); }
 export function updateWorkspace(previous:DemoState,kind:WorkspaceAction,role:Role,p:Record<string,unknown>,sourceAssets:readonly SourcePluginAsset[]=[],catalog:readonly SkillCatalogEntry[]=[]):DemoState {
   need(workspaceActions.includes(kind),'未知工作区操作');
+  need(previous.campaignId === campaign.id, '当前工作区使用旧活动规则，请由 Owner 在工作区设置中重置后继续');
   if(ownerActions.includes(kind)&&role!=='owner'||memberActions.includes(kind)&&role!=='member')throw new DomainError('当前角色无权执行此操作',403);
   const s=structuredClone(previous),w=s.workspace,at=new Date().toISOString(),id='demo-'+(s.revision+1);
   const writableAssets = () => {

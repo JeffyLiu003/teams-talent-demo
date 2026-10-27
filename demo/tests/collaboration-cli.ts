@@ -26,7 +26,7 @@ let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 try {
   let ready = false; for (let i = 0; i < 100; i++) { try { await get(origin, '/api/health'); await get(talent, '/api/health'); ready = true; break; } catch {} await new Promise(r => setTimeout(r, 100)); } assert.ok(ready, logs);
   const before = JSON.stringify(await state());
-  const preparation = await context(); assert.equal(preparation.mode, 'preparation'); assert.equal(preparation.agreement.id, scope.taskId); assert.deepEqual(preparation.agreement.criteria.map((item:any)=>[item.id,item.given]),[['AC-01','目标客户：白金卡客户'],['AC-02','消费期间：未来 3 个月'],['AC-03','消费返现：额外增加 0.5%']]);assert.ok(preparation.agreement.criteria.every((item:any)=>item.expected.includes('待确认')&&item.evidence.includes('待补充'))); assert.equal(JSON.stringify(await state()), before);
+  const preparation = await context(); assert.equal(preparation.mode, 'preparation'); assert.equal(preparation.agreement.id, scope.taskId); assert.deepEqual(preparation.agreement.criteria, (await get(origin, '/api/bootstrap')).data.blueprint.acceptance_criteria); assert.equal(JSON.stringify(await state()), before);
   assert.match((await cli(['context','get','--project','teams','--task','DEMO-MKT-001','--node','develop'], false)).error, /任务不属于/);
   assert.match((await cli(['context','get','--project','teams','--task','T104','--node','wrong'], false)).error, /节点不属于/);
   const teamsContext = await context({projectId:'teams',taskId:'T104',nodeId:'review'}); assert.equal(teamsContext.agreement.title,'加入团队后获取项目配置'); assert.ok(!JSON.stringify(teamsContext).includes('DEMO-MKT-001'));
